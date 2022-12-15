@@ -1,0 +1,12 @@
+/build/
+/dist/
+/qff.egg-info/
+/venv/
+/docs/_build/
+/.idea
+/example/strategy/dbl_amount.py
+/example/strategy_eval/五连阴爆发.py
+/example/strategy_eval/倍量阴线战法一.py
+/example/strategy_eval/高倍量低换手.py
+/example/strategy/lbfq.py
+/migrate/

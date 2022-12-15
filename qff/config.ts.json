@@ -1,0 +1,164 @@
+{
+  "total_position_control": {
+    "enable": true,
+    "desc": "根据大盘指数判断牛、熊及震荡市，以此决策参与的仓位",
+    "methods": [
+      {
+        "name": "tpc_by_macd",
+        "enable": true,
+        "run_time": ["before_open"],
+        "args": {
+          "ref_index": "000001"
+        },
+        "comment" : "根据指数MACD判断当前趋势，以决策当前仓位，MACD>0 50%； 同时dif>0 100%。"
+      },
+      {
+        "name" : "tpc_by_ma",
+        "enable" : false,
+        "run_time" : ["before_open"],
+        "args" : {
+          "ref_index" : "000001"
+        },
+        "comment" : "根据短中长期均线多头/空头排列，判断当前趋势，以决策当前仓位。"
+      }
+    ]
+
+  },
+  "each_position_control": {
+    "enable": true,
+    "desc": " 配置个股仓位控制策略，在买入股票时，根据策略决策买入股票金额",
+    "methods": [
+      {
+        "name": "epc_by_fix_ratio",
+        "enable": true,
+        "run_time": null,
+        "args": {
+          "ratio": 0.1
+        },
+        "comment" : "根据固定比例决策可购买的股票金额"
+      },
+      {
+        "name" : "epc_by_max_loss",
+        "enable" : false,
+        "run_time" : null,
+        "args" : {
+          "loss_ctrl" : 0.01
+        },
+        "comment" : "个股止损后不损失不超过总资产1%,倒推可以购买的股票金额"
+      }
+    ]
+  },
+  "market_risk_control": {
+    "enable": false,
+    "desc": "根据大盘走势判断大盘风险级别，并决策下一步动作,0：无风险；1：不加仓；2：减仓至50%；3：减仓至20%；4：清仓。",
+    "methods": [
+      {
+        "name": "mrc_by_form",
+        "enable": false,
+        "run_time": ["14:50"],
+        "args": {
+          "ref_index": "000001",
+          "form_type": "three_crow"
+        },
+        "comment" : "根据大盘顶部形态如三只乌鸦进行判断"
+      },
+      {
+        "name": "mrc_realtime",
+        "enable": false,
+        "run_time": ["every_bar"],
+        "args": {
+          "ref_index": "000001",
+          "fall_ratio": 0.04
+        },
+        "comment" : "日内分时图实时判断，应对大盘暴跌的风险"
+      },
+      {
+        "name": "mrc_window_period",
+        "enable": false,
+        "run_time": ["before_open"],
+        "args": {
+          "periods": [["12-20", "12-31"], ["04-15", "04-30"]]
+        },
+        "comment": "根据风险时间窗口，12月下旬、4月底、7月中旬等"
+      },
+      {
+        "name": "mrc_dropback",
+        "enable": false,
+        "run_time": ["every_bar"],
+        "args": {
+          "max_dropback": 0.08
+        },
+        "comment" : "根据整体仓位最高市值的下跌幅度，即最大回撤"
+      }
+    ]
+  },
+  "stop_loss_control": {
+    "enable": true,
+    "desc": "配置股票止损策略,stop_loss_price只能有一个策略为true",
+    "run_time": ["14:50"],
+    "main_handler": "slc_main_handler",
+    "methods": [
+      {
+        "name": "slc_fix_ratio",
+        "enable": true,
+        "args": {
+          "ratio": 0.05
+        },
+        "comment" : "固定亏损率，当买入个股的浮动亏损幅度达到某个百分点时进行止损"
+      },
+      {
+        "name": "slc_atr_multiple",
+        "enable": false,
+        "args": {
+          "multiple": 3,
+          "period": 20
+        },
+        "comment" : "3倍ATR, 买入价减去三倍20日平均日波动（ATR)作为止损价"
+      },
+      {
+        "name": "slc_before_max_loss",
+        "enable": false,
+        "args": {
+          "scope": 250,
+          "short": 3
+        },
+        "comment" : "(250天内最大的n(n=3)日跌幅 + 个股250天内平均的n日跌幅)/2"
+      }
+    ]
+  },
+  "stop_win_control": {
+    "enable": true,
+    "desc": "配置股票的止盈策略，根据股票走势，选择卖出时机",
+    "methods": [
+      {
+        "name": "swc_dropback",
+        "enable": true,
+        "run_time": ["14:50"],
+        "args": {
+          "ratio": 0.08
+        },
+        "comment" : "回撤止盈:最高价下跌百分比"
+      },
+      {
+        "name": "swc_fall_ma",
+        "enable": true,
+        "run_time": ["14:50"],
+        "args": {
+          "ma_type": "SMA",
+          "period": 10
+        },
+        "comment" : "重要的均线被跌破"
+      },
+      {
+        "name": "swc_long_time",
+        "enable": false,
+        "run_time": ["14:50"],
+        "args": {
+          "period": 10,
+          "pct": 0.1
+        },
+        "comment" : "横盘止损"
+      }
+    ]
+  }
+}
