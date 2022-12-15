@@ -1,7 +1,7 @@
 :orphan:
 
 =========================================
-AKShare documentation quick start guide
+QFF documentation quick start guide
 =========================================
 
 This file provides a quick guide on how to compile the AKShare documentation.
