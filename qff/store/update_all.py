@@ -1,3 +1,5 @@
+#！/usr/bin/python
+
 # coding :utf-8
 #
 # The MIT License (MIT)
@@ -26,22 +28,33 @@
 数据保存统一接口文件，在定时任务中自动执行
 """
 from qff.store.save_info import save_stock_list, init_index_list, init_etf_list, \
-    init_stock_list, init_stock_name, save_index_stock
+    init_stock_list, save_index_stock
 from qff.store.save_price import save_security_day, save_security_min, save_stock_xdxr, \
     save_security_block
 from qff.store.save_report import save_report
 from qff.store.save_valuation import save_valuation_data
 from qff.store.save_mtss import save_mtss_data
-
-
-def init_qff_db():
-    init_stock_list()
-    init_stock_name()
-    init_index_list()
-    init_etf_list()
+from qff.tools.config import DATABASE
+from qff.tools.date import is_trade_day
+import datetime
 
 
 def update_all():
+    op_date = str(datetime.date.today())
+    if not is_trade_day(op_date):
+        print('======== 当前不是交易日，无需更新数据！ ==========')
+        return
+    # 判断是否需要初始化
+
+    colls = DATABASE.list_collection_names()
+    if 'stock_list' not in colls:
+        init_stock_list()
+    if 'index_list' not in colls:
+        init_index_list()
+    if 'etf_list' not in colls:
+        init_etf_list()
+
+    print(f'====更新数据日期:{op_date} ==========')
     save_stock_list()
     for market_ in ['stock', 'index', 'etf']:
         save_security_day(market_)

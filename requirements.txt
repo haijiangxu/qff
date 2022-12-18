@@ -7,10 +7,8 @@ pymongo~=3.12.0
 pyecharts~=1.9.0
 requests~=2.26.0
 prettytable~=2.2.0
-
-
+python-docx~=0.8.11
 akshare==1.8.16
 python-dateutil==2.8.2
 scikit-learn==1.1.3
 seaborn==0.11.2
-setuptools==62.2.0

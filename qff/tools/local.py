@@ -30,9 +30,11 @@ import os
 4. output_path ==> 用于存放输出的文件
 """
 
-
-base_path = os.path.expanduser('~')
-qff_path = '{}{}{}'.format(base_path, os.sep, '.qff')
+if 'QFF_HOME' in os.environ.keys():
+    qff_path = os.getenv('QFF_HOME')
+else:
+    base_path = os.path.expanduser('~')
+    qff_path = '{}{}{}'.format(base_path, os.sep, '.qff')
 
 
 def generate_path(name, parents=qff_path):

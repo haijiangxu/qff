@@ -80,7 +80,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
     :type freq: str
     :type fields: str or list
     :type skip_paused: bool
-    :type fq: str
+    :type fq: str or None
     :type market: str
 
     :return: 请注意, 为了方便比较一只股票的多个属性, 同时也满足对比多只股票的一个属性的需求, 我们在security参数是一只股票和多只股票
@@ -494,6 +494,10 @@ def get_stock_name(code=None, date=None):
     :return dict: 返回股票代码与股票名称的字典
 
     """
+    if 'stock_name' not in DATABASE.list_collection_names():
+        log.error('stock_name 数据集合未初始化，请手动初始化！......')
+        return None
+
     filter: Dict[str, any] = {}
     if code is not None:
         code = util_code_tolist(code)
@@ -550,6 +554,10 @@ def get_st_stock(code=None, date=None):
     :return dict: 返回股票代码与股票名称的字典
 
     """
+    if 'stock_name' not in DATABASE.list_collection_names():
+        log.error('stock_name 数据集合未初始化，请手动初始化！......')
+        return None
+
     filter: Dict[str, any] = {}
     if code is not None:
         code = util_code_tolist(code)

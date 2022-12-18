@@ -55,13 +55,13 @@ def save_stock_list():
     :return: 无
     """
     print('====  开始更新股票列表信息 ====')
-    # 判断是否需要初始化
-    colls = DATABASE.list_collection_names()
-    if 'stock_list' not in colls:
-        init_stock_list()
-    if 'stock_name' not in colls:
-        print('stock_name 数据集合未初始化，请手动初始化！......')
-        raise
+
+    coll_list = DATABASE.get_collection('stock_list')
+    if 'stock_name' not in DATABASE.list_collection_names():
+        # print('stock_name 数据集合未初始化，请手动初始化！......')
+        coll_name = None
+    else:
+        coll_name = DATABASE.get_collection('stock_name')
 
     try:
         # 获取当日网络最新的股票信息 ['code', 'name', 'start']
@@ -69,8 +69,6 @@ def save_stock_list():
         new_list.name = new_list.name.apply(lambda x: ''.join(x.split(' ')))
 
         # 查找数据库中最新的股票信息['code', 'name', 'start', 'end']
-        coll_name = DATABASE.get_collection('stock_name')
-        coll_list = DATABASE.get_collection('stock_list')
         cursor = coll_list.find({'end': '2200-01-01'}, {'_id': 0})
         org_list = pd.DataFrame([item for item in cursor]).set_index('code')
 
@@ -89,8 +87,8 @@ def save_stock_list():
 
             data_new_stock = util_to_json_from_pandas(df_new)
             coll_list.insert_many(data_new_stock)
-            coll_name.insert_many(data_new_stock)
-
+            if coll_name:
+                coll_name.insert_many(data_new_stock)
 
         # 2、处理当日退市的股票
 
@@ -111,11 +109,12 @@ def save_stock_list():
                 for d in data:
                     coll_list.update_one({'code': d['code']}, {'$set': d})
                 # 更新stock_name
-                cursor = coll_name.find({'code': {'$in': df_tuishi.code.tolist()}, 'end': '2200-01-01'}, {'_id': 0})
-                df_name = pd.DataFrame([item for item in cursor]).assign(end=df_tuishi.end)
-                data = util_to_json_from_pandas(df_name)
-                for d in data:
-                    coll_name.update_one({'code': d['code'], 'start': d['start']}, {'$set': d}, upsert=True)
+                if coll_name:
+                    cursor = coll_name.find({'code': {'$in': df_tuishi.code.tolist()}, 'end': '2200-01-01'}, {'_id': 0})
+                    df_name = pd.DataFrame([item for item in cursor]).assign(end=df_tuishi.end)
+                    data = util_to_json_from_pandas(df_name)
+                    for d in data:
+                        coll_name.update_one({'code': d['code'], 'start': d['start']}, {'$set': d}, upsert=True)
 
         # 3、处理更名的股票
 
@@ -134,22 +133,21 @@ def save_stock_list():
                 coll_list.update_one({'code': d['code']}, {'$set': d}, upsert=True)
 
             # 3.2 更新stock_name
-            cursor = coll_name.find({'code': {'$in': df_change.code.tolist()}, 'end': '2200-01-01'}, {'_id': 0})
-            df_name_update = pd.DataFrame([item for item in cursor]).assign(end=change_date)
-            data = util_to_json_from_pandas(df_name_update)
-            for d in data:
-                coll_name.update_one({'code': d['code'], 'start': d['start']}, {'$set': d}, upsert=True)
+            if coll_name:
+                cursor = coll_name.find({'code': {'$in': df_change.code.tolist()}, 'end': '2200-01-01'}, {'_id': 0})
+                df_name_update = pd.DataFrame([item for item in cursor]).assign(end=change_date)
+                data = util_to_json_from_pandas(df_name_update)
+                for d in data:
+                    coll_name.update_one({'code': d['code'], 'start': d['start']}, {'$set': d}, upsert=True)
 
-            df_change = df_change.assign(start=change_date)
-            coll_name.insert_many(util_to_json_from_pandas(df_change))
+                df_change = df_change.assign(start=change_date)
+                coll_name.insert_many(util_to_json_from_pandas(df_change))
 
         print('====  更新股票列表完成！ ====')
 
     except Exception as err:
         print('====  更新股票列表完成！但出现异常！ ====')
         print(err)
-
-
 
 
 def init_index_list():

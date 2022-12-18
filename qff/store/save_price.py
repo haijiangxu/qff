@@ -223,23 +223,25 @@ def save_stock_xdxr(security=None):
             code = stock_list[item]
             print("\r{:^3.0f}%[{}->{}]{:.2f}s|{:.2f}s ({})".format(progress, finsh, need_do, dur, tt, code), end="")
 
-            xdxr = fetch_stock_xdxr(str(code))
-            if xdxr is None or len(xdxr) == 0:
-                continue
-            cursor = coll.find({'code': code}, {'_id': 0})
-            xdxr_db = pd.DataFrame([item for item in cursor])
-            if xdxr_db is not None and len(xdxr_db) > 0:
-                xdxr_db = xdxr_db.set_index('date', drop=False, inplace=False)
-                xdxr = pd.concat([xdxr, xdxr_db])
-                xdxr = xdxr.drop_duplicates(subset=['code', 'category', 'date'], keep=False)
-
-            if len(xdxr) > 0:
-                try:
-                    coll.insert_many(util_to_json_from_pandas(xdxr))
-                except PyMongoError:
-                    pass
-
             try:
+                xdxr_new = fetch_stock_xdxr(str(code))
+                if xdxr_new is None or len(xdxr_new) == 0:
+                    continue
+                cursor = coll.find({'code': code}, {'_id': 0})
+                xdxr_db = pd.DataFrame([item for item in cursor])
+                if xdxr_db is not None and len(xdxr_db) > 0:
+                    xdxr_db = xdxr_db.set_index('date', drop=False, inplace=False)
+                    xdxr = pd.concat([xdxr_new, xdxr_db])
+                    xdxr = xdxr.drop_duplicates(subset=['code', 'category', 'date'], keep=False)
+                else:
+                    xdxr = xdxr_new
+
+                if len(xdxr) > 0:
+                    try:
+                        coll.insert_many(util_to_json_from_pandas(xdxr))
+                    except PyMongoError:
+                        pass
+
                 try:
                     start_date = coll_adj.find_one({'code': code}, sort=[('date', -1)])['date']
                     if start_date is None or start_date == 'nan':
@@ -250,13 +252,14 @@ def save_stock_xdxr(security=None):
                     pass
 
                 # data = fetch_price(code, freq='day', market='stock', start='1990-01-01')
-                data = get_price(code, start='1990-01-01', end=end_date, freq='day', market='stock')
+                data = get_price(code, start='1990-01-01', end=end_date, freq='day', market='stock', fq=None)
                 if data is None or len(data) == 0:
                     continue
-                qfq = _calc_stock_to_fq(data, xdxr, 'qfq')
+                qfq = _calc_stock_to_fq(data, xdxr_new, 'qfq')
                 if qfq is None or len(data) == 0:
                     continue
-                qfq = qfq.reset_index().assign(date=qfq.date.apply(lambda x: str(x)[0:10]))
+                qfq = qfq.reset_index()
+                qfq = qfq.assign(date=qfq.date.apply(lambda x: str(x)[0:10]), code=code)
                 adjdata = util_to_json_from_pandas(qfq.loc[:, ['date', 'code', 'adj']])
                 coll_adj.delete_many({'code': code})
                 coll_adj.insert_many(adjdata)
@@ -265,8 +268,6 @@ def save_stock_xdxr(security=None):
 
         print('\n==== SUCCESS SAVE STOCK_XDXR DATA! ====')
 
-    except EOFError:
-        time.sleep(1)
     except Exception as e:
         print("\nError save_stock_xdxr exception!")
         print(e)
