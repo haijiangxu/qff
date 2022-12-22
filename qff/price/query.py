@@ -349,10 +349,12 @@ def attribute_history(security, count, unit='1d', fields=None, fq='pre'):
 def get_all_securities(date=None, market='stock', df=False):
     """
     获取平台支持的所有股票信息
+
     :param date:日期, 用于获取某日期还在上市的股票信息. 默认值为 None, 表示获取当日的股票信息.
         特定参数“all”， 表示获取所有日期的上市股票信息。
         特定参数“delist", 表示获取所有退市股票信息
         ** 建议使用时添加上指定date **
+
     :type date: 字符串
     :param market: 用来过滤securities的类型,目前支持的type仅有['stock', 'index', 'etf]
     :type market: 字符串
@@ -361,7 +363,9 @@ def get_all_securities(date=None, market='stock', df=False):
 
     :rtype [pandas.DataFrame] 或者 list, 根据参数df的设置
     :return:  返回标的列表， 比如：
+
         get_all_securities()[:2]
+
     返回：
         ['000001', '000002']
         当日市场交易的所有股票列表
@@ -417,6 +421,7 @@ def get_all_securities(date=None, market='stock', df=False):
 def get_security_info(code, market='stock'):
     """
     获取股票的信息.
+
     :param code: 证券代码
     :type code: 字符串
     :param market: 用来过滤code的类型,目前支持的type仅有['stock', 'index', 'etf]

@@ -5,7 +5,7 @@ QFF Python API
 qff.price
 ------------
 
-.. automodule:: qff.price.price
+.. automodule:: qff.price.query
    :members:
 
 
