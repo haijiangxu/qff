@@ -68,5 +68,5 @@ from qff.helper.formula import (
 )
 
 from qff.helper.indicator import ind_ma, ind_macd, ind_atr, ind_kdj, ind_rsi, ind_boll
-from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, fit_linear, select_zt_stock
+from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, select_zt_stock
 from qff.helper.ts import ts_init, open_position, get_stop_loss_price

@@ -26,9 +26,7 @@
 用于编写策略中常用的函数
 """
 import pandas as pd
-import numpy as np
 from datetime import datetime
-from sklearn.linear_model import LinearRegression
 from qff.price.query import get_st_stock, get_paused_stock, get_price, get_stock_list
 from qff.price.report import get_history_fundamentals
 from qff.tools.date import  get_real_trade_date
@@ -131,19 +129,20 @@ def macd_diverge(df):
     pass
 
 
-def fit_linear(x: pd.Series):
-    """
-    生成股票价格拟合的斜率,最小二乘法方程 : y = mx + c, 返回m
-    :param x: 输入数据
-    :return:
-    """
-    model = LinearRegression()
-    x_train = np.arange(0, len(x)).reshape(-1, 1)
-    y_train = x.values.reshape(-1, 1)
-    model.fit(x_train, y_train)
-    m = round(float(model.coef_), 2)
-    # c = round(float(model.intercept_), 2)
-    return m
+# def fit_linear(x: pd.Series):
+#     """
+#     生成股票价格拟合的斜率,最小二乘法方程 : y = mx + c, 返回m
+#     :param x: 输入数据
+#     :return:
+#     """
+#     from sklearn.linear_model import LinearRegression
+#     model = LinearRegression()
+#     x_train = np.arange(0, len(x)).reshape(-1, 1)
+#     y_train = x.values.reshape(-1, 1)
+#     model.fit(x_train, y_train)
+#     m = round(float(model.coef_), 2)
+#     # c = round(float(model.intercept_), 2)
+#     return m
 
 
 def trend_line(df: pd.DataFrame):

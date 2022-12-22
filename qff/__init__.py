@@ -22,9 +22,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = "0.4.8"
+__version__ = "0.4.10"
 
 import sys
+
 if sys.version_info < (3, 7):
     print(f'qff {__version__} require Python 3.7+ and 64 bit OS')
     sys.exit(1)
@@ -166,12 +167,10 @@ from qff.helper.formula import (
 )
 
 from qff.helper.indicator import ind_ma, ind_macd, ind_atr, ind_kdj, ind_rsi, ind_boll
-from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, fit_linear, select_zt_stock
+from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, select_zt_stock
 from qff.price.cache import get_current_data, CacheData
 from qff.frame.risk import Risk
 from qff.frame.performance import Performance
 from qff.frame.backtest import back_test_run
 from qff.frame.simtrade import sim_trade_run
 from qff.frame.evaluation import strategy_eval
-
-
