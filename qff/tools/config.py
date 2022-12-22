@@ -30,6 +30,7 @@ from qff.tools.local import setting_path
 from qff.tools.logs import log
 
 CONFIGFILE_PATH = '{}{}{}'.format(setting_path, os.sep, 'config.ini')
+DEFAULT_DB_URI = 'mongodb://{}'.format(os.getenv('MONGODB_URI', 'localhost'))
 DB_NAME = 'qff'
 
 
@@ -88,10 +89,7 @@ class DbClient:
         if uri is not None:
             self.mongo_uri = uri
         else:
-            default_db_uri = os.getenv('MONGODB_URI')
-            if default_db_uri is None:
-                default_db_uri = 'mongodb://{}:27017'.format(os.getenv('MONGODB', 'localhost'))
-            self.mongo_uri = get_config('MONGODB', 'uri', default_value=default_db_uri)
+            self.mongo_uri = get_config('MONGODB', 'uri', default_value=DEFAULT_DB_URI)
 
     @property
     def client(self):
