@@ -124,8 +124,7 @@ def save_stock_list():
         if len(df_change) > 0:
             change_date = get_real_trade_date(datetime.now().strftime('%Y-%m-%d'))
             # 3.1 更新stock_list 否则下次继续更新
-            # df_change = df_change.reset_index().assign(name=df_change.name_)
-            df_change['name'] = df_change['name_']
+            df_change = df_change.assign(name=df_change.name_)
             df_change.drop(['name_', 'start_'], axis=1, inplace=True)
             df_change.reset_index(inplace=True)
             data = util_to_json_from_pandas(df_change)
