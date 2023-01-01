@@ -29,6 +29,9 @@ if __name__ == '__main__':
     # df = get_price()
     # codes = get_stock_list()
     # df = get_price(codes, fields=['close'])
-    df = get_price('000300', fields=['close', 'up_count', 'down_count'], freq='30m', count=10, market='index',
-                   end='2022-05-27')
+    # df = get_price('000300', fields=['close', 'up_count', 'down_count'], freq='30m', count=10, market='index',
+    #                end='2022-05-27')
+    # df = get_price('600658', end='2021-08-27', freq='1min')
+    df = get_price('600398', end='2021-08-27', freq='1min')
+
     print(df)
