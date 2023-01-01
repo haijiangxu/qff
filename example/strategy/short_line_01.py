@@ -4,8 +4,9 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)))
 
 from qff import *
-from qff.helper.common import select_zt_stock, filter_20pct_stock, fit_linear
-
+from qff.helper.common import select_zt_stock, filter_20pct_stock
+import pandas as pd
+import numpy as np
 
 strategy_name = "首板抓起势策略"
 strategy_desc = """ 该策略的主体思路：选取第一次涨停、倍量、近段时间有上升趋势且近30日未涨过百分之15个点的股票。
@@ -95,6 +96,22 @@ def handle_trade():
             else:
                 log.info("账户资金不足，中选股票{}丢弃".format(code, cash))
             g.good_stock.remove(code)
+
+
+def fit_linear(x: pd.Series):
+    """
+    生成股票价格拟合的斜率,最小二乘法方程 : y = mx + c, 返回m
+    :param x: 输入数据
+    :return:
+    """
+    from sklearn.linear_model import LinearRegression
+    model = LinearRegression()
+    x_train = np.arange(0, len(x)).reshape(-1, 1)
+    y_train = x.values.reshape(-1, 1)
+    model.fit(x_train, y_train)
+    m = round(float(model.coef_), 2)
+    # c = round(float(model.intercept_), 2)
+    return m
 
 
 if __name__ == '__main__':

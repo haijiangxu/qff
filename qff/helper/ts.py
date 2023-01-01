@@ -155,7 +155,7 @@ def open_position(security, amount=None, price=None, stop_loss_price=None):
     """
     # 1、根据总仓位控制策略计算当前可用仓位
     if g.ts_context.available_positions < 2000:
-        log.warning('open_position：当前可用仓位金额不足'.format(security))
+        log.debug('open_position：当前可用仓位金额不足'.format(security))
         return None
 
     # 2、根据止损策略计算止损价格
@@ -201,6 +201,13 @@ def get_stop_loss_price(security, price=None):
         log.error('open_position：未获取股票{}的止损价格！'.format(security))
         return None
 
+
+def can_open_position():
+    """
+    根据仓位控制策略，以及当前仓位情况，判断当前能否进行开仓操作
+    :return: bool True-可以 False-不可以
+    """
+    return g.ts_context.available_positions >= 2000
 
 #######################################################################################################################
 # 总仓位控制策略
