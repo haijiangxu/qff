@@ -36,11 +36,12 @@ from qff.frame.context import context, strategy, RUNSTATUS, RUNTYPE, run_strateg
 from qff.frame.backup import save_context
 from qff.frame.order import order_broker
 from qff.frame.settle import settle_by_day, profit_analyse
-from qff.frame.cli import CLI
+from qff.frame.trace import Trace
 from qff.tools.date import is_trade_day
 from qff.price.fetch import fetch_current_ticks
 from qff.frame.interface import set_run_freq, set_init_cash, set_backtest_period, load_strategy_file
 from qff.tools.logs import log
+from qff.tools.local import cache_path
 
 
 def sim_trade_run(strategy_file=None, resume=False):
@@ -65,6 +66,7 @@ def sim_trade_run(strategy_file=None, resume=False):
     if not load_strategy_file(module):
         log.error("策略文件载入失败或缺少初始化函数initialize！***")
         return
+    context.strategy_file = strategy_file
 
     if resume:
         if strategy.process_initialize is not None:
@@ -90,8 +92,8 @@ def sim_trade_run(strategy_file=None, resume=False):
     sim_thread.setDaemon(True)   # 主线程A一旦执行结束，不管子线程B是否执行完成，会全部被终止。
     sim_thread.start()
     # 运行命令行环境...
-    cli = CLI()
-    cli.cmdloop()
+    trace = Trace()
+    trace.cmdloop()
     # sim_thread.join()  # 主线程等待子线程执行完成
     log.warning("实盘模拟框架运行结束！")
 
@@ -143,6 +145,15 @@ def _sim_trade_run():
             sleep(60)
     if context.status == RUNSTATUS.PAUSED:
         log.warning("回测运行暂停，保存过程数据...!")
+        default_name = context.strategy_name+'_bt.pkl'
+        if ' ' in default_name:
+            default_name = '_'.join(default_name.split(' '))
+        bf_input = input(f"输入备份文件名称[{default_name}]:")
+        if bf_input == '':
+            bf_input = default_name
+        backup_file = '{}{}{}'.format(cache_path, os.sep, bf_input)
+        print(f"策略备份文件：{backup_file}")
+        save_context(backup_file)
         save_context()
     elif context.status == RUNSTATUS.CANCELED:
         log.warning("回测执行取消...!")
