@@ -43,10 +43,10 @@ from qff.tools.utils import (
 )
 
 from qff.tools.config import (
-    DATABASE,
     get_config,
     set_config
 )
+from qff.tools.mongo import DATABASE
 
 from qff.tools.logs import log
 from qff.tools.kshow import kshow
