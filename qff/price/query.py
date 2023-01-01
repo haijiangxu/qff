@@ -30,7 +30,7 @@ import pandas as pd
 from typing import Dict
 from datetime import datetime
 from bson.regex import Regex
-from qff.tools.config import DATABASE
+from qff.tools.mongo import DATABASE
 from qff.tools.date import util_time_stamp, get_pre_trade_day, is_trade_day, get_real_trade_date, util_date_valid
 from qff.tools.utils import util_code_tolist
 from qff.tools.logs import log
@@ -145,7 +145,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
         date_index = 'datetime'
     # 3、其他参数初始化
     code = util_code_tolist(security)
-    coll = DATABASE.get_collection(market + '_' + freq)
+    coll = DATABASE.get_collection(market + '_' + freq[-3:])
     field_list = ['open', 'close', 'low', 'high', 'vol', 'amount']
     if market == 'index':
         field_list += ['up_count', 'down_count']
@@ -215,8 +215,8 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
                     '$in': code
                 },
                 "date": {
-                    "$lte": end,
-                    "$gte": start
+                    "$lte": end[:10],
+                    "$gte": start[:10]
                 }
             },
             {"_id": 0},
@@ -235,7 +235,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
             data.reset_index(inplace=True)
             data.drop('adj', axis=1, inplace=True)
             if date_index == 'datetime':
-                data.drop('date', inplace=True)
+                data.drop('date', axis=1, inplace=True)
         else:
             log.error("get_price获取复权因子失败！返回未复权值")
 
