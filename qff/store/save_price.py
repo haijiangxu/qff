@@ -32,7 +32,7 @@ import time
 from qff.price.fetch import fetch_price, fetch_stock_xdxr, fetch_stock_block
 from qff.price.query import get_all_securities, get_price
 from qff.tools.date import get_real_trade_date, get_next_trade_day
-from qff.tools.config import DATABASE
+from qff.tools.mongo import DATABASE
 from qff.tools.utils import util_to_json_from_pandas
 from pymongo.errors import PyMongoError
 
@@ -251,6 +251,8 @@ def save_stock_xdxr(security=None):
                 except TypeError or PyMongoError:
                     pass
 
+
+                # todo 减少coll_adj的更新数量，如果当日没有除权信息，则除权因子为1，直接添加数据
                 # data = fetch_price(code, freq='day', market='stock', start='1990-01-01')
                 data = get_price(code, start='1990-01-01', end=end_date, freq='day', market='stock', fq=None)
                 if data is None or len(data) == 0:

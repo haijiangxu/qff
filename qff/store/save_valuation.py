@@ -26,7 +26,7 @@ import pandas as pd
 import pymongo
 import time
 from dateutil.relativedelta import relativedelta
-from qff.tools.config import DATABASE
+from qff.tools.mongo import DATABASE
 from qff.tools.date import get_next_trade_day, get_pre_trade_day
 from qff.price.report import get_stock_reports
 from qff.tools.utils import util_to_json_from_pandas

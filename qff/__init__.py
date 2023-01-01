@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = "0.4.10"
+__version__ = "0.4.11"
 
 import sys
 
@@ -53,10 +53,10 @@ from qff.tools.utils import (
 )
 
 from qff.tools.config import (
-    DATABASE,
     get_config,
     set_config
 )
+from qff.tools.mongo import DATABASE
 
 from qff.price.query import (
     get_price,

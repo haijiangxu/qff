@@ -33,7 +33,7 @@ import time
 import pandas as pd
 from pytdx.crawler.history_financial_crawler import HistoryFinancialCrawler
 from qff.tools.local import download_path
-from qff.tools.config import DATABASE
+from qff.tools.mongo import DATABASE
 from qff.tools.utils import util_to_json_from_pandas
 
 __all__ = ['save_report']

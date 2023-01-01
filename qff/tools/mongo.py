@@ -21,12 +21,28 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import os
+
+import pymongo
+
+from qff.tools.config import get_config
+
+DEFAULT_DB_URI = 'mongodb://{}'.format(os.getenv('MONGODB_URI', 'localhost'))
+DB_NAME = 'qff'
 
 
-from qff.store.update_all import update_all
-from qff.store.save_info import save_stock_list, save_index_stock, init_index_list, \
-    init_etf_list, init_stock_name, init_stock_list
-from qff.store.save_price import save_security_day, save_security_min, save_stock_xdxr, save_security_block
-from qff.store.save_report import save_report
-from qff.store.save_valuation import save_valuation_data
-from qff.store.save_mtss import save_mtss_data
+class DbClient:
+
+    def __init__(self, uri=None):
+        if uri is not None:
+            self.mongo_uri = uri
+        else:
+            self.mongo_uri = get_config('MONGODB', 'uri', default_value=DEFAULT_DB_URI)
+
+    @property
+    def client(self):
+        return pymongo.MongoClient(self.mongo_uri)
+
+
+MONGO_CLIENT = DbClient()
+DATABASE = MONGO_CLIENT.client[DB_NAME]
