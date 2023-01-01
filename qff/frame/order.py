@@ -218,7 +218,8 @@ def order_amount(security, amount=100, price=None, callback=None):
     
     """
 
-    log.info('调用order_amount' + str(locals()).replace('{', '(').replace('}', ')'))
+    # log.info('调用order_amount' + str(locals()).replace('{', '(').replace('}', ')'))
+    log.info(f'调用order_amount(security={security}, amount={amount}, price={price})')
     slippage = context.slippage if amount > 0 else -context.slippage
     cur_data = get_current_data(security)
     if price is None:
