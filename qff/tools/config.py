@@ -25,13 +25,13 @@
 import configparser
 import os
 import json
-import pymongo
+from subprocess import call
+import platform
 from qff.tools.local import setting_path
-from qff.tools.logs import log
+
+__all__ = ['get_config', 'set_config', 'list_config', 'edit_config', 'unset_config']
 
 CONFIGFILE_PATH = '{}{}{}'.format(setting_path, os.sep, 'config.ini')
-DEFAULT_DB_URI = 'mongodb://{}'.format(os.getenv('MONGODB_URI', 'localhost'))
-DB_NAME = 'qff'
 
 
 def get_config(section, option, default_value=None):
@@ -47,8 +47,9 @@ def get_config(section, option, default_value=None):
         config.read(CONFIGFILE_PATH)
         return config.get(section, option)
     except Exception as e:
-        log.warning('config.ini文件中无该配置项,使用default_value!：\n {}'.format(e))
-        set_config(section, option, default_value)
+        print('config.ini文件中无该配置项,使用default_value!：\n {}'.format(e))
+        if default_value:
+            set_config(section, option, default_value)
         return default_value
 
 
@@ -77,24 +78,44 @@ def set_config(section, option, value):
         f = open(CONFIGFILE_PATH, 'w')
         config.write(f)
         f.close()
+        print("Writing to {}!".format(CONFIGFILE_PATH))
         return True
     except Exception as e:
-        log.error("set_config函数运行错误!\n {}".format(e))
+        print("set_config函数运行错误!\n {}".format(e))
         return False
 
 
-class DbClient:
-
-    def __init__(self, uri=None):
-        if uri is not None:
-            self.mongo_uri = uri
-        else:
-            self.mongo_uri = get_config('MONGODB', 'uri', default_value=DEFAULT_DB_URI)
-
-    @property
-    def client(self):
-        return pymongo.MongoClient(self.mongo_uri)
+def list_config():
+    config = configparser.ConfigParser()
+    config.read(CONFIGFILE_PATH)
+    sections = config.sections()
+    for section in sections:
+        options = config.options(section)
+        for option in options:
+            value = config.get(section, option)
+            print(f"{section}.{option}={value}")
 
 
-MONGO_CLIENT = DbClient()
-DATABASE = MONGO_CLIENT.client[DB_NAME]
+def edit_config():
+    if platform.system() == 'Windows':
+        os.startfile(CONFIGFILE_PATH)
+    elif platform.system() == 'Linux':
+        call(["vim", CONFIGFILE_PATH])
+    else:
+        os.system(f'open {CONFIGFILE_PATH}')
+
+
+def unset_config(section, option):
+    config = configparser.ConfigParser()
+    config.read(CONFIGFILE_PATH)
+    sections = config.sections()
+    if section not in sections:
+        print('参数section不存在！')
+        return False
+    options = config.options(section)
+    if option not in options:
+        print('参数option不存在！')
+        return False
+    config.remove_option(section, option)
+    print("Writing to {}!".format(CONFIGFILE_PATH))
+    return True

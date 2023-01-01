@@ -40,7 +40,7 @@ import os
 import time
 from qff.price.crawl import crawl_index_list, crawl_stock_list, crawl_delist_stock, crawl_index_stock_cons
 from qff.price.fetch import fetch_stock_list
-from qff.tools.config import DATABASE
+from qff.tools.mongo import DATABASE
 from qff.tools.local import cache_path
 from qff.tools.date import get_real_trade_date
 from qff.tools.utils import util_to_json_from_pandas

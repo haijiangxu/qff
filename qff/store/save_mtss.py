@@ -31,7 +31,7 @@ import pandas as pd
 import numpy as np
 import pymongo
 import random
-from qff.tools.config import DATABASE
+from qff.tools.mongo import DATABASE
 from qff.tools.date import date_to_int, get_next_trade_day, get_trade_days, get_pre_trade_day
 from qff.tools.utils import util_to_json_from_pandas
 
