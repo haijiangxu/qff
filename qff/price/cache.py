@@ -24,11 +24,12 @@
 
 from qff.tools.logs import log
 from qff.price.query import get_price, get_stock_name, get_index_name, get_stock_block
-from qff.tools.date import *
+from qff.tools.date import get_trade_min_list
 from qff.price.fetch import fetch_current_ticks, fetch_today_min_curve, fetch_price
 
 from qff.frame.context import context, RUNTYPE
 from typing import Optional
+import pandas as pd
 
 
 backtest_cache = {}  # CurrentData对象缓存
@@ -182,6 +183,19 @@ class BacktestData(CacheData):
                 break
         if data is None:
             log.error("获取BacktestData对象分钟数据失败！：{}-{}".format(context.current_dt[0:10], self.code))
+            # 按照日数据生成分钟数据
+            date_list = get_trade_min_list(context.current_dt[0:10])
+            data = pd.DataFrame(index=date_list[1:])
+            data = data.assign(
+                open=self._day_buff['open'][-1],
+                close=self._day_buff['close'][-1],
+                high=self._day_buff['high'][-1],
+                low=self._day_buff['low'][-1],
+                vol=int(self._day_buff['vol'][-1]/240),
+                amount=round(self._day_buff['amount'][-1]/240, 2)
+            )
+            self._min_buff = data
+            self._min_buff_freq = '1min'
 
     @property
     def pre_close(self):
