@@ -33,10 +33,10 @@ from pyecharts.charts import Kline, Line, Bar, Grid
 
 from qff.helper.formula import MA, MACD
 from qff.tools.local import temp_path
-from qff.price.query import get_stock_name
+from qff.price.query import get_stock_name, get_index_name
 
 
-def kshow(df, code, mp=None):
+def kshow(df, code, mp=None, index=False):
     """
     通过pyechart生成K线图
     :param df: dataframe 股票数据
@@ -46,6 +46,7 @@ def kshow(df, code, mp=None):
        “标注名称1”：[日期，价格]，
        “标注名称2”：[日期，价格]，
        }
+    :param index: bool 是否指数代码
     :return:
     """
     ky = df.loc[:, ['open', 'close', 'low', 'high']].to_dict('split')['data']
@@ -61,7 +62,10 @@ def kshow(df, code, mp=None):
     dif = _macd.DIFF.tolist()
     dea = _macd.DEA.tolist()
     macd = _macd.MACD.tolist()
-    stock_name = get_stock_name(code, date=kx[-1])[code]
+    if index:
+        stock_name = get_index_name(code)[code]
+    else:
+        stock_name = get_stock_name(code, date=kx[-1])[code]
 
     mp_data = []
     if mp is not None:
@@ -334,4 +338,7 @@ def kshow(df, code, mp=None):
 
     if platform.system() == 'Windows':
         os.startfile(chart_filename)
+    else:
+        print(f"生成k线图文件：{chart_filename}")
+
     return grid_chart

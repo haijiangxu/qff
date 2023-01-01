@@ -432,5 +432,7 @@ class Risk:
         grid_chart.render(filename)
         if platform.system() == 'Windows':
             os.startfile(filename)
+        else:
+            print(f"生成收益曲线文件：{filename}")
 
         return grid_chart
