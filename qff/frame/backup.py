@@ -29,10 +29,11 @@ from qff.tools.local import cache_path
 from qff.tools.logs import log
 
 
-def save_context():
-    file_name = context.strategy_name+'_bt' if context.run_type == RUNTYPE.BACK_TEST\
-            else context.strategy_name+'_sim'
-    backup_file = '{}{}{}'.format(cache_path, os.sep, file_name+'.pkl')
+def save_context(backup_file=None):
+    if backup_file is None:
+        file_name = context.strategy_name+'_bt' if context.run_type == RUNTYPE.BACK_TEST\
+                else context.strategy_name+'_sim'
+        backup_file = '{}{}{}'.format(cache_path, os.sep, file_name+'.pkl')
     try:
         if os.path.exists(backup_file):
             os.remove(backup_file)
@@ -46,24 +47,17 @@ def save_context():
 
 def load_context(backup_file):
     # global context, g
-    if os.path.exists(backup_file):
-        try:
-            with open(backup_file, 'rb') as pk_file:
-                res = pickle.load(pk_file)
-                c_dict: dict = res[0]
-                for key, value in c_dict.items():
-                    setattr(context, key, value)
+    with open(backup_file, 'rb') as pk_file:
+        res = pickle.load(pk_file)
+        c_dict: dict = res[0]
+        for key, value in c_dict.items():
+            setattr(context, key, value)
 
-                g_dict: dict = res[1]
-                for key, value in g_dict.items():
-                    if str(key)[0] != '_':
-                        setattr(g, key, value)
-            log.info("load_context():策略环境转载成功！")
-        except Exception as e:
-            log.error("load_context():策略环境转载失败！")
-            log.error(e)
-    else:
-        log.error("load_context():策略备份文件不存在！")
+        g_dict: dict = res[1]
+        for key, value in g_dict.items():
+            if str(key)[0] != '_':
+                setattr(g, key, value)
+    log.info("load_context():策略环境转载成功！")
 
 
 # def save_context():
