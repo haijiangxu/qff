@@ -82,7 +82,7 @@ setup(
     install_requires=read_requirements('requirements.txt'),
     entry_points={
         'console_scripts': [
-            'qff=qff.frame.entry:entry'
+            'qff=qff.__main__:main'
         ]
     },
     keywords=["QFF", "stock", "quant", 'quantize', "finance", "backtest", 'trading', 'investment', 'JoinQuant'],
@@ -101,5 +101,4 @@ setup(
 # python setup.py sdist bdist_wheel
 # 安装whl文件
 # pip install ***.whl -i https://pypi.doubanio.com/simple
-
 

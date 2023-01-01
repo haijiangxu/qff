@@ -133,6 +133,7 @@ class Context:
         self.df_positions = None        # 历史仓位列表,以DataFrame模式保存Position对象
         self.df_asset = None            # 收益曲线，以DataFrame模式保存：时间、收益、基准收益、持仓资产
         self.pass_today = False         # 分钟运行频率时，设置该值则跳过当天分钟循环
+        self.strategy_file = None       # 策略文件名称及路径
 
     @property
     def current_dt(self):
