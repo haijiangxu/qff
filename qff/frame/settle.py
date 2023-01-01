@@ -101,7 +101,8 @@ def settle_by_day():
                 context.df_orders = pd.DataFrame([do])
             else:
                 # context.history_orders = pd.concat([context.history_orders, pd.DataFrame([dict_order])])
-                context.df_orders = context.df_orders.append(pd.Series(do), ignore_index=True)
+                # context.df_orders = context.df_orders.append(pd.Series(do), ignore_index=True)
+                context.df_orders = pd.concat([context.df_orders, pd.DataFrame([do])])
     context.order_list.clear()
 
     # 二、账户及仓位信息处理
@@ -140,7 +141,8 @@ def settle_by_day():
         "pos_value": acc.positions_assets    # 当日持仓总价值
 
     }
-    context.df_asset = context.df_asset.append(pd.Series(asset_cur), ignore_index=True)
+    # context.df_asset = context.df_asset.append(pd.Series(asset_cur), ignore_index=True)
+    context.df_asset = pd.concat([context.df_asset,  pd.DataFrame([asset_cur, ])])
 
     # 3、生成持仓详情历史记录
     dp = {"date": context.current_dt[0:10]}
@@ -149,8 +151,8 @@ def settle_by_day():
         if context.df_positions is None:
             context.df_positions = pd.DataFrame([dp])
         else:
-            context.df_positions = context.df_positions.append(pd.Series(dp), ignore_index=True)
-
+            # context.df_positions = context.df_positions.append(pd.Series(dp), ignore_index=True)
+            context.df_positions = pd.concat([context.df_positions, pd.DataFrame([dp])])
     #  4、修改Portions对象中的今日开仓数据，及可出售数量，以保障今日买入的股票明日可以卖出
     #  5、仓位为0的股票，需删除该笔记录
     for pst in list(acc.positions.values()):
