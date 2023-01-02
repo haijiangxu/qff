@@ -167,7 +167,7 @@ class BacktestData(CacheData):
     def __init__(self, code, market="stock"):
         super().__init__(code, market)
         self._day_buff = get_price(code, end=context.current_dt[0:10], count=2, market=self.market)
-        if len(self._day_buff) < 2:
+        if self._day_buff is None or len(self._day_buff) < 2:
             log.error("获取BacktestData对象失败！code:{},date:{}".format(code, context.current_dt[0:10]))
         self._pre_close = self._day_buff['close'][0]
         self._day_open = self._day_buff['open'][-1]
