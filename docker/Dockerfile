@@ -6,9 +6,6 @@ MAINTAINER haijiangxu <haijiangxu@hotmail.com>
 ENV LANG=C.UTF-8
 ENV MONGODB=localhost:27017
 
-COPY init.sh /root/
-COPY jupyter_lab_config.py /root/.jupyter/
-
 ARG TZ=Asia/Shanghai
 RUN set -x \
     && export DEBIAN_FRONTEND=noninteractive \
@@ -31,19 +28,21 @@ RUN wget https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.
     && rm -rf ta-lib \
     && rm ta-lib-0.4.0-src.tar.gz
 
-RUN pip config set global.index-url http://pypi.douban.com/simple \
-    && pip config set global.trusted-host pypi.douban.com \
-    && pip install -U qff \
+RUN pip config set global.index-url  http://pypi.tuna.tsinghua.edu.cn/simple \
+    && pip config set global.trusted-host pypi.tuna.tsinghua.edu.cn \
+    && pip install qff \
     && pip install ta_lib \
     && pip install jupyterlab jupyter-console jupyterlab-language-pack-zh-CN jupyterlab-drawio jupyterlab-code-formatter black isort jupyterlab-lsp 'python-lsp-server[all]'
 
+COPY init.sh /root/
+COPY jupyter_lab_config.py /root/.jupyter/
 
 RUN mkdir /root/work\
     && echo "00 16 * * mon-fri root python /usr/local/lib/python3.8/dist-packages/qff/store/update_all.py > /root/work/cron.log 2>&1" > /etc/cron.d/daily_update\
     && crontab /etc/cron.d/daily_update\
     && chmod +x /root/init.sh
 
-EXPOSE 8888
+EXPOSE 8765
 WORKDIR /root
 VOLUME /root/work
 

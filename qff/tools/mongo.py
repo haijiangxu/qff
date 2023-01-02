@@ -27,7 +27,7 @@ import pymongo
 
 from qff.tools.config import get_config
 
-DEFAULT_DB_URI = 'mongodb://{}'.format(os.getenv('MONGODB_URI', 'localhost'))
+DEFAULT_DB_URI = 'mongodb://{}'.format(os.getenv('MONGODB', 'localhost'))
 DB_NAME = 'qff'
 
 
