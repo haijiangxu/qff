@@ -31,7 +31,7 @@ import datetime
 import time
 from qff.price.fetch import fetch_price, fetch_stock_xdxr, fetch_stock_block
 from qff.price.query import get_all_securities, get_price
-from qff.tools.date import get_real_trade_date, get_next_trade_day
+from qff.tools.date import get_real_trade_date, get_next_trade_day, get_trade_days
 from qff.tools.mongo import DATABASE
 from qff.tools.utils import util_to_json_from_pandas
 from pymongo.errors import PyMongoError
@@ -82,6 +82,20 @@ def save_security_day(market='stock', security=None):
                     if data is None or len(data) == 0:
                         continue
                     data = data.loc[:end_date]
+                    # dl = get_trade_days(data.index[0], end_date)
+                    # if len(dl) > len(data):
+                    #     # 存在停牌日数据
+                    #     dl_df = pd.DataFrame(index=pd.Index(dl))
+                    #     data = dl_df.join(data).sort_index()
+                    #
+                    #     data.code.fillna(value=code, inplace=True)
+                    #     data.close.fillna(method='ffill', inplace=True)
+                    #
+                    #     data.fillna(method='bfill', axis=1, inplace=True)
+                    #     data.vol.fillna(value=0, inplace=True)
+                    #     data.amount.fillna(value=0, inplace=True)
+                    #     data.fillna(method='ffill', axis=1, inplace=True)
+
                     data.reset_index(inplace=True)
                     data_num += len(data)
                     data_list.append(data)
@@ -129,8 +143,6 @@ def save_security_min(market='stock', freq='1min', security=None):
         coll = DATABASE.get_collection(table_name)
         coll.create_index([("type", 1), ("code", 1), ("datetime", 1)], unique=True)
 
-        data_num = 0
-        data_list = []
         start = time.perf_counter()
         total = len(stock_list)
         for item in range(total):
@@ -249,22 +261,31 @@ def save_stock_xdxr(security=None):
                     if start_date >= end_date:
                         continue
                 except TypeError or PyMongoError:
-                    pass
+                    start_date = '1990-01-01'
 
+                # 减少coll_adj的更新数量，如果当日没有除权信息，则除权因子为1，直接添加数据
+                if len(xdxr) > 0:
+                    data = get_price(code, start='1990-01-01', end=end_date, freq='day', market='stock', fq=None)
+                    if data is None or len(data) == 0:
+                        continue
+                    qfq = _calc_stock_to_fq(data, xdxr_new, 'qfq')
+                    if qfq is None or len(data) == 0:
+                        continue
+                    qfq = qfq.reset_index()
+                    qfq = qfq.assign(date=qfq.date.apply(lambda x: str(x)[0:10]), code=code)
+                    adjdata = util_to_json_from_pandas(qfq.loc[:, ['date', 'code', 'adj']])
+                    coll_adj.delete_many({'code': code})
+                    coll_adj.insert_many(adjdata)
+                else:
+                    start_date = get_next_trade_day(start_date)
+                    qfq = pd.DataFrame()
+                    qfq = qfq.assign(
+                        date=get_trade_days(start_date, end_date),
+                        code=code,
+                        adj=1.0
+                    )
+                    coll_adj.insert_many(util_to_json_from_pandas(qfq))
 
-                # todo 减少coll_adj的更新数量，如果当日没有除权信息，则除权因子为1，直接添加数据
-                # data = fetch_price(code, freq='day', market='stock', start='1990-01-01')
-                data = get_price(code, start='1990-01-01', end=end_date, freq='day', market='stock', fq=None)
-                if data is None or len(data) == 0:
-                    continue
-                qfq = _calc_stock_to_fq(data, xdxr_new, 'qfq')
-                if qfq is None or len(data) == 0:
-                    continue
-                qfq = qfq.reset_index()
-                qfq = qfq.assign(date=qfq.date.apply(lambda x: str(x)[0:10]), code=code)
-                adjdata = util_to_json_from_pandas(qfq.loc[:, ['date', 'code', 'adj']])
-                coll_adj.delete_many({'code': code})
-                coll_adj.insert_many(adjdata)
             except Exception as e:
                 print(e)
 
