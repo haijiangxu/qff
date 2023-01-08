@@ -72,9 +72,9 @@ def back_test_run(strategy_file, resume=False):
 
     if resume:
         if strategy.process_initialize is not None:
-            strategy.process_initialize()
+            strategy.process_initialize(context)
     else:
-        strategy.initialize()
+        strategy.initialize(context)
 
     if context.strategy_name is None:
         context.strategy_name = os.path.basename(strategy_file).split('.')[0]

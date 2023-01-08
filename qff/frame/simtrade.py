@@ -70,9 +70,9 @@ def sim_trade_run(strategy_file=None, resume=False):
 
     if resume:
         if strategy.process_initialize is not None:
-            strategy.process_initialize()
+            strategy.process_initialize(context)
     else:
-        strategy.initialize()
+        strategy.initialize(context)
 
     if context.strategy_name is None:
         context.strategy_name = os.path.basename(sys.argv[0]).split('.')[0]

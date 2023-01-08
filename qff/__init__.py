@@ -89,15 +89,10 @@ from qff.price.fetch import (
     fetch_price,
     fetch_today_min_curve,
     fetch_current_ticks,
-    fetch_stock_info,
     fetch_today_transaction,
-    fetch_stock_list,
     fetch_ticks,
-    fetch_stock_block,
-    fetch_stock_xdxr
 )
 from qff.frame.context import (
-    context,
     strategy,
     g,
     Context,

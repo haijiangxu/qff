@@ -13,7 +13,7 @@ strategy_desc = """ 该策略的主体思路：选取第一次涨停、倍量、
 取30日涨幅不超15%，且30-360日处于升幅(线性拟合)的票，以120日的拟合升幅作为因子取最大值选股."""
 
 
-def initialize():
+def initialize(context):
     # 设置回测周期
     set_backtest_period(start="2021-08-27", end="2022-03-25")
     # 设置初始资金
@@ -37,7 +37,7 @@ def initialize():
     # run_daily(after_trading_end, run_time='after_close')
 
 
-def before_trading_start():
+def before_trading_start(context):
     log.info("before_trading_start函数运行...")
     yesterday = context.previous_date
     zt = select_zt_stock(date=yesterday)
@@ -67,7 +67,7 @@ def before_trading_start():
         log.info("{}满足策略选择条件！".format(res[0]))
 
 
-def handle_trade():
+def handle_trade(context):
     # 卖出策略
     # 准备卖出，三种卖：涨幅超5%卖，超19日卖，当日跌幅超4卖？
     if len(context.portfolio.positions) > 0:

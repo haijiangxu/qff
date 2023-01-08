@@ -27,7 +27,7 @@ from qff import *
 strategy_name = "样例策略文件"
 
 
-def initialize():
+def initialize(context):
     log.info("{} : 初始化运行".format(strategy_name))
     # 设置回测周期
     set_backtest_period(start="2021-08-27", end="2022-03-25")
@@ -41,16 +41,16 @@ def initialize():
     run_daily(handle_trade, run_time="09:50")
 
 
-def before_trading_start():
+def before_trading_start(context):
     log.info("before_trading_start函数运行...")
     pass
 
 
-def handle_trade():
+def handle_trade(context):
     pass
 
 
-def after_trading_end():
+def after_trading_end(context):
     log.info("after_trading_end函数运行...")
     pass
 
