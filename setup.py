@@ -78,7 +78,12 @@ setup(
         'Programming Language :: Python',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10'
     ],
+    url='https://github.com/haijiangxu/qff',
     install_requires=read_requirements('requirements.txt'),
     entry_points={
         'console_scripts': [
@@ -88,13 +93,12 @@ setup(
     keywords=["QFF", "stock", "quant", 'quantize', "finance", "backtest", 'trading', 'investment', 'JoinQuant'],
 
     author_email="haijiangxu@hotmail.com",
-    url="",
     license="MIT",
     packages=find_packages(),
     # package_data={"qff": ["*.py", "*.json", "*.pk", "*.js", "*.zip"]},
     include_package_data=True,
     zip_safe=True,
-    python_requires=">=3.7, <4",
+    python_requires=">=3.7",
 )
 
 # 生成whl安装文件
