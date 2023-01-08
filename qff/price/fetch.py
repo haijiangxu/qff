@@ -30,9 +30,12 @@ import pandas as pd
 from datetime import date
 from pytdx.hq import TdxHq_API
 # from retrying import retry
-from qff.tools.date import is_trade_day, get_trade_gap, run_time
+from qff.tools.date import is_trade_day, get_trade_gap, run_time, get_real_trade_date
 from qff.tools.logs import log
 from qff.tools.tdx import get_best_ip, select_market_code, select_index_code
+
+
+__all__ = ["fetch_price", "fetch_ticks", "fetch_current_ticks", "fetch_today_transaction", "fetch_today_min_curve"]
 
 
 def _select_freq(freq):
@@ -89,13 +92,21 @@ def _calc_today_min_len():
 def fetch_price(code, count=None, freq='day', market='stock', start=None):
     """
     从tdx服务器上获取曲线数据，仅可查询一支股票，按天或者分钟，返回数据格式为 DataFrame
+
     :param code: 一支股票代码或者一个指数代码
-    :param count: 与 start 二选一，不可同时使用，如果同时存在，start参数无效.
-                  数量, 返回的结果集的行数, 即表示获取至当前时刻之前几个frequency的数据,-1表示所有数据。
+    :param count: 返回的结果集的行数, 即表示获取至当前时刻之前几个frequency的数据,-1表示所有数据。
+        与 start 二选一，不可同时使用，如果同时存在，start参数无效
     :param freq: 单位时间长度, 天或者分钟, 现在支持，day/week/month/quarter/year/1m/5m/15m/30m/60m ,默认值是day
     :param market: 市场类型，目前支持“stock/index/etf", 默认“stock".
-    :param start: 与 count 二选一，不可同时使用. 字符串或者 datetime.date 对象, 开始日期，不带分钟信息.
-                   如果 count 和 start 参数都没有, 则取count=1,即获取最近一条数据。
+    :param start: 开始日期，不带分钟信息。与 count 二选一，不可同时使用. 字符串或者 datetime.date 对象,如果 count
+        和 start 参数都没有, 则取count=1,即获取最近一条数据。
+
+    :type code: str
+    :type count: int
+    :type freq: str
+    :type market: str
+    :type start: str
+
     :return:
         返回[pandas.DataFrame]对象, 行索引是date(分钟级别数据为datetime), 列索引是行情字段名字.
         如果只获取了一天,而当天停牌,返回None，注意：所有数据都未复权
@@ -160,6 +171,16 @@ def fetch_price(code, count=None, freq='day', market='stock', start=None):
 def fetch_today_min_curve(code, market='stock'):
     """
     获取当天的分钟曲线，返回当前时间前的当日1分钟曲线数据，用于模拟交易环境
+
+    :param code: 一支股票代码或者一个指数代码
+    :param market: 市场类型，目前支持“stock/index/etf", 默认“stock".
+
+    :type code: str
+    :type market: str
+
+    :return:
+        返回[pandas.DataFrame]对象, 行索引是date(分钟级别数据为datetime), 列索引是行情字段名字.
+
     """
     count = _calc_today_min_len()
     return fetch_price(code, count, freq='1m', market=market)
@@ -168,23 +189,33 @@ def fetch_today_min_curve(code, market='stock'):
 def fetch_current_ticks(code, market='stock'):
     """
     获取单个股票或指数当前时刻的ticks数据
+
     :param code: 一支股票代码或者一个指数代码
     :param market: 市场类型，目前支持“stock"和”index", 默认“stock".
-    :return: dict
-            price:当前价格
-            last_close:昨日收盘价
-            open:当日开盘价
-            high:截至到当前时刻的日内最高价
-            low:截至到当前时刻的日内最低价
-            vol:截至到当前时刻的日内总手数
-            cur_vol: 当前tick成交笔数
-            amount:截至到当前时刻的日内总成交额
-            s_vol:内盘
-            b_vol:外盘
-            bid1~bid5: 买一到买五价格
-            ask1~ask5: 卖一到卖五价格
-            bid_vol1~bid_vol5: 买一到买五挂单手数
-            ask_vol1~ask_vol5: 卖一到卖五挂单手数
+
+    :type code: str
+    :type market: str
+
+    :return: 返回[Dict]对象,各字段含义如下:
+
+        ==================  ====================
+        字段名	                含义
+        ==================  ====================
+        price               当前价格
+        last_close          昨日收盘价
+        open                当日开盘价
+        high                截至到当前时刻的日内最高价
+        low                 截至到当前时刻的日内最低价
+        vol                 截至到当前时刻的日内总手数
+        cur_vol             当前tick成交笔数
+        amount              截至到当前时刻的日内总成交额
+        s_vol               内盘
+        b_vol               外盘
+        bid1~bid5           买一到买五价格
+        ask1~ask5           卖一到卖五价格
+        bid_vol1~bid_vol5   买一到买五挂单手数
+        ask_vol1~ask_vol5   卖一到卖五挂单手数
+        ==================  ====================
 
     """
     ip, port = get_best_ip()
@@ -199,24 +230,33 @@ def fetch_current_ticks(code, market='stock'):
 def fetch_ticks(code, market='stock'):
     """
     获取股票或指数列表当前时刻的ticks数据
-    :param code: 一股票或者指数代码列表
-    :param market: 市场类型，目前支持“stock"和”index", 默认“stock".
-    :return: DataFrame
-            price:当前价格
-            last_close:昨日收盘价
-            open:当日开盘价
-            high:截至到当前时刻的日内最高价
-            low:截至到当前时刻的日内最低价
-            vol:截至到当前时刻的日内总手数
-            cur_vol: 当前tick成交笔数
-            amount:截至到当前时刻的日内总成交额
-            s_vol:内盘
-            b_vol:外盘
-            bid1~bid5: 买一到买五价格
-            ask1~ask5: 卖一到卖五价格
-            bid_vol1~bid_vol5: 买一到买五挂单手数
-            ask_vol1~ask_vol5: 卖一到卖五挂单手数
 
+    :param code: 一支股票代码或者一个指数代码列表
+    :param market: 市场类型，目前支持“stock"和”index", 默认“stock".
+
+    :type code: list
+    :type market: str
+
+    :return: 返回[pandas.DataFrame]对象,当前股票列表对应的tick数据。各字段含义如下:
+
+        ==================  ====================
+        字段名	                含义
+        ==================  ====================
+        price               当前价格
+        last_close          昨日收盘价
+        open                当日开盘价
+        high                截至到当前时刻的日内最高价
+        low                 截至到当前时刻的日内最低价
+        vol                 截至到当前时刻的日内总手数
+        cur_vol             当前tick成交笔数
+        amount              截至到当前时刻的日内总成交额
+        s_vol               内盘
+        b_vol               外盘
+        bid1~bid5           买一到买五价格
+        ask1~ask5           卖一到卖五价格
+        bid_vol1~bid_vol5   买一到买五挂单手数
+        ask_vol1~ask_vol5   卖一到卖五挂单手数
+        ==================  ====================
     """
     stocks = [(select_market_code(code, market), code) for code in code]
     ip, port = get_best_ip()
@@ -230,9 +270,22 @@ def fetch_ticks(code, market='stock'):
 
 def fetch_today_transaction(code):
     """
-    实时分笔成交 包含集合竞价 buyorsell 1--sell 0--buy 2--盘前'
-    :param code:
-    :return:
+    获取当日实时分笔成交信息，包含集合竞价
+
+    :param code: 一支股票代码
+    :type code: str
+
+    :return: 返回对应股票的分笔成交信息，
+
+    ::
+
+                          price    vol   num       buyorsell
+        datetime
+        2022-12-30 09:25  13.04   3119  153          2
+        2022-12-30 09:30  13.04   2965   89          0
+        2022-12-30 09:30  13.05  10320  182          0
+
+        其中： buyorsell 1--sell 0--buy 2--盘前'
     """
     ip, port = get_best_ip()
     api = TdxHq_API()
@@ -244,7 +297,7 @@ def fetch_today_transaction(code):
                 select_market_code(str(code)), code, (2 - i) * 2000, 2000))
                 for i in range(3)], axis=0, sort=False)
             data = data.dropna()
-            day = str(date.today())
+            day = get_real_trade_date(date.today())
             data = data.assign(datetime=data['time'].apply(lambda x: day + ' ' + str(x)))
             data = data.drop(['time'], axis=1)
             data.set_index('datetime', inplace=True)
@@ -259,6 +312,7 @@ def fetch_today_transaction(code):
 def fetch_stock_info(code):
     """
     获取当日股票基本信息
+
     :param code: 股票代码
     :return: dict
 
@@ -273,7 +327,9 @@ def fetch_stock_info(code):
 def fetch_stock_list(market='stock'):
     """
     获取当日股票/指数/ETF列表
+
     :param market: 市场类型stock/index/etf
+
     :return: dataframe
 
     """
@@ -367,7 +423,7 @@ def fetch_stock_xdxr(code):
 def fetch_stock_block():
     """
     获取股票板块数据，包括概念板块、风格板块、指数板块
-    :return:
+
     """
     ip, port = get_best_ip()
     api = TdxHq_API()
