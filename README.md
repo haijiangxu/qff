@@ -1,5 +1,12 @@
 # QFF: Quantize Financial Framework
 
+![PyPI](https://img.shields.io/pypi/v/qff)
+![Python](https://img.shields.io/pypi/pyversions/qff.svg)
+![Docker Image Version (latest by date)](https://img.shields.io/docker/v/haijiangxu/qff)
+[![Documentation Status](https://readthedocs.org/projects/qff/badge/?version=latest)](https://qff.readthedocs.io/en/latest/?badge=latest)
+
+
+
 **QFF** is a Python package of quantitative financial framework, which is used to provide a localized backtesting and simulation trading environment for individuals, so that users can focus more on trading strategy writing.
 
 ## Main Features
@@ -28,10 +35,24 @@ pip install qff -i http://mirrors.aliyun.com/pypi/simple/ --upgrade
 
 ### Docker
 
-*...To Be Done!*
+Docker image for the QFF is at https://hub.docker.com/r/haijiangxu/qff.
+
+#### pull docker image
+```shell
+docker pull qff
+```
+
+#### run docker image
+```shell
+docker run -d -v /root/xxxx:/root/work -p 8765:8765  qff
+```
+
+
 
 ## Document
-*...To Be Done!*
+
+Documentation for the latest Current release is at https://qff.readthedocs.io/en/latest/. 
+
 
 ## Contribution
 QFF is still under developing, feel free to open issues and pull requests:

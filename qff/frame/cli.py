@@ -224,7 +224,7 @@ class CreateCommand(Command):
 
         import requests
         resp = requests.get(
-            'https://github.com/haijiangxu/qff/blob/master/example/example.py'
+            'https://raw.githubusercontent.com/haijiangxu/qff/master/example/example.py'
         )
 
         if resp.ok:
