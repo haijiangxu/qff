@@ -113,7 +113,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
             freq not in ['daily', '1d', 'day', '1min', '5min', '15min', '30min', '60min', '1m', '5m', '15m', '30m',
                          '60m'] or fq not in ['pre', None]:
         log.error('get_price：参数错误！对照API文档检查market、freq、fq等参数的合法性！')
-    if market != 'stock' and (freq == 'pre' or skip_paused):
+    if market != 'stock' and (fq == 'pre' or skip_paused):
         log.error('get_price：参数错误！对照API文档检查market、skip_paused、fq等参数的合法性！')
 
     # 2、开始和结束时间计算
@@ -125,7 +125,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
         if count is None:
             start = end
         else:
-            start = get_pre_trade_day(end, count - 1)
+            start = get_pre_trade_day(end, count - 1, freq)
 
     if freq in ['daily', '1d', 'day']:
         start = str(start)[:10]

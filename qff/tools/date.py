@@ -705,26 +705,35 @@ def get_pre_trade_day(date, n=1, freq='day'):
     :return: 返回计算后的日期 str
     """
     date = str(date)[0:10]
-    _time = str(date)[10:]
 
-    if not is_trade_day(date):
-        date = get_real_trade_date(date, -1)
-        _time = ' 15:00:00'
-
-    if str(freq) in ['5m', '5min']:
-        div = 48
-    elif str(freq) in ['15m', '15min']:
-        div = 16
-    elif str(freq) in ['30m', '30min']:
-        div = 8
-    elif str(freq) in ['60m', '60min']:
-        div = 4
-    elif str(freq) in ['1m', '1min']:
-        div = 240
+    if freq in ['daily', '1d', 'day']:
+        if not is_trade_day(date):
+            date = get_real_trade_date(date, -1)
+        return get_date_gap(date, n, "lt")
     else:
-        div = 1
+        _time = str(date)[10:]
+        if not is_trade_day(date):
+            date = get_real_trade_date(date, -1)
+            _time = ' 15:00:00'
 
-    return get_date_gap(date, math.ceil(n / div), "lt") + _time
+        if str(freq) in ['5m', '5min']:
+            div = 48
+        elif str(freq) in ['15m', '15min']:
+            div = 16
+        elif str(freq) in ['30m', '30min']:
+            div = 8
+        elif str(freq) in ['60m', '60min']:
+            div = 4
+        elif str(freq) in ['1m', '1min']:
+            div = 240
+        else:
+            raise ValueError
+
+        new = get_date_gap(date, math.ceil(n / div), "lt")
+        if isinstance(new, str):
+            return new + _time
+        else:
+            raise ValueError
 
 
 def get_trade_days(start, end):
