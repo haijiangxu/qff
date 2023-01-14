@@ -22,11 +22,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
-from qff.store.update_all import update_all
-from qff.store.save_info import save_stock_list, save_index_stock, init_index_list, \
-    init_etf_list, init_stock_name, init_stock_list
-from qff.store.save_price import save_security_day, save_security_min, save_stock_xdxr, save_security_block
-from qff.store.save_report import save_report
-from qff.store.save_valuation import save_valuation_data
-from qff.store.save_mtss import save_mtss_data
+#
+# from qff.store.update_all import update_all
+# from qff.store.save_info import save_stock_list, save_index_stock, init_index_list, \
+#     init_etf_list, init_stock_name, init_stock_list
+# from qff.store.save_price import save_security_day, save_security_min, save_stock_xdxr, save_security_block
+# from qff.store.save_report import save_report
+# from qff.store.save_valuation import save_valuation_data
+# from qff.store.save_mtss import save_mtss_data

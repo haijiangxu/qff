@@ -32,41 +32,41 @@
     6、择时模型
 
 """
-from qff.helper.formula import (
-    ABS,
-    AVEDEV,
-    BBI,
-    BBIBOLL,
-    BARLAST,
-    BARLAST_EXIST,
-    COUNT,
-    CROSS,
-    CROSS_STATUS,
-    DIFF,
-    EMA,
-    EVERY,
-    EXIST,
-    FILTER,
-    HHV,
-    IF,
-    IFOR,
-    IFAND,
-    LLV,
-    LAST,
-    MIN,
-    MA,
-    MAX,
-    MACD,
-    REF,
-    RENKO,
-    RENKOP,
-    SMA,
-    SUM,
-    STD,
-    SINGLE_CROSS,
-    XARROUND,
-)
-
-from qff.helper.indicator import ind_ma, ind_macd, ind_atr, ind_kdj, ind_rsi, ind_boll
-from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, select_zt_stock
-from qff.helper.ts import ts_init, open_position, get_stop_loss_price
+# from qff.helper.formula import (
+#     ABS,
+#     AVEDEV,
+#     BBI,
+#     BBIBOLL,
+#     BARLAST,
+#     BARLAST_EXIST,
+#     COUNT,
+#     CROSS,
+#     CROSS_STATUS,
+#     DIFF,
+#     EMA,
+#     EVERY,
+#     EXIST,
+#     FILTER,
+#     HHV,
+#     IF,
+#     IFOR,
+#     IFAND,
+#     LLV,
+#     LAST,
+#     MIN,
+#     MA,
+#     MAX,
+#     MACD,
+#     REF,
+#     RENKO,
+#     RENKOP,
+#     SMA,
+#     SUM,
+#     STD,
+#     SINGLE_CROSS,
+#     XARROUND,
+# )
+#
+# from qff.helper.indicator import ind_ma, ind_macd, ind_atr, ind_kdj, ind_rsi, ind_boll
+# from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, select_zt_stock
+# from qff.helper.ts import ts_init, open_position, get_stop_loss_price
