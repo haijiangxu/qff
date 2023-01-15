@@ -41,7 +41,7 @@ import prettytable as pt
 from qff.frame.context import context, Portfolio, Position, RUNTYPE, RUNSTATUS, g
 from qff.price.cache import get_current_data
 from qff.frame.risk import Risk
-from qff.frame.performance import Performance
+from qff.frame.perf import Perf
 from qff.price.fetch import fetch_current_ticks
 from qff.price.query import get_price
 from qff.tools.kshow import kshow
@@ -190,7 +190,7 @@ class Trace(Cmd):
         print("当前日期:{}".format(context.current_dt))
 
         if context.df_orders is not None:
-            perf = Performance(df_order=context.df_orders)
+            perf = Perf(df_order=context.df_orders)
             if perf.pnl is not None:
                 print_dict(perf.message, '策略绩效分析')
                 df = perf.pnl.reset_index().reset_index()
@@ -291,7 +291,7 @@ class Trace(Cmd):
             print("当前日期:{}".format(context.current_dt))
 
             if context.df_orders is not None:
-                perf = Performance(df_order=context.df_orders)
+                perf = Perf(df_order=context.df_orders)
                 if perf.pnl is not None:
                     df = perf.pnl.reset_index().reset_index()
                     print_df(df, '账户交易配对情况')
@@ -310,7 +310,7 @@ class Trace(Cmd):
             arg = arg.split(" ")
             ind = int(arg[0])
             if context.df_orders is not None:
-                perf = Performance(df_order=context.df_orders)
+                perf = Perf(df_order=context.df_orders)
                 if perf.pnl is not None and len(perf.pnl) > ind:
                     pair = perf.pnl.iloc[ind]
                     code = pair.name

@@ -35,7 +35,7 @@ from pandas import DataFrame
 from qff.tools.date import get_trade_gap
 
 
-class Performance:
+class Perf:
     pnl: Union[DataFrame, Any]
 
     def __init__(self, df_order=None, model='fifo', pnl=None):

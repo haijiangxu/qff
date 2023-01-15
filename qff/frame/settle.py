@@ -34,7 +34,7 @@ from qff.frame.context import context, Position, RUNTYPE
 from qff.frame.order import Order, ORDER_OPEN, ORDER_DEAL
 from qff.price.cache import get_current_data, clear_current_data
 from qff.frame.risk import Risk
-from qff.frame.performance import Performance
+from qff.frame.perf import Perf
 
 
 def settle_by_day():
@@ -178,6 +178,8 @@ def profit_analyse():
     3、每日仓位记录文件，excel格式
     4、回测收益对比图文件
     5、计算总的风险指标
+
+    TODO: 使用Jinja2生成分析报告 https://baijiahao.baidu.com/s?id=1703525230382867872&wfr=spider&for=pc
     """
 
     out_path = back_test_path if context.run_type == RUNTYPE.BACK_TEST else sim_trade_path
@@ -216,7 +218,7 @@ def profit_analyse():
     df_risk.to_excel(writer, sheet_name='风险指标')
 
     if context.df_orders is not None:
-        perf = Performance(df_order=context.df_orders)
+        perf = Perf(df_order=context.df_orders)
         df_perf = pd.Series(data=perf.message)
         df_perf.to_excel(writer, sheet_name='绩效指标')
         # perf.plot_pnlratio()
