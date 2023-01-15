@@ -48,7 +48,7 @@ import json
 from functools import partial
 
 from qff.frame.context import context, g, RUNTYPE
-from qff.frame.interface import run_daily
+from qff.frame.api import run_daily
 from qff.frame.order import order_value, order_target, ORDER_DEAL
 from qff.price.cache import get_current_data
 from qff.price.query import get_price
@@ -208,6 +208,7 @@ def can_open_position():
     :return: bool True-可以 False-不可以
     """
     return g.ts_context.available_positions >= 2000
+
 
 #######################################################################################################################
 # 总仓位控制策略
