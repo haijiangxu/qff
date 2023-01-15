@@ -1,8 +1,8 @@
 # 安装指南
 
+![Python](https://img.shields.io/pypi/pyversions/qff.svg)
 
 ```{admonition} 注解
-- QFF仅支持[Python](https://www.python.org/)3.7(64 位) 及以上版本, 这里推荐[Python](https://www.python.org/)3.8.10(64 位) 版本。
 - 如果执行 `pip install`安装依赖库网络速度比较慢的话，推荐使用 
 `pip install -i https://pypi.douban.com/simple` 国内镜像来加速。
 - 为避免因为环境问题出现安装失败，建议您使用虚拟环境安装，推荐使用
