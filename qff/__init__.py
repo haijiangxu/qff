@@ -94,6 +94,7 @@ from qff.price.fetch import (
 )
 from qff.frame.context import (
     strategy,
+    context,
     g,
     Context,
     Portfolio,
@@ -111,19 +112,15 @@ from qff.frame.order import (
     order_cancel
 )
 
-from qff.frame.interface import (
-    set_run_freq,
-    set_backtest_period,
-    set_init_cash,
+from qff.frame.api import (
     set_benchmark,
     set_slippage,
     set_order_cost,
+    run_daily,
+    run_file,
     set_universe,
     del_universe,
-    run_daily,
-    pass_today,
-    set_strategy_name,
-    load_strategy_file
+    pass_today
 )
 
 from qff.helper.formula import (
@@ -165,7 +162,5 @@ from qff.helper.indicator import ind_ma, ind_macd, ind_atr, ind_kdj, ind_rsi, in
 from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, select_zt_stock
 from qff.price.cache import get_current_data, CacheData
 from qff.frame.risk import Risk
-from qff.frame.performance import Performance
-from qff.frame.backtest import back_test_run
-from qff.frame.simtrade import sim_trade_run
+from qff.frame.perf import Perf
 from qff.frame.evaluation import strategy_eval

@@ -167,6 +167,6 @@ def run_strategy_funcs(strategy_funcs):
     if isinstance(strategy_funcs, list):
         for func in strategy_funcs:
             if callable(func):
-                func(context)
+                func()
     elif callable(strategy_funcs):
-        strategy_funcs(context)
+        strategy_funcs()
