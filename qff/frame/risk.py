@@ -23,6 +23,7 @@
 # SOFTWARE.
 
 # 风险指标计算模块
+# TODO: 使用empyrical、pyfolio计算风险指标和生成图形文件
 
 import os
 import platform
@@ -214,6 +215,7 @@ class Risk:
         """
         索提诺比率 投资组合收益和下行风险比值
 
+
         """
         return round(
             float(
@@ -300,7 +302,7 @@ class Risk:
             'beta': self.beta,
             'alpha': self.alpha,
             'sharpe': self.sharpe,
-            'sortino': self.sortino,
+            # 'sortino': self.sortino,
             'ir': self.ir,
             '日胜率': '{:.2%}'.format(self.daily_win_ratio),
             '最大持仓市值': self.max_holdmarketvalue,
