@@ -79,7 +79,7 @@ html_static_path = ['_static']
 #
 html_theme = "sphinx_rtd_theme"
 # html_theme = 'alabaster'
-html_logo = './_static/logo.png'
+html_logo = './_static/logo.svg'
 master_doc = "index"
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
