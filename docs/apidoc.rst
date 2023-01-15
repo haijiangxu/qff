@@ -3,7 +3,7 @@ QFF Python API
 
 
 历史数据查询接口
-------------
+------------------
 
 .. automodule:: qff.price.query
    :members:

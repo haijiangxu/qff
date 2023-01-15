@@ -53,8 +53,15 @@ version = get_version_string()
 extensions = [
     'sphinx.ext.autodoc',
     "myst_parser",
-    "sphinx_rtd_theme"
+    "sphinx_rtd_theme",
+    'sphinx.ext.autosummary',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.todo',
+    'sphinx_autodoc_typehints',
 ]
+
+myst_heading_anchors = 3
+myst_enable_extensions = ["deflist", "tasklist", "colon_fence"]
 
 templates_path = ['_templates']
 html_static_path = ['_static']
@@ -77,4 +84,13 @@ master_doc = "index"
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
 
+
+html_use_index = True
+
 html_show_sphinx = False
+html_show_copyright = True
+
+# Output file base name for HTML help builder.
+htmlhelp_basename = 'qffdoc'
+# If true, `todo` and `todoList` produce output, else they produce nothing.
+todo_include_todos = True

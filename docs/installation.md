@@ -1,115 +1,90 @@
-#  安装指导
-
-## 重要提示
-
-1. 目前 [OpenQFF] 仅支持 64 位版本的操作系统安装和使用;
-2. 目前 [OpenQFF] 仅支持 [Python](https://www.python.org/) 3.7(64 位) 及以上版本, 这里推荐 [Python](https://www.python.org/) 3.8.13(64 位) 版本;
-3. [OpenQFF] 推荐安装最新版本的 [Anaconda (64 位)](https://www.anaconda.com/), 可以解决大部分环境配置问题;
-4. 对于熟悉容器技术的小伙伴, 可以安装 Docker 使用, 指导教程如下: [OpenQFF Docker 部署].
-
-## 安装 [OpenQFF]
+# 安装指南
 
 
-### 通用安装
-
+```{admonition} 注解
+- QFF仅支持[Python](https://www.python.org/)3.7(64 位) 及以上版本, 这里推荐[Python](https://www.python.org/)3.8.10(64 位) 版本。
+- 如果执行 `pip install`安装依赖库网络速度比较慢的话，推荐使用 
+`pip install -i https://pypi.douban.com/simple` 国内镜像来加速。
+- 为避免因为环境问题出现安装失败，建议您使用虚拟环境安装，推荐使用
+ `python -m venv venv` 创建虚拟环境，并执行 `venv\Scripts\activate` 激活运行虚拟环境。
 ```
-pip install openqff  --upgrade
+## 安装库
+
+```bash
+$ pip install qff
 ```
 
+P.S. 由于目前版本更新迭代频繁, 请在使用 QFF 前先升级, 命令如下所示:
 
-### 国内安装-Python
-
-```
-pip install openqff -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com  --upgrade
-```
-
-### 国内安装-Anaconda
-
-```
-pip install openqff -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com  --user  --upgrade
+```bash
+$ pip install qff --upgrade -i https://pypi.douban.com/simple
 ```
 
-## 升级 [OpenQFF](https://github.com/akfamily/akshare)
+查看 QFF 是否安装成功可以通过如下方式:
 
-P.S. **由于目前版本更新迭代频繁, 请在使用 [OpenQFF](https://github.com/akfamily/akshare) 前先升级, 命令如下所示**
-
+```bash
+$ qff --version
 ```
-pip install openqff --upgrade -i https://pypi.org/simple
+
+## 数据准备
+```{admonition} 注解
+
+QFF框架提供所有数据均从互联网上抓取，并经过专业清洗保存在用户自己搭建的数据库服务器中，这样设计的优点是增强数据的可靠性，数据永久保存在用户自己手上，避免后期因为网站更新造成数据缺失或格式不匹配等问题。因此，在QFF正常使用前，需进行数据库的安装配置，以及股票数据的下载和更新。
+
 ```
 
 
-## 安装报错解决方案
+### 数据库安装
 
-### 1. 安装 lxml 库失败的错误
+QFF使用的是MongoDB数据库，它是一个高性能、无模式、文档型的NoSQL数据库。
 
-- 安装 wheel, 需要在 Windows 的命令提示符中运行如下命令:
+先进入mongodb的官网[MongoDB](https://www.mongodb.com/try/download/community)下载，选择要下载的版本以及系统，MongoDB数据库安装教程参考如下：
 
-```
-pip install wheel
-```
+| 操作系统平台                                                                |
+| --------------------------------------------------------------------- |
+| [Windows](https://www.runoob.com/mongodb/mongodb-window-install.html) |
+| [Linux](https://www.runoob.com/mongodb/mongodb-linux-install.html)    |
+| [Mac OS](https://www.runoob.com/mongodb/mongodb-osx-install.html)     |
 
-- 在[这里下载](http://www.lfd.uci.edu/~gohlke/pythonlibs/#lxml3)与您的 Python 版本对应的 **.whl** 文件, **注意别改文件名!**
+**我们强烈推荐您直接拉取Docker镜像安装使用MongoDB数据库。**
 
-以下提供 64 位电脑的版本, 所以下载对应的 64 位就可以, 点击如下链接也可以下载:
+### 数据库配置
 
-1. [lxml‑4.5.0‑cp36‑cp36m‑win_amd64.whl](https://jfds-1252952517.cos.ap-chengdu.myqcloud.com/akshare/software/lxml/lxml-4.5.0-cp36-cp36m-win_amd64.whl)
-2. [lxml‑4.5.0‑cp37‑cp37m‑win_amd64.whl](https://jfds-1252952517.cos.ap-chengdu.myqcloud.com/akshare/software/lxml/lxml-4.5.0-cp37-cp37m-win_amd64.whl)
-3. [lxml‑4.5.0‑cp38‑cp38‑win_amd64.whl](https://jfds-1252952517.cos.ap-chengdu.myqcloud.com/akshare/software/lxml/lxml-4.5.0-cp38-cp38-win_amd64.whl)
+MongoDB数据库安装成功后，需设置QFF与数据库的连接参数，设置命令如下：
 
-- 进入 **.whl** 所在的文件夹, 执行命令即可完成安装, 如下
-
-```
-pip install 带后缀的完整路径和文件名
+```bash
+$ qff config set MONGODB.uri=mongodb://xxx.xxx.xxx.xxx:27017
 ```
 
-### 2. 安装超时的错误
+如果MongoDB数据库设置了用户名密码，则需配置相关认证信息：
 
-1.大致报错如下, 出现关键词 **amt** :
-
-```
-Traceback (most recent call last):
-File "/home/xiaoduc/.pyenv/versions/3.7.3/lib/python3.7/site-packages/pip/_vendor/requests/packages/urllib3/response.py", line 228, in _error_catcher
-yield
-File "/home/xiaoduc/.pyenv/versions/3.7.3/lib/python3.7/site-packages/pip/_vendor/requests/packages/urllib3/response.py", line 310, in read
-data = self._fp.read(amt)
-File "/home/xiaoduc/.pyenv/versions/3.7.3/lib/python3.7/site-packages/pip/_vendor/cachecontrol/filewrapper.py", line 49, in read
-data = self.__fp.read(amt)
+```bash
+$ qff config set MONGODB.uri=mongodb://admin:******@xxx.xxx.xxx.xxx:27017/?authSource=admin&authMechanism=SCRAM-SHA-256
 ```
 
-2.解决方案如下:
+另外，可使用命令`qff config list` 查看QFF所有配置信息。
 
-方法一
-
-```
-pip --default-timeout=100 install -U openqff
+```{important}
+**注：如果MongoDB数据库安装在本机，则无需配置连接参数，QFF使用默认连接参数。**
 ```
 
-方法二
 
-使用全局代理解决
 
-### 3. 拒绝访问错误
 
-1.大致报错如下, 出现关键词 **拒绝访问** :
+### 数据下载
 
-```
-Could not install packages due to an EnvironmentError: [Errno 13] Permission denied: '/Users/mac/Anaconda/anaconda3/lib/python3.7/site-packages/cv2/__init__.py'
-Consider using the `--user` option or check the permissions.
+QFF在正常使用前需下载历史数据，执行方法如下所示：
+
+```bash
+$ qff save all
 ```
 
-2.解决方案如下:
+执行该命令将从互联网下载所有股票、指数、ETF基金的历史行情数据和基本面数据等，并保存至您安装的MongoDB数据库中，根据您计算机和网络性能，下载时间将超过5个小时。
 
-方法一
+您也可以通过执行`qff save` 命令选择下载您所需要的数据类别。
 
-```
-pip install openqff --user
-```
+### 数据自动更新
 
-方法二
+通过配置数据自动更新服务，QFF可以自动下载更新每日股市收盘后最新数据。指令`qff save all`具有数据更新功能，您需要在您使用的操作系统中，自行配置定时任务，定时任务开始时间建议16:00，执行周期即每个工作日。
 
-使用管理员权限(右键单击选择管理员权限)打开 Anaconda Prompt 进行安装
-
-### 4. 提示其他的错误
-
-- 方法一: 确认并升级您已安装 64 位的 **Python3.7** 及以上版本
-- 方法二: 使用 conda 的虚拟环境来安装, 详见 **[OpenQFF]环境配置** 板块的内容
+**我们强烈推荐您使用Docker镜像进行数据自动更新。**

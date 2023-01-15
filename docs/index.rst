@@ -1,8 +1,5 @@
-.. qff documentation master file, created by
-   sphinx-quickstart on Wed Nov 23 20:46:03 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
+===========================================
  QFF  |version| documentation!
 ===========================================
 
@@ -19,11 +16,15 @@
     :target: https://qff.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
+QFF是基于Python语言开发的一个量化金融框架库，提供数据获取-数据存储-策略编写-策略分析-策略回测-模拟交易等一站式解决方案。
+
+QFF为个人用户提供本地的回测和模拟交易环境，使用户更加专注于交易策略的编写。
+
 .. note::
 
-   请访问`QFF's Github`_ 网站获取源代码，如果有任何问题请访问`Github Issues`_ 查询或提交。
+   请访问 `Github`_ 网站获取QFF源代码，如果有任何问题请访问 `Github Issues`_ 查询或提交。
 
-.. _QFF's Github: https://github.com/haijiangxu/qff
+.. _Github: https://github.com/haijiangxu/qff
 
 .. _Github Issues: https://github.com/haijiangxu/qff/issues
 
