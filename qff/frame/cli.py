@@ -26,11 +26,10 @@ import argparse
 import textwrap
 import os
 from datetime import datetime
-from qff.frame.interface import set_run_freq, set_init_cash, set_backtest_period, set_strategy_name
-from qff.frame.backtest import back_test_run
-from qff.frame.simtrade import sim_trade_run
+from qff.frame.api import run_file
+
 from qff.frame.backup import load_context
-from qff.frame.context import context, RUNTYPE
+from qff.frame.context import context
 from qff.tools.local import cache_path
 from qff.tools.config import *
 from qff.price.query import get_price
@@ -81,41 +80,28 @@ class BackTestCommand(Command):
     def add_options(self) -> None:
         self.parser.add_argument("strategy_file", help="策略文件名称路径", nargs='?')
         self.parser.add_argument("--name", help="策略名称,默认文件名", metavar="<name>")
-        self.parser.add_argument("--freq", choices=['day', 'min'],
+        self.parser.add_argument("--freq", choices=['day', 'min'], default='day',
                                  help="设置回测执行频率,可选('day', 'min')", metavar="<freq>")
-        self.parser.add_argument("--cash", type=int, help="设置账户初始资金", metavar="<money>")
-        self.parser.add_argument("--start", type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
+        self.parser.add_argument("--cash", type=int, help="设置账户初始资金", metavar="<money>", default=1000000)
+        self.parser.add_argument("--start", type=lambda s: datetime.strptime(s, '%Y-%m-%d').strftime('%Y-%m-%d'),
                                  help="设置回测开始日期", metavar="<YYYY-MM-DD>")
-        self.parser.add_argument("--end", type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
+        self.parser.add_argument("--end", type=lambda s: datetime.strptime(s, '%Y-%m-%d').strftime('%Y-%m-%d'),
                                  help="设置回测结束日期", metavar="<YYYY-MM-DD>")
 
     def main(self, args):
-        if args.strategy_file is None:
+        args = vars(args)
+        args.pop('cmd')
+        strategy_file = args.pop('strategy_file')
+
+        if strategy_file is None:
             print('Error:参数strategy_file必须指定！\n')
             self.parser.print_help()
             return
-
-        strategy_file = args.strategy_file
-        if not os.path.exists(strategy_file):
+        elif not os.path.exists(strategy_file):
             print(f'输入的策略文件不存在!{strategy_file}')
             return
 
-        if args.name:
-            set_strategy_name(args.name)
-        else:
-            set_strategy_name(os.path.basename(strategy_file).split('.')[0])
-        if args.freq:
-            set_run_freq(args.freq)
-        if args.cash is not None:
-            set_init_cash(int(args.cash))
-        if args.start and args.end:
-            set_backtest_period(args.start, args.end)
-        elif args.start:
-            set_backtest_period(start=args.start)
-        elif args.end:
-            set_backtest_period(end=args.end)
-
-        back_test_run(strategy_file)
+        run_file(strategy_file, 0, **args)
 
 
 class SimTradeCommand(Command):
@@ -136,25 +122,19 @@ class SimTradeCommand(Command):
         self.parser.add_argument("--cash", type=int, help="设置账户初始资金", metavar="<money>")
 
     def main(self, args):
-        if args.strategy_file is None:
+        args = vars(args)
+        args.pop('cmd')
+        strategy_file = args.pop('strategy_file')
+
+        if strategy_file is None:
             print('Error:参数strategy_file必须指定！\n')
             self.parser.print_help()
             return
-        strategy_file = args.strategy_file
-        if not os.path.exists(strategy_file):
+        elif not os.path.exists(strategy_file):
             print(f'输入的策略文件不存在!{strategy_file}')
             return
 
-        if args.name:
-            set_strategy_name(args.name)
-        else:
-            set_strategy_name(os.path.basename(strategy_file).split('.')[0])
-        if args.freq:
-            set_run_freq(args.freq)
-        if args.cash is not None:
-            set_init_cash(int(args.cash))
-
-        sim_trade_run(strategy_file)
+        run_file(strategy_file, 1, **args)
 
 
 class ResumeCommand(Command):
@@ -177,16 +157,17 @@ class ResumeCommand(Command):
         self.parser.add_argument("--strategy", help="可选重新指定策略文件名称", metavar='<file>')
 
     def main(self, args):
-        if args.backup_file is None:
+        backup_file = args.backup_file
+        if backup_file is None:
             print('Error:参数backup_file必须指定！\n')
             self.parser.print_help()
             return
-        backup_file = args.backup_file
-        if not os.path.exists(backup_file):
+        elif not os.path.exists(backup_file):
             backup_file = '{}{}{}'.format(cache_path, os.sep, os.path.basename(backup_file))
             if not os.path.exists(backup_file):
                 print(f'输入的策略文件不存在!{backup_file}')
                 return
+
         try:
             load_context(backup_file)
         except Exception as e:
@@ -198,10 +179,7 @@ class ResumeCommand(Command):
         else:
             strategy_file = context.strategy_file
 
-        if context.run_type == RUNTYPE.SIM_TRADE:
-            sim_trade_run(strategy_file, resume=True)
-        else:
-            back_test_run(strategy_file, resume=True)
+        run_file(strategy_file, resume=True)
 
 
 class CreateCommand(Command):

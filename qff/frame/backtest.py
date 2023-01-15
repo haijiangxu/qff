@@ -28,7 +28,6 @@
 import threading
 import os
 
-from qff.frame.interface import set_run_freq, set_init_cash, set_backtest_period, load_strategy_file
 from qff.frame.settle import settle_by_day, profit_analyse
 from qff.frame.order import order_broker
 from qff.frame.context import context, strategy, RUNSTATUS, RUNTYPE, run_strategy_funcs
@@ -40,19 +39,12 @@ from qff.tools.logs import log
 from qff.tools.local import cache_path
 
 
-def back_test_run(strategy_file, resume=False):
+def back_test_run(resume=False):
     """
     回测框架运行函数,执行该函数将运行回测过程
-    :param strategy_file:策略文件,策略文件中至少包含initialize()函数
-    :type strategy_file: str
-    :param resume: 是否为恢复以前中断的策略，默认全新开始,该参数在__main__.py文件中使用
+    :param resume: 是否为恢复以前中断的策略，默认全新开始
     :type resume: bool
     :return 无返回值
-
-    Examples
-    一般在策略文件的尾部使用以下语句，启动策略的回测。
-    if __name__ == '__main__':
-        back_test_run(__file__)
 
     """
 
@@ -64,26 +56,12 @@ def back_test_run(strategy_file, resume=False):
     else:
         context.status = RUNSTATUS.RUNNING
 
-    # module = sys.argv[0] if strategy_file is None else strategy_file
-    if not load_strategy_file(strategy_file):
-        log.error("策略文件载入失败或缺少初始化函数initialize！***")
-        return
-    context.strategy_file = strategy_file
-
     if resume:
         if strategy.process_initialize is not None:
-            strategy.process_initialize(context)
+            strategy.process_initialize()
     else:
-        strategy.initialize(context)
+        strategy.initialize()
 
-    if context.strategy_name is None:
-        context.strategy_name = os.path.basename(strategy_file).split('.')[0]
-    if context.run_freq is None:
-        set_run_freq()
-    if context.start_date is None or context.end_date is None:
-        set_backtest_period()
-    if context.portfolio is None:
-        set_init_cash()
     if context.run_freq == 'tick':
         log.error("回测模式不支持tick运行频率!")
         return
@@ -93,6 +71,7 @@ def back_test_run(strategy_file, resume=False):
                                 end=context.end_date,
                                 market='index')
     context.bm_start = context.bm_data.iloc[0].close
+
     bt_thread = threading.Thread(target=_back_test_run)
     bt_thread.setDaemon(True)
     # 运行命令行环境...

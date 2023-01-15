@@ -22,12 +22,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import importlib.util
 from datetime import datetime
+from typing import Optional
 from qff.tools.logs import log
-from qff.tools.date import is_trade_day, get_real_trade_date, util_date_valid
+from qff.tools.date import is_trade_day, get_real_trade_date, util_date_valid, get_pre_trade_day
 from qff.frame.context import context, strategy, RUNTYPE, Portfolio
+from qff.frame.backtest import back_test_run
+from qff.frame.simtrade import sim_trade_run
 
+__all__ = ['set_benchmark', 'set_order_cost', 'set_slippage', 'run_daily', 'run_file',
+           'set_universe', 'del_universe', 'pass_today']
 
 def _getattr(m, func_name):
     try:
@@ -37,11 +43,11 @@ def _getattr(m, func_name):
     return func
 
 
-def load_strategy_file(path):
+def _load_strategy_file(path):
     """
     装载策略文件
     :param path: 策略文件的路径
-    :return:
+    :return (boolean): 返回加载是否成功
     """
     # 1、导入策略文件
     try:
@@ -69,6 +75,7 @@ def load_strategy_file(path):
 def run_daily(func, run_time="every_bar", append=True):
     """
      定时运行的策略函数
+
     :param func: 一个自定义的策略函数, 此函数必须接受context参数;例如自定义函数名market_open(context)
     :param run_time: 具体执行时间,一个字符串格式的时间,有两种方式：
         (1) 24小时内的任意时间，例如"10:00", "01:00"；
@@ -122,47 +129,36 @@ def run_daily(func, run_time="every_bar", append=True):
     return
 
 
-def set_run_freq(freq='day'):
+def set_backtest_period(start=None, end=None):
     """
-    设置回测和模拟运行时的执行频率，当前回测不支持tick
-    :param freq: 设置的频率，目前仅支持['day', 'min', 'tick']
-    :return: None
-    """
-    if context.run_freq is None:  # 避免通过__main.py__运行时重复设置
-        if freq in ['day', 'min', 'tick']:
-            context.run_freq = freq
-        else:
-            log.error('set_run_freq函数参数运行频率设置错误！')
-            raise ValueError
-
-
-def set_backtest_period(start="2021-03-01", end="2022-07-29"):
-    """
-    设置回测周期开始时间和结束时间,须在以下策略设置函数之前运行
+    设置回测周期开始时间和结束时间,默认最近60天数据
     :param start: 回测开始日期
     :param end:   回测结束日期
     :return: None
     """
-    if context.start_date is None or context.end_date is None:  # 避免通过__main.py__运行时重复设置
-        if util_date_valid(start) and util_date_valid(end):
-            context.start_date = start if is_trade_day(start) \
-                else get_real_trade_date(start, towards=1)
-            context.end_date = end if is_trade_day(end) \
-                else get_real_trade_date(end, towards=-1)
-            context.current_dt = context.start_date + " 09:00:00"    # 必需要设置，回测以该时间作为启动日期
-        else:
-            log.error('set_backtest_period函数参数日期格式设置错误！')
-            raise ValueError
+    if end is None:
+        end = datetime.now().strftime('%Y-%m-%d')
+        if not is_trade_day(end):
+            end = get_real_trade_date(end)
+        context.end_date = get_pre_trade_day(end, 1)
+    elif util_date_valid(end):
+        context.end_date = end if is_trade_day(end) \
+            else get_real_trade_date(end, towards=-1)
+    else:
+        print('set_backtest_period函数参数日期格式设置错误！')
+        return ValueError
 
+    if start is None:
+        context.start_date = get_pre_trade_day(end, 60)
 
-def set_init_cash(cash=1000000):
-    """
-    设置账户初始资金
-    :param cash: 初始资金
-    :return: None
-    """
-    if context.portfolio is None:  # 避免通过__main.py__运行时重复设置
-        context.portfolio = Portfolio(cash)
+    elif util_date_valid(start):
+        context.start_date = start if is_trade_day(start) \
+            else get_real_trade_date(start, towards=1)
+    else:
+        print('set_backtest_period函数参数日期格式设置错误！')
+        raise ValueError
+
+    context.current_dt = context.start_date + " 09:00:00"    # 必需要设置，回测以该时间作为启动日期
 
 
 def set_order_cost(open_tax=0,
@@ -199,16 +195,6 @@ def set_benchmark(security):
     #     log.error("框架运行中，不能设置基础参数")
     #     return
     context.benchmark = security
-    return
-
-
-def set_strategy_name(name: str):
-    """
-    设置策略名称
-    :param name: 策略名称
-    :return:
-    """
-    context.strategy_name = name
     return
 
 
@@ -264,3 +250,64 @@ def pass_today():
     if context.run_type == RUNTYPE.BACK_TEST:
         context.pass_today = True
     return
+
+
+def run_file(strategy_file: str,
+             run_type: int = RUNTYPE.BACK_TEST,
+             resume: bool = False,
+             freq: str = 'day',
+             cash: int = 1000000,
+             start: Optional[str] = None,
+             end: Optional[str] = None,
+             name: Optional[str] = None):
+    """
+    运行策略文件，并初始化环境参数。
+
+    :param strategy_file: 待运行策略文件路径
+    :param run_type: 指定策略运行方式。0-回测； 1-实盘模拟, 默认值为0
+    :param resume: 是否执行恢复运行， True-恢复以前的策略执行，False-重新开始执行策略，默认False.
+    :param freq: 策略执行频率，有效值为 'day','min','tick',默认值为 'day'
+    :param cash: 账户初始资金，默认值1000000
+    :param start: 回测开始日期，默认为结束日期前60个交易日
+    :param end: 回测结束日期, 默认为上一个交易日
+    :param name: 策略名称
+    :return: None
+
+    :example:
+        使用方法：一般在策略文件中的尾部加入以下代码
+    .. code-block:: python
+
+        if __name__ == '__main__':
+            run_file(__file__, 0,  start='2022-06-01', end='2022-08-31')
+
+    """
+
+    if not _load_strategy_file(strategy_file):
+        print("输入的策略文件路径加载失败！")
+        return
+    context.strategy_file = strategy_file
+
+    if resume:
+        if context.run_type == RUNTYPE.BACK_TEST:
+            back_test_run(resume=True)
+        else:
+            sim_trade_run(resume=True)
+    else:
+        if freq in ['day', 'min', 'tick']:
+            context.run_freq = freq
+        else:
+            print('参数freq运行频率设置错误！')
+            return
+
+        context.portfolio = Portfolio(cash)
+
+        if name is None:
+            name = os.path.basename(strategy_file).split('.')[0]
+        context.strategy_name = name
+
+        if run_type == RUNTYPE.BACK_TEST:
+            set_backtest_period(start, end)
+            back_test_run()
+        elif run_type == RUNTYPE.SIM_TRADE:
+            sim_trade_run()
+

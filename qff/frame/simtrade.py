@@ -29,7 +29,6 @@
 
 import threading
 import os
-import sys
 import pandas as pd
 from time import sleep
 from qff.frame.context import context, strategy, RUNSTATUS, RUNTYPE, run_strategy_funcs
@@ -39,18 +38,14 @@ from qff.frame.settle import settle_by_day, profit_analyse
 from qff.frame.trace import Trace
 from qff.tools.date import is_trade_day
 from qff.price.fetch import fetch_current_ticks
-from qff.frame.interface import set_run_freq, set_init_cash, set_backtest_period, load_strategy_file
 from qff.tools.logs import log
 from qff.tools.local import cache_path
 
 
-def sim_trade_run(strategy_file=None, resume=False):
+def sim_trade_run(resume=False):
     """
     实盘模拟框架运行函数,执行该函数将运行策略实盘模拟
-    使用方法：一般在策略文件中的尾部
-            if __name__ == '__main__':
-                back_test_run(__file__)
-    :param strategy_file 策略文件,策略文件中至少包含initialize()函数
+
     :param resume: 是否为恢复以前中断的策略，默认全新开始,该参数在__main__.py文件中使用
     :return: None
     """
@@ -62,26 +57,11 @@ def sim_trade_run(strategy_file=None, resume=False):
     else:
         context.status = RUNSTATUS.RUNNING
 
-    module = sys.argv[0] if strategy_file is None else strategy_file
-    if not load_strategy_file(module):
-        log.error("策略文件载入失败或缺少初始化函数initialize！***")
-        return
-    context.strategy_file = strategy_file
-
     if resume:
         if strategy.process_initialize is not None:
-            strategy.process_initialize(context)
+            strategy.process_initialize()
     else:
-        strategy.initialize(context)
-
-    if context.strategy_name is None:
-        context.strategy_name = os.path.basename(sys.argv[0]).split('.')[0]
-    if context.run_freq is None:
-        set_run_freq()
-    if context.start_date is None or context.end_date is None:
-        set_backtest_period()
-    if context.portfolio is None:
-        set_init_cash()
+        strategy.initialize()
 
     # 恢复运行时不能设置
     if context.bm_start is None:
