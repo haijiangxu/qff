@@ -405,7 +405,7 @@ class Perf:
         """
         w = []
         w1 = 0
-        for _, item in self.pnl.pnl_money.iteritems():
+        for _, item in self.pnl.pnl_money.items():
             if item > 0:
                 w1 += 1
             elif item < 0:

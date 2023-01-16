@@ -224,7 +224,7 @@ def profit_analyse():
         # perf.plot_pnlratio()
         # perf.plot_pnlmoney()
 
-    writer.save()
+    writer.close()
 
     # 4、生成收益曲线图文件
     chart_filename = '{}{}{}-{}.html'.format(out_path, os.sep, 'strategy_chart',
