@@ -6,4 +6,4 @@ sphinx-markdown-tables~=0.0.17
 markdown~=3.4.1
 sphinx-autobuild~=2021.3.14
 myst_parser~=0.18.1
-sphinx-autodoc-typehints
+sphinx-autodoc-typehints==1.19.0

@@ -36,6 +36,7 @@ QFF为个人用户提供本地的回测和模拟交易环境，使用户更加�
 
    introduction
    installation
+   getstarted
    tasklist
    apidoc
 

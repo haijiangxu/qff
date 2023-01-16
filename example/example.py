@@ -10,24 +10,27 @@ def initialize():
 
     # 设置指数基准
     set_benchmark(security="000300")
-    # 设置定时运行的策略函数
-    run_daily(handle_trade, run_time="09:50")
 
 
 def before_trading_start():
-    log.info("before_trading_start函数运行...")
+    log.info("before_trading_start函数，每个交易日开盘前运行...")
     pass
 
 
-def handle_trade():
-    log.info("handle_trade函数运行...")
+def handle_data():
+    log.info("handle_data函数，根据运行频率，开盘后每日/分钟/tick运行一次...")
     pass
 
 
 def after_trading_end():
-    log.info("after_trading_end函数运行...")
+    log.info("after_trading_end函数，每个交易日收盘后运行...")
+    pass
+
+
+def on_strategy_end():
+    log.info("on_strategy_end函数，策略结束后运行...")
     pass
 
 
 if __name__ == '__main__':
-    run_file(__file__, start="2021-08-27", end="2022-03-25")
+    run_file(__file__, start="2021-08-27", end="2022-03-25", name=strategy_name)

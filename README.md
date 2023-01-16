@@ -3,7 +3,7 @@
 ![PyPI](https://img.shields.io/pypi/v/qff)
 ![Python](https://img.shields.io/pypi/pyversions/qff.svg)
 ![Docker Image Version (latest by date)](https://img.shields.io/docker/v/haijiangxu/qff)
-[![Documentation Status](https://readthedocs.org/projects/qff/badge/?version=latest)](https://qff.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/qff/badge/?version=latest)](https://qff.readthedocs.io/zh_CN/latest/)
 
 
 
@@ -51,7 +51,7 @@ docker run -d -v /root/xxxx:/root/work -p 8765:8765  qff
 
 ## Document
 
-Documentation for the latest Current release is at https://qff.readthedocs.io/en/latest/. 
+Documentation for the latest Current release is at https://qff.readthedocs.io/zh_CN/latest/. 
 
 
 ## Contribution

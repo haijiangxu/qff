@@ -62,6 +62,7 @@ extensions = [
 
 myst_heading_anchors = 3
 myst_enable_extensions = ["deflist", "tasklist", "colon_fence"]
+myst_number_code_blocks = ["python"]
 
 templates_path = ['_templates']
 html_static_path = ['_static']
