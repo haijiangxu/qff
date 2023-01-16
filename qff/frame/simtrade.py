@@ -42,11 +42,10 @@ from qff.tools.logs import log
 from qff.tools.local import cache_path
 
 
-def sim_trade_run(resume=False):
+def sim_trade_run():
     """
     实盘模拟框架运行函数,执行该函数将运行策略实盘模拟
 
-    :param resume: 是否为恢复以前中断的策略，默认全新开始,该参数在__main__.py文件中使用
     :return: None
     """
     context.run_type = RUNTYPE.SIM_TRADE
@@ -56,12 +55,6 @@ def sim_trade_run(resume=False):
         return
     else:
         context.status = RUNSTATUS.RUNNING
-
-    if resume:
-        if strategy.process_initialize is not None:
-            strategy.process_initialize()
-    else:
-        strategy.initialize()
 
     # 恢复运行时不能设置
     if context.bm_start is None:

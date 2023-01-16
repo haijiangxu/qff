@@ -288,11 +288,15 @@ def run_file(strategy_file: str,
     context.strategy_file = strategy_file
 
     if resume:
+        if strategy.process_initialize is not None:
+            strategy.process_initialize()
         if context.run_type == RUNTYPE.BACK_TEST:
-            back_test_run(resume=True)
+            back_test_run()
         else:
-            sim_trade_run(resume=True)
+            sim_trade_run()
     else:
+        strategy.initialize()
+
         if freq in ['day', 'min', 'tick']:
             context.run_freq = freq
         else:
@@ -310,4 +314,3 @@ def run_file(strategy_file: str,
             back_test_run()
         elif run_type == RUNTYPE.SIM_TRADE:
             sim_trade_run()
-

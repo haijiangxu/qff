@@ -39,11 +39,9 @@ from qff.tools.logs import log
 from qff.tools.local import cache_path
 
 
-def back_test_run(resume=False):
+def back_test_run():
     """
     回测框架运行函数,执行该函数将运行回测过程
-    :param resume: 是否为恢复以前中断的策略，默认全新开始
-    :type resume: bool
     :return 无返回值
 
     """
@@ -55,12 +53,6 @@ def back_test_run(resume=False):
         return
     else:
         context.status = RUNSTATUS.RUNNING
-
-    if resume:
-        if strategy.process_initialize is not None:
-            strategy.process_initialize()
-    else:
-        strategy.initialize()
 
     if context.run_freq == 'tick':
         log.error("回测模式不支持tick运行频率!")
