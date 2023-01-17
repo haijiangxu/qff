@@ -97,7 +97,7 @@ if __name__ == '__main__':
 1. 一个excel文件，包含：每日资产收益、每日交易订单、每日持仓数据、风险指标、绩效指标等回测分析数据。
 2. 一个html文件，展示策略与基准对比收益曲线图形。
 
-![strategy chart](_static/btresult.PNG)
+![strategy chart](../_static/btresult.PNG)
 
 ## 实盘模拟编写的策略
 
@@ -112,7 +112,7 @@ $ qff sim test.py  --cash 100000
 实盘模拟运行后，将在真实交易时间执行您的策略代码，命令行终端内将连续打印策略的日志信息。
 您可以通过输入`log`命令开关日志信息，并输入命令与QFF进行交互，首先输入`help`可以查看所有交互命令。
 
-![trace](_static/trace.PNG)
+![trace](../_static/trace.PNG)
 
 通过`info`命令可以随时查看策略当前实盘模拟的运行效果。
 

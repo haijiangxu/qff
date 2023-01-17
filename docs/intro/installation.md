@@ -1,18 +1,24 @@
-# 安装指南
+# 安装说明
 
 ![Python](https://img.shields.io/pypi/pyversions/qff.svg)
 
 ```{admonition} 注解
 - 如果执行 `pip install`安装依赖库网络速度比较慢的话，推荐使用 
 `pip install -i https://pypi.douban.com/simple` 国内镜像来加速。
-- 为避免因为环境问题出现安装失败，建议您使用虚拟环境安装，推荐使用
- `python -m venv venv` 创建虚拟环境，并执行 `venv\Scripts\activate` 激活运行虚拟环境。
+- 为避免因为环境问题出现安装失败，建议您使用虚拟环境安装，Python虚拟环境有
+venv, conda, pipenv等，请参考相关[教程](https://cloud.tencent.com/developer/article/2124483)。
+- 推荐使用 `python -m venv venv` 创建虚拟环境，并执行 `venv\Scripts\activate` 激活运行。
 ```
 ## 安装库
+
+以下命令将安装 QFF 及其依赖项。
 
 ```bash
 $ pip install qff
 ```
+
+QFF依赖于许多其他Python包，使用软件包安装工具像PIP或Conda等将确保安装必要的依赖软件包，您可以使用包管理器命令 `pip show qff` 查看依赖项，
+更多信息可以在其 [PyPI](https://pypi.org/project/qff/) 页面上找到。
 
 P.S. 由于目前版本更新迭代频繁, 请在使用 QFF 前先升级, 命令如下所示:
 
@@ -29,7 +35,11 @@ $ qff --version
 ## 数据准备
 ```{admonition} 注解
 
-QFF框架提供所有数据均从互联网上抓取，并经过专业清洗保存在用户自己搭建的数据库服务器中，这样设计的优点是增强数据的可靠性，数据永久保存在用户自己手上，避免后期因为网站更新造成数据缺失或格式不匹配等问题。因此，在QFF正常使用前，需进行数据库的安装配置，以及股票数据的下载和更新。
+QFF框架提供所有数据均从互联网上抓取，并经过专业清洗保存在用户**自己搭建的数据库服务器中**，
+这样设计的优点是增强数据的可靠性，数据永久保存在用户自己手上，避免后期因为网站更新造成
+数据缺失或格式不匹配等问题。
+
+因此，在QFF正常使用前，需进行数据库的安装配置，以及股票数据的下载和更新。
 
 ```
 
@@ -87,4 +97,5 @@ $ qff save all
 
 通过配置数据自动更新服务，QFF可以自动下载更新每日股市收盘后最新数据。指令`qff save all`具有数据更新功能，您需要在您使用的操作系统中，自行配置定时任务，定时任务开始时间建议16:00，执行周期即每个工作日。
 
-**我们强烈推荐您使用Docker镜像进行数据自动更新。**
+**我们强烈推荐您使用[QFF Docker镜像](<qffdocker.md#部署 QFF 镜像>)进行数据自动更新。**
+

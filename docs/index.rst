@@ -32,11 +32,42 @@ QFF为个人用户提供本地的回测和模拟交易环境，使用户更加�
 .. toctree::
    :maxdepth: 2
    :glob:
-   :caption: Table of contents:
+   :caption: 基础
 
-   introduction
-   installation
-   getstarted
-   tasklist
+   intro/introduction
+   intro/installation
+   intro/qffdocker
+   intro/getstarted
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+   :caption: 用户指南
+
+   guide/engine
+   guide/frame
+   guide/api_guide
+   guide/cli
+   guide/trace
+   guide/result
+   guide/datadict
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+   :caption: API
+
+   api/frame_api
+   api/data_api
    apidoc
+
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+   :hidden:
+   :caption: 开发
+
+   tasklist
+
 
