@@ -28,7 +28,7 @@
 import pandas as pd
 from datetime import datetime
 from qff.price.query import get_st_stock, get_paused_stock, get_price, get_stock_list
-from qff.price.report import get_history_fundamentals
+from qff.price.finance import get_history_fundamentals
 from qff.tools.date import  get_real_trade_date
 
 

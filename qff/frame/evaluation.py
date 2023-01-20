@@ -53,7 +53,7 @@ import matplotlib.pyplot as plt
 from qff.tools.logs import log
 from qff.tools.word import WordWriter
 from qff.price.query import get_stock_list, get_price
-from qff.price.report import get_valuation
+from qff.price.finance import get_valuation
 from qff.tools.date import get_trade_days, get_trade_gap
 from qff.tools.local import temp_path, evaluation_path
 

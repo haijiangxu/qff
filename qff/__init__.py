@@ -75,7 +75,7 @@ from qff.price.query import (
     get_security_info
 )
 
-from qff.price.report import (
+from qff.price.finance import (
     get_financial_data,
     get_valuation,
     query_valuation,
