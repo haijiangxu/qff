@@ -38,7 +38,8 @@ import sys
 import time
 import pandas as pd
 import prettytable as pt
-from qff.frame.context import context, Portfolio, Position, RUNTYPE, RUNSTATUS, g
+from qff.frame.context import context, Portfolio, Position, g
+from qff.frame.const import RUN_TYPE, RUN_STATUS
 from qff.price.cache import get_current_data
 from qff.frame.risk import Risk
 from qff.frame.perf import Perf
@@ -104,7 +105,7 @@ class Trace(Cmd):
         status_tb = ['停止','运行中','已完成','失败','','取消','暂停']
         msg = {
             "策略名称": context.strategy_name,
-            "框架类型": '回测运行' if context.run_type == RUNTYPE.BACK_TEST else '模拟实盘',
+            "框架类型": '回测运行' if context.run_type == RUN_TYPE.BACK_TEST else '模拟实盘',
             "当前状态": status_tb[context.status],
             "运行频率": context.run_freq,
             "开始日期": context.start_date,
@@ -130,10 +131,10 @@ class Trace(Cmd):
 
         acc.total_assets = round(acc.available_cash + acc.positions_assets + acc.locked_cash, 2)  # 账户当日总价值
         # 基准指数当日价值
-        if context.run_type == RUNTYPE.BACK_TEST:
+        if context.run_type == RUN_TYPE.BACK_TEST:
             acc.benchmark_assets = round(context.bm_data.loc[context.current_dt[0:10]].close
                                          / context.bm_start * acc.starting_cash, 2)
-        elif context.run_type == RUNTYPE.SIM_TRADE:
+        elif context.run_type == RUN_TYPE.SIM_TRADE:
             acc.benchmark_assets = round(fetch_current_ticks(context.benchmark, market='index')['price']
                                          / context.bm_start * acc.starting_cash, 2)
         print("当前日期:{}".format(context.current_dt))
@@ -265,7 +266,7 @@ class Trace(Cmd):
             print("设置日志级别：debug,info,warn,error ")
 
     def do_pause(self, arg):
-        context.status = RUNSTATUS.PAUSED
+        context.status = RUN_STATUS.PAUSED
         time.sleep(1)
         print("暂停回测任务，执行quit命令退出交互环境！")
 
@@ -274,7 +275,7 @@ class Trace(Cmd):
         print("在终端环境下运行 python qff 策略文件名 -r")
 
     def do_cancel(self, arg):
-        context.status = RUNSTATUS.CANCELED
+        context.status = RUN_STATUS.CANCELED
         return True
 
     def do_quit(self, arg):  # 定义quit命令所执行的操作

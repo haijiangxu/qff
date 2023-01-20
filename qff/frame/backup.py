@@ -24,14 +24,15 @@
 
 import os
 import pickle
-from qff.frame.context import context, g, RUNTYPE
+from qff.frame.context import context, g
+from qff.frame.const import RUN_TYPE
 from qff.tools.local import cache_path
 from qff.tools.logs import log
 
 
 def save_context(backup_file=None):
     if backup_file is None:
-        file_name = context.strategy_name+'_bt' if context.run_type == RUNTYPE.BACK_TEST\
+        file_name = context.strategy_name+'_bt' if context.run_type == RUN_TYPE.BACK_TEST\
                 else context.strategy_name+'_sim'
         backup_file = '{}{}{}'.format(cache_path, os.sep, file_name+'.pkl')
     try:
@@ -61,7 +62,7 @@ def load_context(backup_file):
 
 
 # def save_context():
-#     file_name = context.strategy_name+'_bt' if context.run_type == RUNTYPE.BACK_TEST\
+#     file_name = context.strategy_name+'_bt' if context.run_type == RUN_TYPE.BACK_TEST\
 #         else context.strategy_name+'_sim'
 #     backup_file = '{}{}{}'.format(cache_path, os.sep, file_name+'.pkl')
 #     if os.path.exists(backup_file):

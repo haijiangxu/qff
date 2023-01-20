@@ -93,23 +93,23 @@ from qff.price.fetch import (
     fetch_ticks,
 )
 from qff.frame.context import (
-    strategy,
     context,
     g,
     Context,
     Portfolio,
     Position,
-    RUNTYPE,
-    RUNSTATUS,
-    Strategy
 )
+from qff.frame.const import RUN_TYPE, RUN_STATUS, ORDER_TYPE, ORDER_STATUS
 
 from qff.frame.order import (
-    order_amount,
+    Order,
+    order,
     order_value,
     order_target,
     order_target_value,
-    order_cancel
+    order_cancel,
+    get_orders,
+    get_open_orders
 )
 
 from qff.frame.api import (
@@ -119,7 +119,6 @@ from qff.frame.api import (
     run_daily,
     run_file,
     set_universe,
-    del_universe,
     pass_today
 )
 

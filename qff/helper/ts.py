@@ -47,9 +47,10 @@
 import json
 from functools import partial
 
-from qff.frame.context import context, g, RUNTYPE
+from qff.frame.context import context, g
+from qff.frame.const import RUN_TYPE, ORDER_STATUS
 from qff.frame.api import run_daily
-from qff.frame.order import order_value, order_target, ORDER_DEAL
+from qff.frame.order import order_value, order_target
 from qff.price.cache import get_current_data
 from qff.price.query import get_price
 from qff.tools.date import get_pre_trade_day, get_trade_gap
@@ -79,7 +80,7 @@ class TsContext:
         return round(rtn, 2)
 
     def get_index_data(self, ref_index):
-        if context.run_type == RUNTYPE.BACK_TEST:
+        if context.run_type == RUN_TYPE.BACK_TEST:
             if self.index_data is None:
                 _start = get_pre_trade_day(context.start_date, 200)
                 self.index_data = get_price(ref_index, start=_start, end=context.end_date, market='index')
@@ -177,7 +178,7 @@ def open_position(security, amount=None, price=None, stop_loss_price=None):
 
     # 4、调用order进行下单操作
     def slp_callback(status, code, loss_price):  # 定义回调函数
-        if status == ORDER_DEAL:
+        if status == ORDER_STATUS.DEAL:
             g.ts_context.stop_loss_price[code] = loss_price
             log.info('设置止损价格成功{}：{}'.format(code, loss_price))
 

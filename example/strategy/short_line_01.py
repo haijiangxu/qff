@@ -70,13 +70,13 @@ def handle_trade():
             if pst.closeable_amount > 0:
                 data = get_current_data(pst.security)
                 if data.last_price > pst.avg_cost * 1.05:
-                    order_amount(pst.security, -pst.closeable_amount)
+                    order(pst.security, -pst.closeable_amount)
                     log.info("盈利5%，卖出股票{}".format(pst.security))
                 elif data.day_open > 1.04 * data.last_price:
-                    order_amount(pst.security, -pst.closeable_amount)
+                    order(pst.security, -pst.closeable_amount)
                     log.info("当日跌幅4%，卖出股票{}".format(pst.security))
                 elif get_trade_gap(pst.transact_time, context.current_dt[:10]) > 19:
-                    order_amount(pst.security, -pst.closeable_amount)
+                    order(pst.security, -pst.closeable_amount)
                     log.info("持股19天，卖出股票{}".format(pst.security))
 
     # 买入股票

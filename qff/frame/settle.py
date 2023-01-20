@@ -30,8 +30,9 @@ from datetime import datetime
 from qff.tools.logs import log
 from qff.price.fetch import fetch_current_ticks
 from qff.tools.local import back_test_path, sim_trade_path
-from qff.frame.context import context, Position, RUNTYPE
-from qff.frame.order import Order, ORDER_OPEN, ORDER_DEAL
+from qff.frame.context import context, Position
+from qff.frame.const import RUN_TYPE, ORDER_STATUS
+from qff.frame.order import Order
 from qff.price.cache import get_current_data, clear_current_data
 from qff.frame.risk import Risk
 from qff.frame.perf import Perf
@@ -93,9 +94,9 @@ def settle_by_day():
     # 一、处理order_list
     order: Order
     for order in context.order_list.values():
-        if order.status == ORDER_OPEN:
+        if order.status == ORDER_STATUS.OPEN:
             order.cancel()
-        elif order.status == ORDER_DEAL:
+        elif order.status == ORDER_STATUS.DEAL:
             do = order.__dict__
             if context.df_orders is None:
                 context.df_orders = pd.DataFrame([do])
@@ -117,10 +118,10 @@ def settle_by_day():
 
     acc.total_assets = round(acc.available_cash + acc.positions_assets + acc.locked_cash, 2)  # 账户当日总价值
     # 基准指数当日价值
-    if context.run_type == RUNTYPE.BACK_TEST:
+    if context.run_type == RUN_TYPE.BACK_TEST:
         acc.benchmark_assets = round(context.bm_data.loc[context.current_dt[0:10]].close
                                      / context.bm_start * acc.starting_cash, 2)
-    elif context.run_type == RUNTYPE.SIM_TRADE:
+    elif context.run_type == RUN_TYPE.SIM_TRADE:
         acc.benchmark_assets = round(fetch_current_ticks(context.benchmark, market='index')['price']
                                      / context.bm_start * acc.starting_cash, 2)
 
@@ -182,7 +183,7 @@ def profit_analyse():
     TODO: 使用Jinja2生成分析报告 https://baijiahao.baidu.com/s?id=1703525230382867872&wfr=spider&for=pc
     """
 
-    out_path = back_test_path if context.run_type == RUNTYPE.BACK_TEST else sim_trade_path
+    out_path = back_test_path if context.run_type == RUN_TYPE.BACK_TEST else sim_trade_path
     # strategy_name = os.path.basename(sys.argv[0]).split('.')[0]
     out_path = '{}{}{}'.format(out_path, os.sep, context.strategy_name)
     os.makedirs(out_path, exist_ok=True)
@@ -232,7 +233,7 @@ def profit_analyse():
 
     risk.show_chart(chart_filename)
 
-    if platform.system() == 'Windows' and context.run_type == RUNTYPE.BACK_TEST:
+    if platform.system() == 'Windows' and context.run_type == RUN_TYPE.BACK_TEST:
         os.startfile(data_filename)
         # os.startfile(chart_filename)
 

@@ -30,7 +30,8 @@ import os
 
 from qff.frame.settle import settle_by_day, profit_analyse
 from qff.frame.order import order_broker
-from qff.frame.context import context, strategy, RUNSTATUS, RUNTYPE, run_strategy_funcs
+from qff.frame.context import context, strategy, run_strategy_funcs
+from qff.frame.const import RUN_TYPE, RUN_STATUS
 from qff.frame.backup import save_context
 from qff.frame.trace import Trace
 from qff.tools.date import get_trade_days, get_trade_min_list, get_pre_trade_day
@@ -46,13 +47,13 @@ def back_test_run():
 
     """
 
-    context.run_type = RUNTYPE.BACK_TEST
+    context.run_type = RUN_TYPE.BACK_TEST
 
-    if context.status == RUNSTATUS.RUNNING:
+    if context.status == RUN_STATUS.RUNNING:
         log.error('回测函数已运行！')
         return
     else:
-        context.status = RUNSTATUS.RUNNING
+        context.status = RUN_STATUS.RUNNING
 
     if context.run_freq == 'tick':
         log.error("回测模式不支持tick运行频率!")
@@ -79,7 +80,7 @@ def _back_test_run():
 
     days = get_trade_days(context.current_dt[0:10], context.end_date)  # 回测中断恢复时可继续运行
     for day in days:
-        if context.status != RUNSTATUS.RUNNING:
+        if context.status != RUN_STATUS.RUNNING:
             break
         if strategy.before_trading_start is not None:
             context.current_dt = day + " 09:00:00"
@@ -131,7 +132,7 @@ def _back_test_run():
         log.info("##################### 一天结束 ######################")
         log.info("")
 
-    if context.status == RUNSTATUS.PAUSED:
+    if context.status == RUN_STATUS.PAUSED:
         # log.warning("_back_test_run回测运行暂停，保存过程数据...!")
 
         default_name = context.strategy_name+'_bt.pkl'
@@ -143,13 +144,13 @@ def _back_test_run():
         backup_file = '{}{}{}'.format(cache_path, os.sep, bf_input)
         print(f"策略备份文件：{backup_file}")
         save_context(backup_file)
-    elif context.status == RUNSTATUS.CANCELED:
+    elif context.status == RUN_STATUS.CANCELED:
         log.warning("_back_test_run回测执行取消...!")
     else:
-        context.status = RUNSTATUS.DONE
+        context.status = RUN_STATUS.DONE
         if strategy.on_strategy_end is not None:
             strategy.on_strategy_end()
-        if context.status == RUNSTATUS.DONE:
+        if context.status == RUN_STATUS.DONE:
             profit_analyse()
         # log.error("回测运行完成!，执行quit退出交互环境后进行回测数据分析")
         log.info("_back_test_run回测线程运行完成!")

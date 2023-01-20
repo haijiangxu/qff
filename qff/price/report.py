@@ -41,7 +41,8 @@ from qff.tools.date import (
     int_to_date
 )
 from qff.tools.logs import log
-from qff.frame.context import context, RUNTYPE, RUNSTATUS
+from qff.frame.context import context
+from qff.frame.const import RUN_TYPE, RUN_STATUS
 
 
 def get_fundamentals(filter, projection=None, date=None, report_date=None):
@@ -93,7 +94,7 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
         filter['report_date'] = date_to_int(rd)
     else:
         if date is None:
-            if context.run_type == RUNTYPE.BACK_TEST and context.status == RUNSTATUS.RUNNING:
+            if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
                 end = context.previous_date
             else:
                 today = datetime.date.today()
@@ -199,7 +200,7 @@ def get_stock_reports(code, fields=None, start=None, end=None):
         log.error("参数fields不合法！,应该为字符串列表！")
         return None
     if end is None:
-        if context.run_type == RUNTYPE.BACK_TEST and context.status == RUNSTATUS.RUNNING:
+        if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
             end = context.previous_date
         else:
             today = datetime.date.today()
@@ -271,7 +272,7 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
         return None
 
     if end_date is None:
-        if context.run_type == RUNTYPE.BACK_TEST and context.status == RUNSTATUS.RUNNING:
+        if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
             end = context.previous_date
         else:
             today = datetime.date.today()

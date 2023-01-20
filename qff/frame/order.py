@@ -24,20 +24,16 @@
 
 import pandas as pd
 from qff.price.cache import get_current_data
-from qff.frame.context import context, Position, RUNTYPE
+from qff.frame.context import context, Position
+from qff.frame.const import RUN_TYPE, ORDER_TYPE, ORDER_STATUS
 
 from qff.tools.utils import util_gen_id
 from qff.tools.logs import log
-
-LIMIT_PRICE = "限价单"  # LIMIT_PRICE
-MARKET_ORDER = "市价单"  # "MARKET_ORDER"
+from typing import Dict, Callable, Optional
 
 # 订单未完成, 无任何成交
-ORDER_OPEN = "open"
 # 订单完成, 已撤销,
-ORDER_CANCELED = "canceled"
 # 订单完成, 全部成交
-ORDER_DEAL = "held"
 
 
 # 订单状态
@@ -45,15 +41,37 @@ ORDER_DEAL = "held"
 
 class Order:
     """
-     订单对象
+    订单对象
+
+    ============== ======================== =====================================================
+        属性        类型                      说明
+    ============== ======================== =====================================================
+    id             str                       订单编号
+    security       str                       股票代码
+    is_buy         boolean                   买入还是卖出， True-买入, False-卖出
+    amount         int                       委托数量
+    status         :class:`.ORDER_STATUS`    订单状态
+    add_time       str                       订单委托时间
+    deal_time      str                       订单成交时间
+    cancel_time    str                       订单取消时间
+    style          :class:`.ORDER_TYPE`      订单类型，市价单还是限价单
+    order_price    float                     委托价格,当订单为限价单时
+    trade_amount   int                       成交数量
+    trade_money    float                     成交金额(含交易费用）
+    trade_price    float                     成交均价，为简化本框架成交价等于委托价
+    commission     float                     交易费用（佣金、税费等）
+    gain           float                     订单收益  股票卖出时计算该值
+    ============== ======================== =====================================================
+
+
     """
 
-    def __init__(self, security, amount, price=None, style=MARKET_ORDER, callback=None):
+    def __init__(self, security, amount, price=None, style=ORDER_TYPE.MARKET, callback=None):
         self.id = util_gen_id()  # 订单ID
         self.security = security  # 股票代码
         self.is_buy = amount > 0  # 买入 or 卖出
         self.amount = abs(amount)  # 委托数量
-        self.status = ORDER_OPEN  # 订单状态
+        self.status = ORDER_STATUS.OPEN  # 订单状态
         self.add_time = context.current_dt  # 订单添加时间
         self.deal_time = None  # 订单成交时间
         self.cancel_time = None  # 订单取消时间
@@ -92,12 +110,16 @@ class Order:
             '交易费用': self.commission,
         }
 
+    def __repr__(self):
+        return self.message()
+
     def deal(self, deal_time=None):
         """
         订单成交
+
         :return:
         """
-        self.status = ORDER_DEAL
+        self.status = ORDER_STATUS.DEAL
         money = round(self.order_price * self.amount, 2)
         self.trade_amount = self.amount
         if self.is_buy:
@@ -151,16 +173,17 @@ class Order:
         log.info("订单成交：订单编号：{}，股票代码：{}，下单数量：{}， 成交时间：{}.".
                  format(self.id, self.security, self.trade_amount, self.deal_time))
         if self._callback is not None:
-            self._callback(ORDER_DEAL)
+            self._callback(ORDER_STATUS.DEAL)
 
     def cancel(self):
         """
         订单取消
+
         :return: 成功返回True
         """
-        if self.status != ORDER_OPEN:
+        if self.status != ORDER_STATUS.OPEN:
             return False
-        self.status = ORDER_CANCELED
+        self.status = ORDER_STATUS.CANCELLED
         self.cancel_time = context.current_dt
 
         # 对账户资金或股票进行解锁
@@ -173,28 +196,29 @@ class Order:
         log.info("订单取消：订单编号：{}，股票代码：{}，下单数量：{}, {}."
                  .format(self.id, self.security, self.amount, ('买入' if self.is_buy else '卖出')))
         if self._callback is not None:
-            self._callback(ORDER_CANCELED)
+            self._callback(ORDER_STATUS.CANCELLED)
 
     def rejected(self):
         """
         订单拒绝
+
         :return:
         """
         pass
 
 
-def order_amount(security, amount=100, price=None, callback=None):
+def order(security, amount=100, price=None, callback=None):
+    # type: (str, int, float, Callable) -> Optional[str]
     """
     按股票数量下单。
     调用成功后, 您将可以调用[get_open_orders]取得所有未完成的交易, 也可以调用[cancel_order]取消交易
 
-    参数
-        :param security: 标的代码
-        :param amount: 交易数量, 正数表示买入, 负数表示卖出
-        :param price: 下单价格，下单价格为空，则认为是市价单，按当前最新价格挂单，否则认为是限价单
-        :param callback: 回调函数，订单成交/取消后调用执行， callback(status)
-    返回
-        :return:  成功返回order对象，失败返回None
+    :param security: 标的代码
+    :param amount: 交易数量, 正数表示买入, 负数表示卖出
+    :param price: 下单价格，下单价格为空，则认为是市价单，按当前最新价格挂单，否则认为是限价单
+    :param callback: 回调函数，订单成交/取消后调用执行， callback(status)
+
+    :return:  成功返回order对象id，失败返回None
     """
 
     """
@@ -223,10 +247,10 @@ def order_amount(security, amount=100, price=None, callback=None):
     slippage = context.slippage if amount > 0 else -context.slippage
     cur_data = get_current_data(security)
     if price is None:
-        style = MARKET_ORDER
+        style = ORDER_TYPE.MARKET
         order_price = round(cur_data.last_price * (1 + slippage), 2)
     else:
-        style = LIMIT_PRICE
+        style = ORDER_TYPE.LIMIT
         order_price = price
 
     if order_price > cur_data.high_limit:
@@ -245,7 +269,7 @@ def order_amount(security, amount=100, price=None, callback=None):
             log.info('注意：开仓数量必须是100的整数倍，调整为{}。'.format(amount))
 
         if context.portfolio.available_cash <= order_price * amount:
-            new_amount = int((context.portfolio.available_cash / order_price)/100) * 100
+            new_amount = int((context.portfolio.available_cash / order_price) / 100) * 100
             if new_amount == 0:
                 log.warning("下单失败：账户可用资金可购买股票数量不足一手!")
                 return None
@@ -262,34 +286,35 @@ def order_amount(security, amount=100, price=None, callback=None):
         log.warning("下单失败:订单股票数量为0!")
         return None
 
-    order = Order(security, amount, order_price, style, callback)
+    _order = Order(security, amount, order_price, style, callback)
 
-    if order is not None:
-        context.order_list[order.id] = order
+    if _order is not None:
+        context.order_list[_order.id] = _order
         log.info("下单成功：订单编号：{}，股票代码：{}，下单数量：{}, {}.".
-                 format(order.id, order.security, amount, ('买入' if order.is_buy else '卖出')))
-        if context.run_freq == 'day' and context.run_type == RUNTYPE.BACK_TEST:
-            order_broker_day(order.id)
-        return order.id
+                 format(_order.id, _order.security, amount, ('买入' if _order.is_buy else '卖出')))
+        if context.run_freq == 'day' and context.run_type == RUN_TYPE.BACK_TEST:
+            order_broker_day(_order.id)
+        return _order.id
     else:
         return None
 
 
 def order_value(security, value, price=None, callback=None):
+    # type: (str, float, float, Callable) -> Optional[str]
     """
     按股票价值下单
 
-    参数
-        :param security: 股票代码
-        :param value: 股票价值，value = 最新价 * 手数  * 乘数（股票为100）
-        :param price: 下单价格，市价单可不填价格，按当前最新价格挂单
-        :param callback: 回调函数，订单成交/取消后调用执行， callback(status)
+    :param security: 股票代码
+    :param value: 股票价值，value = 最新价 * 手数  * 乘数（股票为100）
+    :param price: 下单价格，市价单可不填价格，按当前最新价格挂单
+    :param callback: 回调函数，订单成交/取消后调用执行， callback(status)
 
-    返回
-        :return: Order对象或者None, 如果创建委托成功, 则返回Order对象, 失败则返回None
-    示例
-        卖出价值为10000元的平安银行股票
-        order_value('000001', -10000)
+    :return: Order对象id或者None, 如果创建委托成功, 则返回Order对象id, 失败则返回None
+    :Example:
+        .. code-block:: python
+
+            # 卖出价值为10000元的平安银行股票
+            order_value('000001', -10000)
     """
     if value == 0:
         log.warning("下单失败:下单股票价值为0!")
@@ -302,18 +327,22 @@ def order_value(security, value, price=None, callback=None):
 
     amount = int(value / order_price)
 
-    return order_amount(security, amount, price, callback)
+    return order(security, amount, price, callback)
 
 
 def order_target(security, amount, price=None, callback=None):
+    # type: (str, int, float, Callable) -> Optional[str]
     """
     目标股数下单:使最终标的的数量达到指定的amount，
     注意使用此接口下单时若指定的标的有未完成的订单，则先前未完成的订单将会被取消
-        参数
-        :param security: 股票代码
-        :param amount: 期望的标的最终持有的股票数量
-        :param price: 下单价格，市价单可不填价格，按当前最新价格挂单
-        :param callback: 回调函数，订单成交/取消后调用执行， callback(status)
+
+    :param security: 股票代码
+    :param amount: 期望的标的最终持有的股票数量
+    :param price: 下单价格，市价单可不填价格，按当前最新价格挂单
+    :param callback: 回调函数，订单成交/取消后调用执行， callback(status)
+
+    :return: Order对象id或者None, 如果创建委托成功, 则返回Order对象id, 失败则返回None
+
     """
     if amount < 0:
         log.warning("下单失败：目标数量不能小于0！")
@@ -322,35 +351,42 @@ def order_target(security, amount, price=None, callback=None):
     pre_hold = 0  # 之前建仓的股票数量
     if security in context.portfolio.positions.keys():
         pst: Position = context.portfolio.positions[security]
-        order: Order
-        for order in context.order_list.values():
-            if order.security == security and order.status == ORDER_OPEN:
-                order.cancel()
+        _order: Order
+        for _order in context.order_list.values():
+            if _order.security == security and _order.status == ORDER_STATUS.OPEN:
+                _order.cancel()
         if pst.today_amount > amount:
             log.warning("今日建仓的股票数量大于目标数量！,目标数量修改为今日建仓数量！")
             amount = pst.today_amount
         pre_hold = pst.total_amount
 
-    return order_amount(security, amount - pre_hold, price, callback)
+    return order(security, amount - pre_hold, price, callback)
 
 
 def order_target_value(security, value, price=None, callback=None):
+    # type: (str, float, float, Callable) -> Optional[str]
     """
     按股票目标价值下单，调整标的仓位到value价值，
     注意使用此接口下单时若指定的标的有未完成的订单，则先前未完成的订单将会被取消
-    参数
-        :param security: 股票代码
-        :param value: 期望的标的最终价值，value = 最新价 * 手数  * 乘数（股票为100）
-        :param price: 下单价格，市价单可不填价格，按当前最新价格挂单
-        :param callback: 回调函数，订单成交/取消后调用执行， callback(status)
 
-    返回
-        :return: Order对象或者None, 如果创建委托成功, 则返回Order对象, 失败则返回None
-    示例
-        #卖出平安银行所有股票
-        order_target_value('000001', 0)
-        #调整平安银行股票仓位到10000元价值
-        order_target_value('000001', 10000)
+    :param security: 股票代码
+    :param value: 期望的标的最终价值，value = 最新价 * 手数  * 乘数（股票为100）
+    :param price: 下单价格，市价单可不填价格，按当前最新价格挂单
+    :param callback: 回调函数，订单成交/取消后调用执行， callback(status)
+
+
+    :return: Order对象id或者None, 如果创建委托成功, 则返回Order对象id, 失败则返回None
+
+    :Example:
+
+        .. code-block:: python
+
+            # 卖出价值为10000元的平安银行股票
+            order_value('000001', -10000)
+            #卖出平安银行所有股票
+            order_target_value('000001', 0)
+            #调整平安银行股票仓位到10000元价值
+            order_target_value('000001', 10000)
     """
 
     order_price = get_current_data(security).last_price
@@ -359,11 +395,61 @@ def order_target_value(security, value, price=None, callback=None):
 
 
 def order_cancel(order_id):
+    # type: (str) -> bool
+    """
+    撤回已下的订单。
+
+    :param order_id: 订单编号
+    :return: 成功返回True,失败返回False
+
+    """
     if order_id in context.order_list.keys():
         order_obj: Order = context.order_list[order_id]
         return order_obj.cancel()
     else:
         return False
+
+
+def get_orders(order_id=None, security=None, status=None):
+    # type: (str, str, ORDER_TYPE) -> Dict[str, Order]
+    """
+    获取当天的所有订单
+
+    :param order_id: 订单 id
+    :param security: 标的代码，可以用来查询指定标的的所有订单
+    :param status: 查询特定订单状态的所有订单
+
+    :return: 返回一个dict, key是order_id, value是[Order]对象
+    """
+    rtn = {}
+    if order_id is not None:
+        if order_id in context.order_list.keys():
+            rtn[order_id] = context.order_list[order_id]
+    elif security is not None:
+        for _id, order_obj in context.order_list.items():
+            if order_obj.security == security:
+                rtn[_id] = context.order_list[_id]
+    elif status is not None:
+        for _id, order_obj in context.order_list.items():
+            if order_obj.status == status:
+                rtn[_id] = context.order_list[_id]
+    else:
+        rtn = context.order_list
+    return rtn
+
+
+def get_open_orders():
+    """
+    获得当天的所有未完成的订单
+
+    :return: 返回一个dict, key是order_id, value是[Order]对象
+    """
+    rtn = {}
+    for _id, order_obj in context.order_list.items():
+        if order_obj.status == ORDER_STATUS.OPEN:
+            rtn[_id] = order_obj
+    return rtn
+
 
 
 def order_broker_day(order_id):
@@ -396,7 +482,7 @@ def order_broker():
     for order in context.order_list.values():
         if order.add_time[0:10] != context.current_dt[0:10]:  # 防止框架恢复运行导入其他日期的context
             context.order_list.remove(order)
-        if order.status == ORDER_OPEN and order.add_time < context.current_dt:  # 防止下单后马上撮合
+        if order.status == ORDER_STATUS.OPEN and order.add_time < context.current_dt:  # 防止下单后马上撮合
             code = order.security
             data = get_current_data(code)
             if order.is_buy:

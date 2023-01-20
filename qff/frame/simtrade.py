@@ -31,7 +31,8 @@ import threading
 import os
 import pandas as pd
 from time import sleep
-from qff.frame.context import context, strategy, RUNSTATUS, RUNTYPE, run_strategy_funcs
+from qff.frame.context import context, strategy, run_strategy_funcs
+from qff.frame.const import RUN_TYPE, RUN_STATUS
 from qff.frame.backup import save_context
 from qff.frame.order import order_broker
 from qff.frame.settle import settle_by_day, profit_analyse
@@ -48,13 +49,13 @@ def sim_trade_run():
 
     :return: None
     """
-    context.run_type = RUNTYPE.SIM_TRADE
+    context.run_type = RUN_TYPE.SIM_TRADE
 
-    if context.status == RUNSTATUS.RUNNING:
+    if context.status == RUN_STATUS.RUNNING:
         log.error('实盘模拟框架函数已运行！')
         return
     else:
-        context.status = RUNSTATUS.RUNNING
+        context.status = RUN_STATUS.RUNNING
 
     # 恢复运行时不能设置
     if context.bm_start is None:
@@ -72,7 +73,7 @@ def sim_trade_run():
 
 
 def _sim_trade_run():
-    while context.status == RUNSTATUS.RUNNING:
+    while context.status == RUN_STATUS.RUNNING:
         _time = pd.Timestamp.now()
         stime = _time.strftime('%Y-%m-%d %H:%M:%S')
         if is_trade_day(stime[0:10]):
@@ -116,7 +117,7 @@ def _sim_trade_run():
                 sleep((_time.ceil(freq="1min") - pd.Timestamp.now()).total_seconds())
         else:
             sleep(60)
-    if context.status == RUNSTATUS.PAUSED:
+    if context.status == RUN_STATUS.PAUSED:
         log.warning("回测运行暂停，保存过程数据...!")
         default_name = context.strategy_name+'_bt.pkl'
         if ' ' in default_name:
@@ -128,5 +129,5 @@ def _sim_trade_run():
         print(f"策略备份文件：{backup_file}")
         save_context(backup_file)
         save_context()
-    elif context.status == RUNSTATUS.CANCELED:
+    elif context.status == RUN_STATUS.CANCELED:
         log.warning("回测执行取消...!")

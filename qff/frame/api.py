@@ -25,15 +25,17 @@
 import os
 import importlib.util
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Callable
 from qff.tools.logs import log
 from qff.tools.date import is_trade_day, get_real_trade_date, util_date_valid, get_pre_trade_day
-from qff.frame.context import context, strategy, RUNTYPE, Portfolio
+from qff.frame.context import context, strategy, Portfolio
+from qff.frame.const import RUN_TYPE
 from qff.frame.backtest import back_test_run
 from qff.frame.simtrade import sim_trade_run
 
 __all__ = ['set_benchmark', 'set_order_cost', 'set_slippage', 'run_daily', 'run_file',
-           'set_universe', 'del_universe', 'pass_today']
+           'set_universe', 'pass_today']
+
 
 def _getattr(m, func_name):
     try:
@@ -73,18 +75,35 @@ def _load_strategy_file(path):
 
 
 def run_daily(func, run_time="every_bar", append=True):
+    # type: (Callable, str,bool) -> None
     """
-     定时运行的策略函数
+    设置定时运行的策略函数
 
-    :param func: 一个自定义的策略函数, 此函数必须接受context参数;例如自定义函数名market_open(context)
-    :param run_time: 具体执行时间,一个字符串格式的时间,有两种方式：
-        (1) 24小时内的任意时间，例如"10:00", "01:00"；
-        (2) time="every_bar",只能在 run_daily 中调用,运行时间和您设置的频率一致，按天会
-        在交易日的开盘时调用一次，按分钟会在交易时间每分钟运行。
-    :param append: 如何run_time已注册运行函数，新函数是在原函数前面运行还是后面运行
+    指定每天要运行的函数, 可以在具体交易日的某一分钟执行。
+
+    :param func: 一个自定义的策略函数;例如自定义函数名`market_open()`。
+    :param run_time: 具体执行时间,一个字符串格式的时间:
+
+        - 24小时内的任意时间，例如"10:00", "01:00"；
+        - **every_bar**,运行时间和您设置的运行频率一致，按天会在交易日的开盘时调用一次，按分钟会在交易时间每分钟运行。
+        - **before_open**,设置func在开盘前运行，执行后将替代before_trading_start()策略框架函数.
+        - **after_close**,设置func在收盘后运行，执行后将替代after_trading_end()策略框架函数.
+    :param append: 如果run_time已注册运行函数，新函数是在原函数前面运行还是后面运行。append=True: 则新函数是在原函数后面运行。
+
     :return: None
-    一个策略中尽量不要同时使用run_daily和handle_data，更不能使用run_daily(handle_data, "xx:xx")
-    建议使用run_daily；
+
+    .. note::
+        一个策略中尽量不要同时使用run_daily和handle_data，更不能使用run_daily(handle_data, "xx:xx")
+        建议使用run_daily；
+
+    :example:
+
+        ::
+
+            def initialize():
+                run_daily(func, time='10:00')
+
+
     """
     def register_strategy_func(strategy_func, _func, _append=True):
         obj = strategy_func
@@ -129,7 +148,7 @@ def run_daily(func, run_time="every_bar", append=True):
     return
 
 
-def set_backtest_period(start=None, end=None):
+def _set_backtest_period(start=None, end=None):
     """
     设置回测周期开始时间和结束时间,默认最近60天数据
     :param start: 回测开始日期
@@ -166,13 +185,18 @@ def set_order_cost(open_tax=0,
                    open_commission=0.0002,
                    close_commission=0.0002,
                    min_commission=5):
+    # type: (float, float, float, float, float) -> None
     """
-    设置佣金/印花税
-    :param open_tax: 买入时印花税
-    :param close_tax: 卖出时印花税
-    :param open_commission: 买入时佣金，
-    :param close_commission: 卖出时佣金
-    :param min_commission: 最低佣金，不包含印花税
+    设置佣金和印花税率。
+
+    指定每笔交易要收取的手续费, 系统会根据用户指定的费率计算每笔交易的手续费
+
+    :param open_tax: 买入时印花税，默认值为0
+    :param close_tax: 卖出时印花税，默认值为千分之一
+    :param open_commission: 买入时佣金，默认值为万分之二
+    :param close_commission: 卖出时佣金，默认值为万分之二
+    :param min_commission: 最低佣金，不包含印花税，默认值为5
+
     :return: None
     """
 
@@ -184,29 +208,33 @@ def set_order_cost(open_tax=0,
 
 
 def set_benchmark(security):
+    # type: (str) -> None
     """
-    设置指数基准
+    设置基准
+
     默认我们选定了沪深300指数的每日价格作为判断您策略好坏和一系列风险值计算的基准.
     您也可以使用set_benchmark指定其他指数
+
     :param security:  指数基准
+
     :return: None
     """
-    # if context.status != RUNSTATUS.NONE:
-    #     log.error("框架运行中，不能设置基础参数")
-    #     return
+
     context.benchmark = security
     return
 
 
 def set_slippage(slippage=0.00246):
+    # type: (float) -> None
     """
     设置固定滑点
+
+    当您下单后, 真实的成交价格与下单时预期的价格总会有一定偏差, 因此我们加入了滑点模式来帮您更好的模拟真实市场的表现. 我们暂时只支持固定滑点。同时，我们也支持为交易品种和特定的交易标的设置滑点。
+
     :param slippage: 固定滑点值，默认0.00246
+
     :return: None
     """
-    # if context.status != RUNSTATUS.NONE:
-    #     log.error("框架运行中，不能设置基础参数")
-    #     return
 
     context.slippage = slippage
     return
@@ -214,46 +242,35 @@ def set_slippage(slippage=0.00246):
 
 # context.universe = ['000001', '601567', '000166', '601636'] 测试使用
 def set_universe(security_list):
+    # type: (list) -> None
     """
+    设定股票值(history函数专用)
+
     设置或者更新此策略要操作的股票池 context.universe. 请注意:
-    该函数现在只用于设定history函数的默认security_list, 以及缓存回测期间的数据。
-    参数
-    :param security_list: 股票列表
+    **该函数现在只用于设定history函数的默认security_list, 除此之外并无其他用处。**
+
+    :param security_list: 证券标的列表
     :return: None
     """
     if isinstance(security_list, str):
         security_list = [security_list]
-    for code in security_list:
-        if code not in context.universe:
-            context.universe.append(code)
-    return
+
+    context.universe = security_list
 
 
-def del_universe(security_list):
+def pass_today() -> None:
     """
-    删除股票池 context.universe中的股票
-    :param security_list: 股票列表
-    :return:
-    """
-    if isinstance(security_list, str):
-        security_list = [security_list]
-    for code in security_list:
-        if code not in context.universe:
-            context.universe.remove(code)
-    return
+    跳过当日(回测专用)
 
-
-def pass_today():
+    在分钟执行策略中，调用此函数可用跳过当日剩余的每分钟策略运行，以提高回测效率。
     """
-    在分钟执行策略中，调用此函数可用跳过当日剩余的每分钟策略运行，以提高回测效率
-    """
-    if context.run_type == RUNTYPE.BACK_TEST:
+    if context.run_type == RUN_TYPE.BACK_TEST:
         context.pass_today = True
     return
 
 
 def run_file(strategy_file: str,
-             run_type: int = RUNTYPE.BACK_TEST,
+             run_type: int = RUN_TYPE.BACK_TEST,
              resume: bool = False,
              freq: str = 'day',
              cash: int = 1000000,
@@ -271,10 +288,12 @@ def run_file(strategy_file: str,
     :param start: 回测开始日期，默认为结束日期前60个交易日
     :param end: 回测结束日期, 默认为上一个交易日
     :param name: 策略名称
+
     :return: None
 
     :example:
         使用方法：一般在策略文件中的尾部加入以下代码
+
     .. code-block:: python
 
         if __name__ == '__main__':
@@ -290,7 +309,7 @@ def run_file(strategy_file: str,
     if resume:
         if strategy.process_initialize is not None:
             strategy.process_initialize()
-        if context.run_type == RUNTYPE.BACK_TEST:
+        if context.run_type == RUN_TYPE.BACK_TEST:
             back_test_run()
         else:
             sim_trade_run()
@@ -309,8 +328,8 @@ def run_file(strategy_file: str,
             name = os.path.basename(strategy_file).split('.')[0]
         context.strategy_name = name
 
-        if run_type == RUNTYPE.BACK_TEST:
-            set_backtest_period(start, end)
+        if run_type == RUN_TYPE.BACK_TEST:
+            _set_backtest_period(start, end)
             back_test_run()
-        elif run_type == RUNTYPE.SIM_TRADE:
+        elif run_type == RUN_TYPE.SIM_TRADE:
             sim_trade_run()

@@ -27,7 +27,8 @@ from qff.price.query import get_price, get_stock_name, get_index_name, get_stock
 from qff.tools.date import get_trade_min_list
 from qff.price.fetch import fetch_current_ticks, fetch_today_min_curve, fetch_price
 
-from qff.frame.context import context, RUNTYPE
+from qff.frame.context import context
+from qff.frame.const import RUN_TYPE
 from typing import Optional
 import pandas as pd
 
@@ -39,6 +40,7 @@ realtime_index_cache = {}  # RealtimeData对象缓存
 
 
 class CacheData:
+
     def __init__(self, code, market='stock'):
         self.code = code
         self.market = market
@@ -49,18 +51,31 @@ class CacheData:
 
     @property
     def high_limit(self):
+        """
+        [float] 当日涨停价
+
+        """
         if self._high_limit is None:
             self._calc_limit()
         return self._high_limit
 
     @property
     def low_limit(self):
+        """
+        [float] 当日跌停价
+
+        """
         if self._low_limit is None:
             self._calc_limit()
         return self._low_limit
 
     @property
     def name(self):
+        """
+        [str] 标的名称
+
+        """
+
         if self._name is None:
             if self.market == "stock":
                 dict_name = get_stock_name(self.code, context.previous_date)
@@ -75,7 +90,9 @@ class CacheData:
 
     @property
     def block(self):
-        # 股票所属概念板块
+        """
+        [list] 股票所属概念板块
+        """
         if self._block is None and self.market == "stock":
             self._block = get_stock_block(self.code)
         return self._block
@@ -95,18 +112,34 @@ class CacheData:
 
     @property
     def pre_close(self):
+        """
+        [float] 昨日收盘价
+        """
+
         return 0
 
     @property
     def day_open(self):
+        """
+        [float] 今日开盘价
+        """
+
         return 0
 
     @property
     def paused(self):
+        """
+        [bool] 是否停盘
+        """
+
         return None
 
     @property
     def min_data_before(self):
+        """
+        [DataFrame] 今日当前时刻之前的分钟曲线
+        """
+
         return None
 
     @property
@@ -115,55 +148,66 @@ class CacheData:
 
     @property
     def last_price(self):
+        """
+        [float] 当前股票价格
+        """
         return 0
 
     @property
     def last_high(self):
+        """
+        [float] 当前Bar最高价
+        """
         return 0
 
     @property
     def last_low(self):
+        """
+        [float] 当前Bar最低价
+        """
+
         return 0
 
     @property
     def high_all_day(self):
+        """
+        [float] 当日之前时间段最高价
+        """
+
         return 0
 
     @property
     def low_all_day(self):
+        """
+        [float] 当日之前时间段最低价
+        """
         return 0
 
     @property
     def min_data_freq(self):
+        """
+        [str] 当日缓存分钟曲线的频率，回测专用
+        """
         return None
 
     @property
     def high_limit_time(self):
-        """ 当天涨停时间 """
+        """
+        [int] 当天涨停时间
+        """
         return None
 
     @property
     def ticks(self):
+        """
+        [Dict] 当前时刻Tick值，实盘专用
+
+        """
         return None
 
 
 class BacktestData(CacheData):
-    """
-    获取当前单位时间（当天/当前分钟）的涨跌停价, 是否停牌，当天的开盘价等。
-    回测时, 通过其他获取数据的API获取到的是前一个单位时间(天/分钟)的数据, 而有些数据, 我们在这个单位时间是知道的,
-    比如涨跌停价, 是否停牌, 当天的开盘价. 我们添加了这个API用来获取这些数据.
-    :param code: 股票代码
-    :return: 一个CurrentData对象, 拥有如下属性：
-        high_limit: 涨停价
-        low_limit: 跌停价
-        paused: 是否停止或者暂停了交易, 当停牌、未上市或者退市后返回 True
-        day_open: 当天开盘价
-        pre_close: 昨日收盘价
-        last_price: 最新的价格
-        min_data_before 当日开盘到当前时间点的分钟曲线数据
-        min_data_after: 当前时间点到收盘时的分钟曲线数据
 
-    """
     def __init__(self, code, market="stock"):
         super().__init__(code, market)
         self._day_buff = get_price(code, end=context.current_dt[0:10], count=2, market=self.market)
@@ -354,7 +398,29 @@ class RealtimeData(CacheData):
 
 
 def get_current_data(code, market='stock') -> Optional[CacheData]:
-    if context.run_type == RUNTYPE.BACK_TEST:
+
+    """
+    获取当前时刻标的数据
+
+    获取当前单位时间（当天/当前分钟）的涨跌停价, 是否停牌，当天的开盘价等。
+    回测时, 通过其他获取数据的API获取到的是前一个单位时间(天/分钟)的数据, 而有些数据, 我们在这个单位时间是知道的,
+    比如涨跌停价, 是否停牌, 当天的开盘价. 我们添加了这个API用来获取这些数据.
+
+    :param code: 股票代码
+    :param market: 标的类型，股票还是指数
+
+    :return: 一个CurrentData对象, 拥有如下属性：
+        high_limit: 涨停价
+        low_limit: 跌停价
+        paused: 是否停止或者暂停了交易, 当停牌、未上市或者退市后返回 True
+        day_open: 当天开盘价
+        pre_close: 昨日收盘价
+        last_price: 最新的价格
+        min_data_before 当日开盘到当前时间点的分钟曲线数据
+        min_data_after: 当前时间点到收盘时的分钟曲线数据
+
+    """
+    if context.run_type == RUN_TYPE.BACK_TEST:
         if market == 'stock':
             if code not in backtest_cache.keys():
                 backtest_cache[code] = BacktestData(code, market)
@@ -364,7 +430,7 @@ def get_current_data(code, market='stock') -> Optional[CacheData]:
                 backtest_index_cache[code] = BacktestData(code, market)
             return backtest_index_cache[code]
 
-    elif context.run_type == RUNTYPE.SIM_TRADE:
+    elif context.run_type == RUN_TYPE.SIM_TRADE:
         if market == 'stock':
             if code not in realtime_cache.keys():
                 realtime_cache[code] = RealtimeData(code, market)
@@ -379,10 +445,10 @@ def get_current_data(code, market='stock') -> Optional[CacheData]:
 
 
 def clear_current_data():
-    if context.run_type == RUNTYPE.BACK_TEST:
+    if context.run_type == RUN_TYPE.BACK_TEST:
         backtest_cache.clear()
         backtest_index_cache.clear()
-    elif context.run_type == RUNTYPE.SIM_TRADE:
+    elif context.run_type == RUN_TYPE.SIM_TRADE:
         realtime_cache.clear()
         realtime_index_cache.clear()
     else:

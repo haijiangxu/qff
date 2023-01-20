@@ -24,27 +24,9 @@
 
 from typing import Optional
 from datetime import datetime
+
+from qff.frame.const import RUN_TYPE, RUN_STATUS
 from qff.tools.date import get_pre_trade_day
-
-
-class RUNTYPE:
-    """
-    框架类型
-    """
-    BACK_TEST = 0   # 历史数据回测
-    SIM_TRADE = 1   # 实盘模拟交易
-
-
-class RUNSTATUS:
-    """
-    回测框架运行状态
-    """
-    NONE = 0      # 未开始
-    RUNNING = 1   # 正在进行
-    DONE = 2      # 完成
-    FAILED = 3    # 失败
-    CANCELED = 5  # 取消
-    PAUSED = 6    # 暂停
 
 
 class TradeCost:
@@ -79,7 +61,25 @@ class Strategy:
 
 class Position:
     """
-    持仓股票信息
+    持仓标的信息
+
+    持有的某个标的的信息,注意区分多仓和空仓
+
+    ==================  ==============  ==============================================================
+        属性               类型                说明
+    ==================  ==============  ==============================================================
+    security             str             股票代码
+    init_time            str             建仓时间
+    avg_cost             float           当前持仓成本，只有在开仓/加仓时会更新
+    acc_avg_cost         float           累计的持仓成本,在清仓/减仓时也会更新，该持仓累积的收益都会用于计算成本
+    transact_time        str             最后交易时间
+    locked_amount        int             挂单冻结仓位
+    closeable_amount     int             可卖出的仓位，不包括挂单冻结仓位，建仓当天不能卖出
+    today_amount         int             今天开的仓位
+    total_amount         int             总仓位, 等于locked_amount+closeable_amount+today_amount)
+    price                float           最新行情价格
+    value                float           标的价值，计算方法是: price * total_amount
+    ==================  ==============  ==============================================================
     """
     def __init__(self, security, init_time, amount, avg_cost):
         self.security = security
@@ -97,7 +97,22 @@ class Position:
 
 class Portfolio:
     """
-    股票账户信息
+    股票账户
+
+    账户当前的资金，标的信息，即所有标的操作仓位的信息汇总。
+
+    ==================  ==============  ==============================================================
+        属性               类型                说明
+    ==================  ==============  ==============================================================
+    starting_cash        float              初始资金
+    available_cash       float              当可用资金, 可用来购买证券的资金
+    locked_cash          float              挂单锁住资金
+    positions            Dict               当前仓位，key值为股票代码，value是 :class:`.Position` 对象
+    total_assets         float              总的资产, 包括现金, 仓位(股票)的总价值, 可用来计算收益
+    positions_assets     float              持仓资产价值
+    benchmark_assets     float              基准价值
+    ==================  ==============  ==============================================================
+
     """
     def __init__(self, starting_cash):
         self.starting_cash = starting_cash   # 初始资金
@@ -112,11 +127,37 @@ class Portfolio:
 
 
 class Context:
+    """
+    策略上下文
+
+    保存策略运行信息，包含账户、时间等
+
+
+    ============== =====================  =======================================================================
+        属性        类型                      说明
+    ============== =====================  =======================================================================
+    strategy_name  str                      策略名称
+    run_type       :class:`.RUN_TYPE`       当前框架运行模式，回测还是模拟
+    status         :class:`.RUN_STATUS`     策略当前运行状态
+    run_freq       str                      策略运行频率 包括”day" ,"tick"和 "min"
+    start_date     str                      回测开始日期
+    end_date       str                      回测结束日期
+    current_dt     str                      策略执行的当前时间 "yyyy-mm-dd HH:MM:SS"
+    benchmark      str                      基准指数代码
+    portfolio      :class:`.Portfolio`      交易账户对象
+    order_list     Dict                     当日的所有订单列表,key为order_id, value为 :class:`.Order`
+    df_orders      DataFrame                历史的订单列表,以DataFrame保存order对象
+    df_positions   DataFrame                历史仓位列表,以DataFrame模式保存Position对象
+    df_asset       DataFrame                收益曲线，以DataFrame模式保存：时间、收益、基准收益、持仓资产
+    strategy_file  str                      策略文件名称及路径
+    ============== =====================  =======================================================================
+
+    """
 
     def __init__(self):
         self.strategy_name = None       # 策略名称
-        self.run_type = RUNTYPE.BACK_TEST  # 当前框架运行的是回测还是模拟
-        self.status = RUNSTATUS.NONE    # 回测框架运行状态
+        self.run_type = RUN_TYPE.BACK_TEST  # 当前框架运行的是回测还是模拟
+        self.status = RUN_STATUS.NONE    # 回测框架运行状态
         self.run_freq = None            # 策略运行频率 包括”day" ,"tick"和 "min"
         self.start_date = None  # 回测开始日期
         self.end_date = None    # 回测结束日期
@@ -137,14 +178,14 @@ class Context:
 
     @property
     def current_dt(self):
-        if context.run_type == RUNTYPE.BACK_TEST:
+        if context.run_type == RUN_TYPE.BACK_TEST:
             return self._current_dt
         else:
             return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     @current_dt.setter
     def current_dt(self, str_datetime):
-        if context.run_type == RUNTYPE.BACK_TEST:
+        if context.run_type == RUN_TYPE.BACK_TEST:
             self._current_dt = str_datetime
         return
 
