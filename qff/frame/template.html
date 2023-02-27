@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+<!--    <script type="text/javascript" src="https://assets.pyecharts.org/assets/echarts.min.js"></script>-->
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.1/echarts.common.js"></script>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        html, body{
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-size:18px;
+        }
+
+        .title {
+            height: 50px;
+            width: 100%;
+            line-height: 50px;
+            text-align: center;
+            background-color: #21305e;
+            color: white;
+        }
+
+        .base-info  {
+            height: 60px;
+            width: 100%;
+            border-bottom: #d1d3da 1px solid;
+            padding-left: 30px;
+            /*display: flex;*/
+            font-size: 16px;
+            font-weight:bold;
+        }
+        .info-title {
+            width: 100px;
+            background-color: #255da8;
+            color: white;
+            padding: 0 10px;
+            text-align: center;
+            border-radius: 5px
+        }
+        .center {
+            width: 100%;
+            /*height: 100%;*/
+            height: 700px;
+            background-color: #e8ecf0;
+            display: flex;
+            padding-top: 20px;
+            overflow: hidden;
+
+        }
+        .left {
+            width: 12%;
+            min-width:100px;
+            height:100%;
+            margin: 10px 30px;
+        }
+        .menu {
+            height: 50px;
+            width: 100%;
+            padding-left: 10px;
+            line-height: 50px;
+            /*border: #d1d3da 1px solid;*/
+            color: #8f9295;
+            font-size: 16px;
+        }
+        .menu:hover {
+            background-color: #2e8ece;
+            color: white;
+        }
+        .menu-active {
+            height: 50px;
+            width: 100%;
+            padding-left: 10px;
+            line-height: 50px;
+            font-size: 16px;
+            background-color: #255da8;
+            color: white;
+        }
+
+        .left .time-td{
+            height: 40px; line-height: 40px;border: #d1d3da 1px solid; text-align: left;padding-left: 5px;
+        }
+        .main {
+            position: relative;
+            width: 85%;
+            min-width: 800px;
+            height:100%;
+            background-color: #fff;
+            border: #d1d3da 1px solid;
+            margin:10px 30px 20px
+        }
+        .section {
+            position: relative;
+            height: 100%;
+            display: none;
+        }
+        .section-header {
+            background-color: #f7f7f7; height: 50px; line-height: 50px; padding-left: 20px; font-size: 18px; font-weight: bold
+        }
+        .Indicator {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            grid-template-rows: 70px 70px;
+            height: 180px;
+            border-bottom:  #d1d3da 1px solid;
+            padding: 20px;
+            color: #8f9295;
+
+        }
+        .Indicator>div {
+            padding: 5px 5px;
+            text-align: center;
+            line-height:30px;
+            font-size: 16px;
+
+        }
+        table{
+            /*padding-top: 30px;*/
+            position: relative;
+            width: 100%;
+
+            margin: auto;
+            /*overflow-y: auto;*/
+            table-layout: fixed;
+        }
+        table,tbody {
+
+            display: block;
+            border: 1px solid #e8eaec;
+            border-spacing: 0;
+            border-collapse: collapse;
+            cursor: default;
+            color: #666;
+            font-size: 16px;
+        }
+
+        tbody {
+            max-height: 500px;
+            overflow-y: scroll;
+        }
+
+        table thead,
+        tbody tr {
+            display: table;
+            width: 100%;
+            height: 40px;
+            table-layout: fixed;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+        /*thead{*/
+        /*    padding-right: 16px;*/
+        /*}*/
+        /*table thead {*/
+        /*    width: calc(100% - 1em);*/
+        /*    font-weight: normal;*/
+        /*}*/
+
+        table thead th {
+            /*background: #e8ecf0; !*#eff6ff;*!*/
+            background: #255da8;
+            color: white;
+            font-weight: normal;
+            /*border-right: 1px solid #e8eaec;*/
+            border-right: 1px solid #eee;
+            text-overflow: ellipsis;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        table tbody td {
+            /*width: 20%;*/
+            text-align: center;
+            border-right: 1px solid #eee;
+            text-overflow: ellipsis;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        tr:nth-child(odd)   { background-color:#f7f7f7; }
+        tr:nth-child(even)    { background-color:#fff; }
+        tr:hover{ background: #eff6ff;}
+        .log-box {
+            position: relative; background-color: #222; height: 680px;border:2px solid white;overflow-y: scroll;
+            color:#ddd; padding: 10px;font-size: 12px; line-height: 18px;font-weight: 400;
+        }
+
+        .log-date{
+            color: #258ccd;
+        }
+        .INFO{
+            color: #393;
+        }
+        .WARNING{
+            color: #dad06f;
+        }
+        .ERROR{
+            color: #f22;
+        }
+        .DEBUG{
+            color: #98dbcc;
+        }
+
+        footer{
+            height:30px;
+            border-top:  #d1d3da 2px solid;
+
+        }
+
+    </style>
+</head>
+
+<body >
+<div class="title">
+    <h3> QFF策略运行报告</h3>
+</div>
+<div class="base-info">
+    <div style=" width:95%; margin: 20px 0;line-height: 40px; display: flex">
+        <div class="info-title">
+        策略名称
+        </div>
+        <div style=" padding-left: 20px;width: 300px">
+            {{ctx.strategy_name}}
+        </div>
+
+        <div class="info-title">
+        状态
+        </div>
+        <div style="flex: 1">
+            <meter value="{{ctx.run_progress*100 | int}}" min="0" max="100" style="padding-left: 20px; width: 200px"></meter>
+            <span>{{ctx.run_progress*100 }}% {{ctx.get_run_status | safe}}</span>
+        </div>
+        
+        <div class="info-title">
+        参数
+        </div>
+        <div style=" padding-left: 20px">
+         {{ctx.get_run_type}}， {{ctx.start_date}}到 {{ctx.end_date}}， ￥{{ctx.portfolio.starting_cash}}， {{ctx.run_freq}}
+        </div>
+
+    </div>
+<!--    <div>-->
+<!--        参数: {{ctx["框架类型"]}}， {{ctx["开始日期"]}}到 {{ctx["结束日期"]}}， ￥{{ctx["初始资金"]}}， {{ctx["运行频率"]}}-->
+<!--    </div>-->
+
+</div>
+
+<div class="center">
+
+    <div class="left">
+        <div id="menu_bar">
+            <div class="menu-active"> 策略收益 </div>
+            <div class="menu"> 交易分析 </div>
+            <div class="menu"> 交易详情 </div>
+            <div class="menu"> 持仓详情 </div>
+            <div class="menu"> 账户详情 </div>
+            <div class="menu"> 日志输出 </div>
+        </div>
+        <div style="padding: 20px 0;"><hr></div>
+        <table style="margin: 20px 0">
+            <tbody style="overflow-y: hidden">
+            <tr>
+                <td class="time-td">策略启动时间</td>
+            </tr>
+            <tr>
+                <td class="time-td" style="height:80px" >{{ctx.run_start.strftime("%F %T")| safe}}</td>
+            </tr>
+            <tr>
+               <td class="time-td">运行总耗时</td>
+            </tr>
+            <tr>
+               <td class="time-td" style="height:80px">{{ctx.spend_time}}</td>
+            </tr>
+        </tbody>
+        </table>
+    </div>
+
+    <div class="main" >
+        <div class="section" style="display: block">
+            <div class="section-header">
+                收益概述
+            </div>
+            <div class="Indicator">
+                {% for key, value in risk.items() %}
+                    {% if loop.index <= 4 %}
+                        {% if value[0] != '-' %}
+                            <div> {{key}} <br> <h3 style="color: red"> {{value}} </h3> </div>
+                        {% else %}
+                            <div> {{key}} <br> <h3 style="color: green"> {{value}} </h3> </div>
+                        {% endif %}
+
+                    {% else %}
+                            <div> {{key}} <br> <h3 style="color: black"> {{value}} </h3> </div>
+                    {% endif %}
+                {% endfor %}
+
+            </div>
+            <div id="grid-echart" class="chart-container" style="height: calc(100% - 300px); width: 100%; padding-top: 20px; border-bottom: #2e8ece 1px solid">
+<!--                {{echart_content}}-->
+            </div>
+        </div>
+        <div class="section" style="display: none">
+            <div class="section-header">
+                交易分析
+            </div>
+            <div class="Indicator">
+                {% for key, value in perf.message.items() %}
+                    {% if loop.index == 1 %}
+                        {% if value > 0 %}
+                            <div> {{key}} <br> <h3 style="color: red"> {{value}} </h3> </div>
+                        {% else %}
+                            <div> {{key}} <br> <h3 style="color: green"> {{value}} </h3> </div>
+                        {% endif %}
+                    {% else %}
+                        {% if loop.index == 4 %}
+                            {% if value > 1%}
+                                <div> {{key}} <br> <h3 style="color: red"> {{value}} </h3> </div>
+                            {% else %}
+                                <div> {{key}} <br> <h3 style="color: green"> {{value}} </h3> </div>
+                            {% endif %}
+                        {% else %}
+                            {% if loop.index == 7 %}
+                                {% if value >'50'  %}
+                                    <div> {{key}} <br> <h3 style="color: red"> {{value}} </h3> </div>
+                                {% else %}
+                                    <div> {{key}} <br> <h3 style="color: green"> {{value}} </h3> </div>
+                                {% endif %}
+                            {% else %}
+                                <div> {{key}} <br> <h3 style="color: black"> {{value}} </h3> </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>股票代码</th>
+                        <th>股票名称</th>
+                        <th>买入日期</th>
+                        <th>买入单价</th>
+                        <th>卖出日期</th>
+                        <th>卖出单价</th>
+                        <th>成交数量</th>
+                        <th>收益率</th>
+                        <th>收益金额</th>
+                        <th style="border-right: 0">持股周期</th>
+                        <th style="width: 1em"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-analy">
+                    {% for pnl in perf.pnl.to_dict('split')['data'] %}
+                        {% if pnl[8] > 0 %}
+                            <tr style="color: red">
+                        {% else %}
+                            <tr style="color: green">
+                        {% endif %}
+                                <td>{{loop.index}} </td>
+                        {% for data in pnl %}
+                                <td>{{data}}</td>
+                        {% endfor %}
+                            </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section" style="display: none">
+            <div class="section-header">
+                交易详情
+            </div>
+            <div style="height:30px"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>交易时间</th>
+                        <th>股票代码</th>
+                        <th>股票名称</th>
+                        <th>交易方向</th>
+                        <th>成交数量</th>
+                        <th>成交单价</th>
+                        <th>成交金额</th>
+                        <th style="border-right: 0">交易费用</th>
+                        <th style="width: 1em"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-order">
+                    {% for order in ctx.order_hists %}
+                        <tr>
+                            <td>{{order['交易日期']}} {{order['委托时间']}} </td>
+                            <td>{{order['股票代码']}}</td>
+                            <td>{{order['股票名称']}}</td>
+                            {% if order['交易方向'] == '买入' %}
+                                <td style="color: red">买入</td>
+                                <td>{{order['成交数量']}}股</td>
+                                <td>￥{{order['成交单价']}}</td>
+                                <td style="color: red">￥{{order['成交金额']}}</td>
+                            {% else %}
+                                <td style="color: green">卖出</td>
+                                <td>-{{order['成交数量']}}股</td>
+                                <td>￥{{order['成交单价']}}</td>
+                                <td style="color: green">￥-{{order['成交金额']}}</td>
+                            {% endif %}
+                            <td>￥{{order['交易费用']}}</td>
+                        </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+        <div class="section" style="display: none">
+            <div class="section-header">
+                持仓详情
+            </div>
+            <div style="height:30px"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th  scope="col">交易日期</th>
+                        <th  scope="col" style="width: 200px">股票</th>
+<!--                        <th  scope="col">股票名称</th>-->
+                        <th  scope="col">持仓数量</th>
+                        <th  scope="col">平均成本</th>
+                        <th  scope="col">当日收盘</th>
+                        <th  scope="col">当日市值</th>
+                        <th  scope="col">持有天数</th>
+                        <th  scope="col">仓位占比</th>
+                        <th  scope="col">浮动盈亏</th>
+                        <th  scope="col" style="border-right: 0">当日盈亏</th>
+                        <th  scope="col" style="width: 1em"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-pst">
+                    {% for pst in ctx.positions_hists %}
+                        <tr>
+                            <td>{{pst['日期']}}</td>
+                            <td style="width: 200px">{{pst['股票名称']}}({{pst['股票代码']}})</td>
+<!--                            <td>{{pst['股票名称']}}</td>-->
+                            <td>{{pst['持仓数量']}}</td>
+                            <td>￥{{pst['平均成本']}}</td>
+                            <td>￥{{pst['当前价格']}}</td>
+                            <td>￥{{pst['当日市值']}}</td>
+                            <td>{{pst['持仓天数']}}</td>
+                            <td>{{pst['仓位占比']}}</td>
+                            {% if pst['浮动盈亏率'][0] != '-' %}
+                                <td style="color: red">{{pst['浮动盈亏率']}}</td>
+                            {% else %}
+                                <td style="color: green">{{pst['浮动盈亏率']}}</td>
+                            {% endif %}
+                            {% if pst['当日盈亏率'][0] != '-' %}
+                                <td style="color: red">{{pst['当日盈亏率']}}</td>
+                            {% else %}
+                                <td style="color: green">{{pst['当日盈亏率']}}</td>
+                            {% endif %}
+
+                        </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+        <div class="section" style="display: none">
+            <div class="section-header">
+                账户详情
+            </div>
+            <div style="height:30px"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th  scope="col">日期</th>
+                        <th  scope="col">现金资产</th>
+                        <th  scope="col">持仓资产</th>
+                        <th  scope="col">账户总资产</th>
+                        <th  scope="col">累计收益额</th>
+                        <th  scope="col">累计收益率</th>
+                        <th  scope="col">当日盈亏</th>
+                        <th  scope="col">当日涨幅</th>
+                        <th  scope="col" style="border-right: 0">仓位占比</th>
+                        <th  scope="col" style="width: 1em"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-acc">
+                    {% for acc in ctx.asset_hists %}
+                        <tr>
+                            <td>{{acc['日期']}}</td>
+                            <td>￥{{acc['现金资产']}}</td>
+                            <td>￥{{acc['持仓资产']}}</td>
+                            <td>￥{{acc['账户总资产']}}</td>
+                            {% if acc['累计收益额']>0 %}
+                                <td style="color: red">￥{{acc['累计收益额']}}</td>
+                                <td style="color: red">{{'{:.2%}'.format(acc['累计收益率'])}}</td>
+                            {% elif acc['累计收益额']<0 %}
+                                <td style="color: green">￥{{acc['累计收益额']}}</td>
+                                <td style="color: green">{{'{:.2%}'.format(acc['累计收益率'])}}</td>
+                            {% else %}
+                                <td>￥{{acc['累计收益额']}}</td>
+                                <td>{{'{:.2%}'.format(acc['累计收益率'])}}</td>
+
+                            {% endif %}
+
+                            {% if acc['当日盈亏金额']>0 %}
+                                <td style="color: red">￥{{acc['当日盈亏金额']}}</td>
+                                <td style="color: red">{{'{:.2%}'.format(acc['当日涨幅'])}}</td>
+                            {% elif acc['当日盈亏金额']<0 %}
+                                <td style="color: green">￥{{acc['当日盈亏金额']}}</td>
+                                <td style="color: green">{{'{:.2%}'.format(acc['当日涨幅'])}}</td>
+                            {% else %}
+                                <td>￥{{acc['当日盈亏金额']}}</td>
+                                <td>{{'{:.2%}'.format(acc['当日涨幅'])}}</td>
+                            {% endif %}
+
+                            <td>{{'{:.2%}'.format(acc['仓位'])}}</td>
+
+
+                        </tr>
+                    {% endfor %}
+
+                </tbody>
+            </table>
+        </div>
+        <div class="section" style="display: none">
+            <div class="section-header">
+                日志输出
+            </div>
+            <div class="log-box">
+<!--                <pre>-->
+                {% for log in ctx.read_log_file() %}
+                    <p>
+                        <span class="log-date"> {{log[0]}} </span> - <span class="{{log[1]}}"> {{log[1]}} </span> - {{log[2]}}
+                    </p>
+                {% endfor %}
+<!--                </pre>-->
+            </div>
+        </div>
+
+
+    </div>
+
+</div>
+
+<footer> </footer>
+<script>
+    // 左侧菜单栏
+    let menu_bar = document.getElementById('menu_bar');
+    let menu_items = menu_bar.querySelectorAll('div');
+    let sections = document.querySelectorAll('.section');
+
+    for (let i=0;i<menu_items.length;i++){
+        menu_items[i].setAttribute('index', i);
+        menu_items[i].onclick = function () {
+            for (let i=0;i<menu_items.length;i++){
+                menu_items[i].className='menu';
+            }
+            this.className='menu-active';
+            let index = this.getAttribute('index');
+            for (let i=0;i<sections.length;i++){
+                sections[i].style.display='none';
+            }
+            sections[index].style.display='block';
+
+        }
+    };
+
+    // 自适应浏览器高度
+    function auto_height(){
+        if (window.innerHeight){
+            nh = window.innerHeight;
+        }else {
+            nh = document.documentElement.clientHeight;
+        }
+        // var mini_height = 360;
+        document.querySelector('.center').style.height = nh-160+'px'
+        document.getElementById('tbody-analy').style.maxHeight = nh-480 + 'px';
+        document.getElementById('tbody-pst').style.maxHeight = nh-330 + 'px';
+        document.getElementById('tbody-order').style.maxHeight = nh-330 + 'px';
+        document.getElementById('tbody-acc').style.maxHeight = nh-330 + 'px';
+        document.getElementById('grid-echart').style.height = nh-410 + 'px';
+        document.querySelector('.log-box').style.height = nh- 260 + 'px';
+
+    }
+    auto_height()
+    // var table = document.getElementById("position");
+    // table.setAttribute("height","400px");
+
+    var myChart = echarts.init(document.getElementById('grid-echart'));
+    myChart.setOption({{charts.dump_options() | safe}});
+    window.onresize = function() {
+        auto_height();
+        myChart.resize();
+    };
+
+</script>
+
+</body>
+</html>

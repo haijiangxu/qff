@@ -33,14 +33,38 @@ from typing import Optional
 import pandas as pd
 
 
-backtest_cache = {}  # CurrentData对象缓存
-realtime_cache = {}  # RealtimeData对象缓存
-backtest_index_cache = {}  # CurrentData对象缓存
-realtime_index_cache = {}  # RealtimeData对象缓存
+unit_data_cache = {}  # UnitData对象缓存
 
 
-class CacheData:
+class UnitData:
+    """
+     当前时刻标的数据快照对象
 
+     通过get_current_data()函数获取，只能在回测或模拟交易中使用
+
+     ================== =====================  =======================================================================
+         属性            类型                      说明
+     ================== =====================  =======================================================================
+     code                str                      标的代码
+     name                str                      标的名称
+     last_price          float                    当前股票价格
+     day_open            float                    当日开盘价
+     high_all_day        float                    当日之前时间段最高价
+     low_all_day         float                    当日之前时间段最低价
+     pre_close           float                    昨日收盘价
+     high_limit          float                    当日涨停价
+     low_limit           float                    当日跌停价
+     last_high           float                    当前Bar最高价
+     last_low            float                    当前Bar最低价
+     paused              bool                     当日是否停牌
+     min_data_before     DataFrame                今日当前时刻之前的分钟曲线
+     min_data_freq       str                      当日缓存分钟曲线的频率('1min', '5min', '15min', '30min', '60min')
+     high_limit_time     int                      当天涨停时间长度
+     block               list                     股票所属板块
+     ticks               dict                     当前时刻Tick值，实盘专用
+     ================== =====================  =======================================================================
+
+     """
     def __init__(self, code, market='stock'):
         self.code = code
         self.market = market
@@ -206,17 +230,26 @@ class CacheData:
         return None
 
 
-class BacktestData(CacheData):
+class BacktestData(UnitData):
 
     def __init__(self, code, market="stock"):
         super().__init__(code, market)
         self._day_buff = get_price(code, end=context.current_dt[0:10], count=2, market=self.market)
         if self._day_buff is None or len(self._day_buff) < 2:
             log.error("获取BacktestData对象失败！code:{},date:{}".format(code, context.current_dt[0:10]))
-        self._pre_close = self._day_buff['close'][0]
-        self._day_open = self._day_buff['open'][-1]
+            # self.__getattribute__ = self.return_none
+            self._pre_close = None
+            self._day_open = None
+        else:
+            self._pre_close = self._day_buff['close'][0]
+            self._day_open = self._day_buff['open'][-1]
         self._min_buff = None
         self._min_buff_freq = None
+
+    # def __getattribute__(self, attr):
+    #     if self._day_buff is None or len(self._day_buff) < 2: # 会无限递归调用
+    #         return None
+    #     return super().__getattribute__(attr)
 
     def _get_min_buff(self):
         for freq in ["1min", "5min", "15min", "30min"]:
@@ -321,7 +354,7 @@ class BacktestData(CacheData):
             return int(high_limit_count * freq)
 
 
-class RealtimeData(CacheData):
+class RealtimeData(UnitData):
     def __init__(self, code, market="stock"):
         super().__init__(code, market)
         self._ticks = None
@@ -396,8 +429,28 @@ class RealtimeData(CacheData):
             self._bar_time = context.current_dt[11:16]
             return self._bar['low']
 
+    def paused(self):
+        self._ticks = fetch_current_ticks(self.code, self.market)
+        return self._ticks['vol'] == 0
 
-def get_current_data(code, market='stock') -> Optional[CacheData]:
+    @property
+    def high_limit_time(self):
+        """
+        [int] 当天涨停时间
+        """
+        if context.current_dt[11:16] <= '09:30':
+            return 0
+        else:
+            df = fetch_today_min_curve(self.code, market='stock')
+            high_limit_count = (pd.Series(df.close >= self.high_limit).sum() +
+                                pd.Series(df.open >= self.high_limit).sum() +
+                                pd.Series(df.low >= self.high_limit).sum() +
+                                pd.Series(df.high >= self.high_limit).sum()) / 4
+            return int(high_limit_count)
+
+
+def get_current_data(code, market='stock'):
+    # type: (str, str) -> Optional[UnitData]
 
     """
     获取当前时刻标的数据
@@ -409,47 +462,26 @@ def get_current_data(code, market='stock') -> Optional[CacheData]:
     :param code: 股票代码
     :param market: 标的类型，股票还是指数
 
-    :return: 一个CurrentData对象, 拥有如下属性：
-        high_limit: 涨停价
-        low_limit: 跌停价
-        paused: 是否停止或者暂停了交易, 当停牌、未上市或者退市后返回 True
-        day_open: 当天开盘价
-        pre_close: 昨日收盘价
-        last_price: 最新的价格
-        min_data_before 当日开盘到当前时间点的分钟曲线数据
-        min_data_after: 当前时间点到收盘时的分钟曲线数据
+    :return: 一个 :class:`.UnitData` 对象，代表当前时刻的股票数据
+
 
     """
-    if context.run_type == RUN_TYPE.BACK_TEST:
-        if market == 'stock':
-            if code not in backtest_cache.keys():
-                backtest_cache[code] = BacktestData(code, market)
-            return backtest_cache[code]
-        elif market == 'index':
-            if code not in backtest_index_cache.keys():
-                backtest_index_cache[code] = BacktestData(code, market)
-            return backtest_index_cache[code]
+    if market not in ['stock', 'index', 'etf']:
+        log.error("get_current_data()出错，market值错误{}".format(market))
+        return None
 
-    elif context.run_type == RUN_TYPE.SIM_TRADE:
-        if market == 'stock':
-            if code not in realtime_cache.keys():
-                realtime_cache[code] = RealtimeData(code, market)
-            return realtime_cache[code]
-        elif market == 'index':
-            if code not in realtime_index_cache.keys():
-                realtime_index_cache[code] = RealtimeData(code, market)
-            return realtime_index_cache[code]
+    security = code + '.' + market
+    if security not in unit_data_cache.keys():
+        if context.run_type == RUN_TYPE.BACK_TEST:
+            unit_data_cache[security] = BacktestData(code, market)
+        elif context.run_type == RUN_TYPE.SIM_TRADE:
+            unit_data_cache[security] = RealtimeData(code, market)
+        else:
+            log.error("函数get_current_data()仅支持在回测或模拟交易中使用！")
+            return None
 
-    log.error("get_current_data()出错，market值错误{}".format(market))
-    return None
+    return unit_data_cache[security]
 
 
 def clear_current_data():
-    if context.run_type == RUN_TYPE.BACK_TEST:
-        backtest_cache.clear()
-        backtest_index_cache.clear()
-    elif context.run_type == RUN_TYPE.SIM_TRADE:
-        realtime_cache.clear()
-        realtime_index_cache.clear()
-    else:
-        pass
+    unit_data_cache.clear()

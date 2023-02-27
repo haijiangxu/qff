@@ -27,6 +27,7 @@
 
 import threading
 import os
+import datetime
 
 from qff.frame.settle import settle_by_day, profit_analyse
 from qff.frame.order import order_broker
@@ -40,9 +41,10 @@ from qff.tools.logs import log
 from qff.tools.local import cache_path
 
 
-def back_test_run():
+def back_test_run(trace=False):
     """
     回测框架运行函数,执行该函数将运行回测过程
+    :param trace: 设置策略运行过程中是否进行交互
     :return 无返回值
 
     """
@@ -64,20 +66,23 @@ def back_test_run():
                                 end=context.end_date,
                                 market='index')
     context.bm_start = context.bm_data.iloc[0].close
-
-    bt_thread = threading.Thread(target=_back_test_run)
-    bt_thread.setDaemon(True)
-    # 运行命令行环境...
-    trace = Trace()
-    bt_thread.start()
-    trace.cmdloop()
-    log.warning("命令行交互环境退出...")
-    bt_thread.join()
-    log.warning("回测框架运行结束！")
+    context.run_start = datetime.datetime.now()
+    if trace:
+        bt_thread = threading.Thread(target=_back_test_run)
+        bt_thread.setDaemon(True)
+        # 运行命令行环境...
+        trace = Trace()
+        bt_thread.start()
+        trace.cmdloop()
+        log.warning("命令行交互环境退出...")
+        bt_thread.join()
+        log.warning("回测框架运行结束！")
+    else:
+        _back_test_run()
 
 
 def _back_test_run():
-
+    log.debug('_back_test_run(): 回测线程开始运行...')
     days = get_trade_days(context.current_dt[0:10], context.end_date)  # 回测中断恢复时可继续运行
     for day in days:
         if context.status != RUN_STATUS.RUNNING:
@@ -122,13 +127,15 @@ def _back_test_run():
                         context.pass_today = False
                         break
 
-        if strategy.after_trading_end is not None:
-            context.current_dt = day + " 15:30:00"
-            run_strategy_funcs(strategy.after_trading_end)
+
 
         # 每日收盘处理函数
-        context.current_dt = day + " 16:00:00"
+        context.current_dt = day + " 15:30:00"
         settle_by_day()
+
+        if strategy.after_trading_end is not None:
+            run_strategy_funcs(strategy.after_trading_end)
+
         log.info("##################### 一天结束 ######################")
         log.info("")
 
@@ -150,7 +157,9 @@ def _back_test_run():
         context.status = RUN_STATUS.DONE
         if strategy.on_strategy_end is not None:
             strategy.on_strategy_end()
-        if context.status == RUN_STATUS.DONE:
-            profit_analyse()
+
+        context.run_end = datetime.datetime.now()
+        profit_analyse()
+
         # log.error("回测运行完成!，执行quit退出交互环境后进行回测数据分析")
         log.info("_back_test_run回测线程运行完成!")

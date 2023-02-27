@@ -23,6 +23,8 @@
 # SOFTWARE.
 import random
 import json
+import os
+import re
 
 
 def util_gen_id(topic='ORD', lens=8):
@@ -101,7 +103,26 @@ def util_to_json_from_pandas(data):
 
     """需要对于datetime 和date 进行转换, 以免直接被变成了时间戳"""
     if 'datetime' in data.columns:
-        data.datetime = data.datetime.apply(str)
+        data.datetime = data.datetime.apply(lambda x: str(x))
     if 'date' in data.columns:
-        data.date = data.date.apply(str)
+        data.date = data.date.apply(lambda x: str(x)[:10])
     return json.loads(data.to_json(orient='records'))
+
+
+def auto_file_name(path):
+    """
+    避免覆盖同名文件，自动在文件名后添加”(0), (1), (2)….“之类的编号。
+    :param path: 文件路径及名称
+    :return:
+    """
+    directory, file_name = os.path.split(path)
+    while os.path.isfile(path):
+        pattern = '(\d+)\)\.'
+        if re.search(pattern, file_name) is None:
+            file_name = file_name.replace('.', '(0).')
+        else:
+            current_number = int(re.findall(pattern, file_name)[-1])
+            new_number = current_number + 1
+            file_name = file_name.replace(f'({current_number}).', f'({new_number}).')
+        path = os.path.join(directory + os.sep + file_name)
+    return path

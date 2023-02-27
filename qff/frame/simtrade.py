@@ -87,26 +87,28 @@ def _sim_trade_run():
                     run_strategy_funcs(strategy.before_trading_start)
                 sleep((_time.ceil(freq="1min") - pd.Timestamp.now()).total_seconds())
             elif '09:30' <= stime[11:16] <= '11:30' or '13:00' <= stime[11:16] <= '15:00':
-                # # 固定时间点的策略函数
-                # if stime[11:] in strategy.run_daily.keys():
-                #     strategy.run_daily[stime[11:]]()
                 # 按策略频率运行的策略函数
-                if strategy.handle_data is not None:
-                    run_strategy_funcs(strategy.handle_data)
+                if context.run_freq == 'day':
+                    if stime[11:16] == '09:30' and strategy.handle_data is not None:
+                        run_strategy_funcs(strategy.handle_data)
+                        sleep((_time.ceil(freq="1min") - pd.Timestamp.now()).total_seconds())
+                else:
+                    if strategy.handle_data is not None:
+                        run_strategy_funcs(strategy.handle_data)
 
                 # 订单撮合 order_broker
                 order_broker()
 
-                _freq = "1min" if context.run_freq == 'min' else '3s'     # 3s是为了tick频率运行
+                _freq = "3s" if context.run_freq == 'tick' else '1min'     # 3s是为了tick频率运行
                 _t = pd.Timestamp.now()
                 sleep((_t.ceil(freq=_freq) - _t).total_seconds())         # 考虑前面运行超过_freq，造成sleep负数
                 # sleep((pd.Timestamp.now().ceil(freq='3s') - pd.Timestamp.now()).total_seconds())
 
             elif stime[11:16] == '15:30':
+                settle_by_day()
                 if strategy.after_trading_end is not None:
                     run_strategy_funcs(strategy.after_trading_end)
 
-                settle_by_day()
                 profit_analyse()
                 save_context()
                 log.info("##################### 一天结束 ######################")

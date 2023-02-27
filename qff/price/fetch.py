@@ -29,13 +29,14 @@ import json
 import pandas as pd
 from datetime import date
 from pytdx.hq import TdxHq_API
-# from retrying import retry
+from retrying import retry
 from qff.tools.date import is_trade_day, get_trade_gap, run_time, get_real_trade_date
 from qff.tools.logs import log
 from qff.tools.tdx import get_best_ip, select_market_code, select_index_code
 
 
-__all__ = ["fetch_price", "fetch_ticks", "fetch_current_ticks", "fetch_today_transaction", "fetch_today_min_curve"]
+__all__ = ["fetch_price", "fetch_ticks", "fetch_current_ticks", "fetch_today_transaction",
+           "fetch_today_min_curve", "fetch_stock_xdxr", "fetch_stock_block"]
 
 
 def _select_freq(freq):
@@ -156,7 +157,7 @@ def fetch_price(code, count=None, freq='day', market='stock', start=None):
                     data = data.drop(['year', 'month', 'day', 'hour', 'minute', 'datetime'], axis=1, inplace=False)
                     data.set_index('date', inplace=True)
                 data.sort_index(inplace=True)
-                data.insert(0, 'code', [code]*len(data))
+                data.insert(0, 'code', code)
                 if start is not None:
                     data = data.loc[start:]
                 return data
@@ -226,7 +227,7 @@ def fetch_current_ticks(code, market='stock'):
     return data
 
 
-@run_time
+@retry(stop_max_attempt_number=3, wait_random_min=50, wait_random_max=100)
 def fetch_ticks(code, market='stock'):
     """
     获取股票或指数列表当前时刻的ticks数据
@@ -237,26 +238,8 @@ def fetch_ticks(code, market='stock'):
     :type code: list
     :type market: str
 
-    :return: 返回[pandas.DataFrame]对象,当前股票列表对应的tick数据。各字段含义如下:
+    :return: 返回[pandas.DataFrame]对象,当前股票列表对应的tick数据。tick字段描述请见 :ref:`class_tick`
 
-        ==================  ====================
-        字段名	                含义
-        ==================  ====================
-        price               当前价格
-        last_close          昨日收盘价
-        open                当日开盘价
-        high                截至到当前时刻的日内最高价
-        low                 截至到当前时刻的日内最低价
-        vol                 截至到当前时刻的日内总手数
-        cur_vol             当前tick成交笔数
-        amount              截至到当前时刻的日内总成交额
-        s_vol               内盘
-        b_vol               外盘
-        bid1~bid5           买一到买五价格
-        ask1~ask5           卖一到卖五价格
-        bid_vol1~bid_vol5   买一到买五挂单手数
-        ask_vol1~ask_vol5   卖一到卖五挂单手数
-        ==================  ====================
     """
     stocks = [(select_market_code(code, market), code) for code in code]
     ip, port = get_best_ip()
@@ -286,6 +269,7 @@ def fetch_today_transaction(code):
         2022-12-30 09:30  13.05  10320  182          0
 
         其中： buyorsell 1--sell 0--buy 2--盘前'
+
     """
     ip, port = get_best_ip()
     api = TdxHq_API()
@@ -384,6 +368,7 @@ def fetch_stock_list(market='stock'):
         return data.sort_index().assign(name=data['name'].apply(lambda x: str(x)[0:6].strip().strip(b'\x00'.decode())))
 
 
+@retry(stop_max_attempt_number=3, wait_random_min=50, wait_random_max=100)
 def fetch_stock_xdxr(code):
     """
     获取除权除息数据
@@ -393,31 +378,34 @@ def fetch_stock_xdxr(code):
     market_code = select_market_code(code)
     ip, port = get_best_ip()
     api = TdxHq_API()
-    with api.connect(ip, port):
-        category = {
-            '1': '除权除息', '2': '送配股上市', '3': '非流通股上市', '4': '未知股本变动',
-            '5': '股本变化',
-            '6': '增发新股', '7': '股份回购', '8': '增发新股上市', '9': '转配股上市',
-            '10': '可转债上市',
-            '11': '扩缩股', '12': '非流通股缩股', '13': '送认购权证', '14': '送认沽权证'}
-        data = api.to_df(api.get_xdxr_info(market_code, code))
-        if len(data) >= 1:
-            data = data \
-                .assign(date=pd.to_datetime(data[['year', 'month', 'day']])) \
-                .drop(['year', 'month', 'day'], axis=1) \
-                .assign(category_meaning=data['category'].apply(
-                    lambda x: category[str(x)])) \
-                .assign(code=str(code)) \
-                .rename(index=str, columns={'panhouliutong': 'liquidity_after',
-                                            'panqianliutong': 'liquidity_before',
-                                            'houzongguben': 'shares_after',
-                                            'qianzongguben': 'shares_before'}) \
+    # with api.connect(ip, port):
+    api.connect(ip, port)
+    category = {
+        '1': '除权除息', '2': '送配股上市', '3': '非流通股上市', '4': '未知股本变动',
+        '5': '股本变化',
+        '6': '增发新股', '7': '股份回购', '8': '增发新股上市', '9': '转配股上市',
+        '10': '可转债上市',
+        '11': '扩缩股', '12': '非流通股缩股', '13': '送认购权证', '14': '送认沽权证'}
+    data = api.to_df(api.get_xdxr_info(market_code, code))
+    if len(data) >= 1 and 'year' in data.columns:
+        data = data \
+            .assign(date=pd.to_datetime(data[['year', 'month', 'day']])) \
+            .drop(['year', 'month', 'day'], axis=1) \
+            .assign(category_meaning=data['category'].apply(
+                lambda x: category[str(x)])) \
+            .assign(code=str(code)) \
+            .rename(index=str, columns={'panhouliutong': 'liquidity_after',
+                                        'panqianliutong': 'liquidity_before',
+                                        'houzongguben': 'shares_after',
+                                        'qianzongguben': 'shares_before'}) \
 
-            data = data.assign(date=data['date'].apply(lambda x: str(x)[0:10]))\
-                .set_index('date', drop=False, inplace=False)
-            return data
-        else:
-            return None
+        data = data.assign(date=data['date'].apply(lambda x: str(x)[0:10]))\
+            .set_index('date', drop=False, inplace=False)
+
+    else:
+        data = None
+    api.close()
+    return data
 
 
 def fetch_stock_block():

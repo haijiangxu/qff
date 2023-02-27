@@ -38,16 +38,16 @@ import sys
 import time
 import pandas as pd
 import prettytable as pt
-from qff.frame.context import context, Portfolio, Position, g
-from qff.frame.const import RUN_TYPE, RUN_STATUS
-from qff.price.cache import get_current_data
-from qff.frame.risk import Risk
+from qff.frame.context import context, g
+from qff.frame.portfolio import Portfolio
+from qff.frame.const import RUN_STATUS
 from qff.frame.perf import Perf
-from qff.price.fetch import fetch_current_ticks
+from qff.frame.stats import stats_risk, stats_report
 from qff.price.query import get_price
 from qff.tools.kshow import kshow
-from qff.tools.date import get_next_trade_day, get_trade_gap, get_date_gap, util_date_valid
-from zenlog import logging
+from qff.tools.local import temp_path
+from qff.tools.date import get_next_trade_day, get_date_gap, util_date_valid
+from qff.tools.logs import log
 
 
 def print_df(df: pd.DataFrame, title=None):
@@ -102,132 +102,145 @@ class Trace(Cmd):
     # info 0 查询回测/模拟基本参数
     @staticmethod
     def info_base():
-        status_tb = ['停止','运行中','已完成','失败','','取消','暂停']
-        msg = {
-            "策略名称": context.strategy_name,
-            "框架类型": '回测运行' if context.run_type == RUN_TYPE.BACK_TEST else '模拟实盘',
-            "当前状态": status_tb[context.status],
-            "运行频率": context.run_freq,
-            "开始日期": context.start_date,
-            "结束日期": context.end_date,
-            "回测周期": get_trade_gap(context.start_date,context.end_date),
-            "当前日期": context.current_dt,
-            "运行天数": get_trade_gap(context.start_date,context.current_dt[:10]),
-            "基准指数": context.benchmark,
-            "初始资金": context.portfolio.starting_cash,
-        }
+        """
+        info 0 查询回测/模拟基本参数
+        """
+        msg = context.message
         print_dict(msg, title='回测框架/模拟实盘运行基本参数')
 
-    # info 1 查询当前账户资金及持股情况
     @staticmethod
     def info_acc():
+        """
+        info 1: 查询当前账户资金及持股情况
+        """
         acc: Portfolio = context.portfolio
-        acc.positions_assets = 0
-        pst: Position
-        for pst in acc.positions.values():
-            pst.price = get_current_data(pst.security).last_price  # 更新每日的收盘价
-            pst.value = round(pst.price * pst.total_amount, 2)  # 股票当日价值
-            acc.positions_assets += pst.value  # 账户持仓价值
 
-        acc.total_assets = round(acc.available_cash + acc.positions_assets + acc.locked_cash, 2)  # 账户当日总价值
-        # 基准指数当日价值
-        if context.run_type == RUN_TYPE.BACK_TEST:
-            acc.benchmark_assets = round(context.bm_data.loc[context.current_dt[0:10]].close
-                                         / context.bm_start * acc.starting_cash, 2)
-        elif context.run_type == RUN_TYPE.SIM_TRADE:
-            acc.benchmark_assets = round(fetch_current_ticks(context.benchmark, market='index')['price']
-                                         / context.bm_start * acc.starting_cash, 2)
-        print("当前日期:{}".format(context.current_dt))
-        msg = {
-            "初始资金": acc.starting_cash,
-            "可用资金": '{:.2f}'.format(acc.available_cash),
-            "锁单资金": '{:.2f}'.format(acc.locked_cash),
-            "股票市值": '{:.2f}'.format(acc.positions_assets),
-            "账户总资产": '{:.2f}'.format(acc.total_assets),
-            "浮动盈亏": round(acc.total_assets - acc.starting_cash, 2),
-            "仓位": '{:.2%}'.format(acc.positions_assets / acc.total_assets),
-            "基准总价值": '{:.2f}'.format(acc.benchmark_assets)
-        }
-        print_dict(msg, title='账户当前资金情况')
+        print_dict(acc.message, title='账户当前资金情况')
+        print("\n")
 
-        table = []
-        for pst in acc.positions.values():
-            dp = list(pst.__dict__.values())
-            table.append(dp)
-        df = pd.DataFrame(data=table, columns=["股票代码", "建仓时间", "当前成本", "累计成本", "最后交易时间",
-                                               "挂单冻结仓位", "可交易仓位", "今开仓位", "总仓位", "当前单价", "股票价值"])
-
-        print_df(df, '账户当前持仓情况')
+        table = [pst.message for pst in acc.positions.values()]
+        if len(table) > 0:
+            df = pd.DataFrame(table)
+            print_df(df, '账户当前持仓情况')
 
     @staticmethod
     def info_asset():
-        if context.df_asset is not None:
-            df: pd.DataFrame = context.df_asset.copy().reset_index(drop=True)
-            df.columns = ['日期', '账户总资产', '基准总资产', '持仓总价值']
-            print_df(df, '收益曲线数据')
+        """
+        info2: 查询历史账户资产信息
+
+        """
+        if len(context.asset_hists) > 0:
+            df = pd.DataFrame(context.asset_hists)
+            print_df(df, '账户资产数据列表')
+        else:
+            print("还未生成交易数据")
+
+    @staticmethod
+    def info_hist_order():
+        """
+        info3: 输出策略运行历史订单交易数据
+        """
+        if len(context.order_hists) > 0:
+            df = pd.DataFrame(context.order_hists)
+            print_df(df, '历史交易记录')
+        else:
+            print("*** 没有股票交易数据！*** \n")
+
+    @staticmethod
+    def info_current_order():
+        """
+        info4: 输出当日委托订单数据
+        """
+        order_list = [order.message for order in context.order_list.values()]
+        if len(order_list) == 0:
+            print('*** 当日没有委托订单！*** \n')
+        else:
+            df = pd.DataFrame(order_list)
+            if len(df) > 0:
+                print_df(df, '当日委托订单')
+
+    @staticmethod
+    def info_chart():
+        """
+        info5:  输出策略运行收益曲线图表
+        """
+        if len(context.asset_hists) > 0:
+            chart_file = '{}{}{}.html'.format(temp_path, os.sep, 'strategy_chart')
+            stats_report(context, chart_file)
         else:
             print("还未生成交易曲线数据")
 
     @staticmethod
     def info_risk():
+        """
+        info 6   : 输出策略风险分析指标数据
+        """
         print("当前日期:{}".format(context.current_dt))
-        if context.df_asset is not None:
-            risk = Risk(asset=context.df_asset.copy())
-            print_dict(risk.message, '策略风险系数风险')
+        if len(context.asset_hists) > 0:
+            print_dict(stats_risk(context), '策略风险系数风险')
 
-        else:
-            print("还未生成交易曲线数据")
-
-    @staticmethod
-    def info_chart():
-        if context.df_asset is not None:
-            risk = Risk(asset=context.df_asset.copy())
-            risk.show_chart()
         else:
             print("还未生成交易曲线数据")
 
     @staticmethod
     def info_perf():
+        """
+        info 7   : 输出策略绩效分析指标数据
+        """
         print("当前日期:{}".format(context.current_dt))
 
-        if context.df_orders is not None:
-            perf = Perf(df_order=context.df_orders)
+        if len(context.order_hists) > 0:
+            perf = Perf()
             if perf.pnl is not None:
                 print_dict(perf.message, '策略绩效分析')
-                df = perf.pnl.reset_index().reset_index()
+                df = perf.pnl.reset_index()
                 print_df(df, '账户交易配对情况')
             else:
                 print("策略还没有出现成对交易数据")
         else:
             print("没有股票交易数据！")
 
-    @staticmethod
-    def info_hist_order():
-        if context.df_orders is not None:
-            df: pd.DataFrame = context.df_orders.copy().reset_index(drop=True)
-            df = df.drop(['id', 'status', 'add_time', 'cancel_time', '_callback'], axis=1, inplace=False)
-            df['is_buy'] = df['is_buy'].apply(lambda x: '买入' if x else '卖出')
-            df = df.sort_values('security', )
-            df.columns = ['股票代码', '交易方向', '下单数量', '交易时间', '订单类型', '下单单价', '成交数量', '成交金额',
-                          '成交单价', '手续费', '订单盈亏']
-            print_df(df, '历史交易记录')
+    def do_info(self, arg):
+        if arg == "" or len(arg) != 1:
+            self.print_info_usage()
         else:
-            print("没有股票交易数据！")
+            # try:
+            if arg[0] == '0':
+                self.info_base()
+            elif arg[0] == '1':
+                self.info_acc()
+            elif arg[0] == '2':
+                self.info_asset()
+            elif arg[0] == '3':
+                self.info_hist_order()
+            elif arg[0] == '4':
+                self.info_current_order()
+            elif arg[0] == '5':
+                self.info_chart()
+            elif arg[0] == '6':
+                self.info_risk()
+            elif arg[0] == '7':
+                self.info_perf()
+            # except Exception as e:
+            #     print(e)
 
     @staticmethod
-    def info_current_order():
-        # 打印当日委托订单数据
-
-        # for order in context.order_list.values():
-        #     df = df.append(pd.Series(order.message), ignore_index=True)
-        order_list = [order.message for order in context.order_list.values()]
-        if len(order_list) == 0:
-            df = pd.DataFrame(columns=['订单编号', '股票代码', '交易方向', '下单时间', '成交状态', '委托数量',
-                                       '委托价格', '订单类型', '成交时间', '成交单价', '成交数量', '成交金额', '交易费用'])
-        else:
-            df = pd.DataFrame(order_list)
-
-        print_df(df, '当日委托订单')
+    def print_info_usage():
+        print(
+            "Usage: \n\
+            ----------------------------------------------------------------------------------------------------------------------\n\
+            ⌨️命令格式：info 0   : 输出回测框架/模拟实盘运行基本参数                                               \n\
+            ⌨️命令格式：info 1   : 输出当前股票账户资金状况及当前账户持仓情况详情                                    \n\
+            ⌨️命令格式：info 2   : 输出策略运行历史账户资产数据                                                   \n\
+            ⌨️命令格式：info 3   : 输出策略运行历史订单交易数据                                                   \n\
+            ⌨️命令格式：info 4   : 输出策略运行当日订单委托信息                                                   \n\
+            ----------------------------------------------------------------------------------------------------------------------\n\
+            ⌨️命令格式：info 5   : 输出策略运行分析报告                                                      \n\
+            ⌨️命令格式：info 6   : 输出策略风险分析指标数据                                                      \n\
+            ⌨️命令格式：info 7   : 输出策略绩效分析指标数据                                                      \n\
+            ----------------------------------------------------------------------------------------------------------------------\n\
+            "
+        )
 
     def do_time(self, arg):
         print("策略当前时间:{}".format(context.current_dt))
@@ -247,23 +260,11 @@ class Trace(Cmd):
             print(er)
 
     def do_log(self, arg):
-        logger = logging.getLogger('')
+        """ 开关日志显示及设置日志级别 """
         if arg is None or arg == '':
-            if logging.root.level == logging.ERROR:
-                logger.setLevel(logging.INFO)
-            else:
-                logger.setLevel(logging.ERROR)
-        elif arg == 'info':
-            logger.setLevel(logging.INFO)
-        elif arg == 'warn':
-            logger.setLevel(logging.WARN)
-        elif arg == 'debug':
-            logger.setLevel(logging.DEBUG)
-
-        elif arg == 'error':
-            logger.setLevel(logging.ERROR)
+            log.toggle()
         else:
-            print("设置日志级别：debug,info,warn,error ")
+            log.set_level(arg)
 
     def do_pause(self, arg):
         context.status = RUN_STATUS.PAUSED
@@ -291,8 +292,8 @@ class Trace(Cmd):
         if arg == "":
             print("当前日期:{}".format(context.current_dt))
 
-            if context.df_orders is not None:
-                perf = Perf(df_order=context.df_orders)
+            if context.order_hists is not None:
+                perf = Perf()
                 if perf.pnl is not None:
                     df = perf.pnl.reset_index().reset_index()
                     print_df(df, '账户交易配对情况')
@@ -310,11 +311,11 @@ class Trace(Cmd):
         else:
             arg = arg.split(" ")
             ind = int(arg[0])
-            if context.df_orders is not None:
-                perf = Perf(df_order=context.df_orders)
+            if len(context.order_hists) > 0:
+                perf = Perf()
                 if perf.pnl is not None and len(perf.pnl) > ind:
                     pair = perf.pnl.iloc[ind]
-                    code = pair.name
+                    code = pair.code
                     mp = {
                         "买入点": [pair.buy_date, pair.buy_price],
                         "卖出点": [pair.sell_date, pair.sell_price],
@@ -349,6 +350,10 @@ class Trace(Cmd):
                 print("全局对象g没有{}属性！".format(arg[0]))
                 return True
 
+            if not isinstance(g_list, list):
+                print("全局对象g.{}属性不是list类型！".format(arg[0]))
+                return True
+
             if len(arg) == 1:
                 if len(g_list) > 0:
                     print_list(g_list)
@@ -365,8 +370,8 @@ class Trace(Cmd):
                             mp["标注点1"] = [item[1], float(item[2])]
                         if len(item) >= 5 and util_date_valid(item[3]):
                             mp["标注点2"] = [item[3], float(item[4])]
-                        start = get_date_gap(item[1], 300, "lt")
-                        end = get_date_gap(item[1], 200, "gt")
+                        start = get_date_gap(item[1], 200, "lt")
+                        end = get_date_gap(item[1], 50, "gt")
                         df = get_price(code, start=start, end=end)
                         if df is not None and len(df) > 1:
                             kshow(df, code, mp)
@@ -421,48 +426,6 @@ class Trace(Cmd):
             "
         )
 
-    def do_info(self, arg):
-        if arg == "" or len(arg) != 1:
-            self.print_info_usage()
-        else:
-            # try:
-            if arg[0] == '0':
-                self.info_base()
-            elif arg[0] == '1':
-                self.info_acc()
-            elif arg[0] == '2':
-                self.info_asset()
-            elif arg[0] == '3':
-                self.info_hist_order()
-            elif arg[0] == '4':
-                self.info_current_order()
-            elif arg[0] == '5':
-                self.info_chart()
-            elif arg[0] == '6':
-                self.info_risk()
-            elif arg[0] == '7':
-                self.info_perf()
-            # except Exception as e:
-            #     print(e)
-
-    @staticmethod
-    def print_info_usage():
-        print(
-            "Usage: \n\
-            ----------------------------------------------------------------------------------------------------------------------\n\
-            ⌨️命令格式：info 0   : 输出回测框架/模拟实盘运行基本参数                                               \n\
-            ⌨️命令格式：info 1   : 输出当前股票账户资金状况及当前账户持仓情况详情                                    \n\
-            ⌨️命令格式：info 2   : 输出策略运行每日收益曲线数据                                                   \n\
-            ⌨️命令格式：info 3   : 输出策略运行历史订单交易数据                                                   \n\
-            ⌨️命令格式：info 4   : 输出策略运行当日订单委托信息                                                   \n\
-            ----------------------------------------------------------------------------------------------------------------------\n\
-            ⌨️命令格式：info 5   : 输出策略运行收益曲线图表                                                      \n\
-            ⌨️命令格式：info 6   : 输出策略风险分析指标数据                                                      \n\
-            ⌨️命令格式：info 7   : 输出策略绩效分析指标数据                                                      \n\
-            ----------------------------------------------------------------------------------------------------------------------\n\
-            "
-        )
-
     def do_help(self, arg):
         if len(arg) > 0 and arg == 'kshow':
             self.print_kshow_usage()
@@ -478,9 +441,9 @@ class Trace(Cmd):
             print("fn ------ 运行自定义语句")
             print("shell --- 运行外部程序")
             print("log ----- 设置日志输出级别")
-            print("pause ----暂停回测任务")
-            print("resume----恢复回测任务")
-            print("cancel ---回测任务取消，退出交互环境")
+            print("pause ----暂停策略运行")
+            print("resume----恢复策略运行")
+            print("cancel ---策略运行取消，退出交互环境")
             print("quit ---- 退出交互环境，回测仍在运行")
             print("exit ---- 程序完全退出")
             print("ls -- 列出当前路径 ")

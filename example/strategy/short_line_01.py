@@ -1,6 +1,7 @@
 
 import sys
 import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.pardir)))
 
 from qff import *
@@ -95,8 +96,6 @@ def handle_trade():
 def fit_linear(x: pd.Series):
     """
     生成股票价格拟合的斜率,最小二乘法方程 : y = mx + c, 返回m
-    :param x: 输入数据
-    :return:
     """
     from sklearn.linear_model import LinearRegression
     model = LinearRegression()

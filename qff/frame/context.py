@@ -22,11 +22,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional
 from datetime import datetime
 
 from qff.frame.const import RUN_TYPE, RUN_STATUS
-from qff.tools.date import get_pre_trade_day
+from qff.tools.date import get_pre_trade_day, get_trade_gap
 
 
 class TradeCost:
@@ -59,100 +58,38 @@ class Strategy:
         self.run_daily = {}             # 每天固定时间点运行的策略函数,由run_daily注册，key为‘HH:MM',value为策略函数
 
 
-class Position:
-    """
-    持仓标的信息
-
-    持有的某个标的的信息,注意区分多仓和空仓
-
-    ==================  ==============  ==============================================================
-        属性               类型                说明
-    ==================  ==============  ==============================================================
-    security             str             股票代码
-    init_time            str             建仓时间
-    avg_cost             float           当前持仓成本，只有在开仓/加仓时会更新
-    acc_avg_cost         float           累计的持仓成本,在清仓/减仓时也会更新，该持仓累积的收益都会用于计算成本
-    transact_time        str             最后交易时间
-    locked_amount        int             挂单冻结仓位
-    closeable_amount     int             可卖出的仓位，不包括挂单冻结仓位，建仓当天不能卖出
-    today_amount         int             今天开的仓位
-    total_amount         int             总仓位, 等于locked_amount+closeable_amount+today_amount)
-    price                float           最新行情价格
-    value                float           标的价值，计算方法是: price * total_amount
-    ==================  ==============  ==============================================================
-    """
-    def __init__(self, security, init_time, amount, avg_cost):
-        self.security = security
-        self.init_time = init_time       # 建仓时间
-        self.avg_cost = avg_cost         # 是当前持仓成本，只有在开仓/加仓时会更新
-        self.acc_avg_cost = avg_cost     # 累计的持仓成本,在清仓/减仓时也会更新，该持仓累积的收益都会用于计算成本
-        self.transact_time = init_time   # 最后交易时间
-        self.locked_amount = 0           # 挂单冻结仓位
-        self.closeable_amount = 0        # 可卖出的仓位，不包括挂单冻结仓位，建仓当天不能卖出
-        self.today_amount = amount       # 今天开的仓位
-        self.total_amount = amount       # 总仓位, 等于locked_amount+closeable_amount+today_amount)
-        self.price = None                # 最新行情价格
-        self.value = None                # 标的价值，计算方法是: price * total_amount
-
-
-class Portfolio:
-    """
-    股票账户
-
-    账户当前的资金，标的信息，即所有标的操作仓位的信息汇总。
-
-    ==================  ==============  ==============================================================
-        属性               类型                说明
-    ==================  ==============  ==============================================================
-    starting_cash        float              初始资金
-    available_cash       float              当可用资金, 可用来购买证券的资金
-    locked_cash          float              挂单锁住资金
-    positions            Dict               当前仓位，key值为股票代码，value是 :class:`.Position` 对象
-    total_assets         float              总的资产, 包括现金, 仓位(股票)的总价值, 可用来计算收益
-    positions_assets     float              持仓资产价值
-    benchmark_assets     float              基准价值
-    ==================  ==============  ==============================================================
-
-    """
-    def __init__(self, starting_cash):
-        self.starting_cash = starting_cash   # 初始资金
-        self.available_cash = starting_cash  # 可用资金, 可用来购买证券的资金
-        self.locked_cash = 0                 # 挂单锁住资金
-        self.positions = {}                  # key值为股票代码，value是Position对象
-        self.total_assets = starting_cash     # 总的资产, 包括现金, 仓位(股票)的总价值, 可用来计算收益
-        # self.returns = 1                     # 总权益的累计收益；（当前总资产 + 今日出入金 - 昨日总资产） / 昨日总资产；
-        self.positions_assets = 0             # 持仓资产价值
-        # self.benchmark_returns = 1           # 基准收益
-        self.benchmark_assets = 0             # 基准价值
-
-
 class Context:
     """
     策略上下文
 
-    保存策略运行信息，包含账户、时间等
+    系统全局变量context保存策略运行信息，包含账户、策略、时间、运行参数等。用户可以直接读取context相关属性,但 **注意不能直接修改**
 
-
-    ============== =====================  =======================================================================
-        属性        类型                      说明
-    ============== =====================  =======================================================================
-    strategy_name  str                      策略名称
-    run_type       :class:`.RUN_TYPE`       当前框架运行模式，回测还是模拟
-    status         :class:`.RUN_STATUS`     策略当前运行状态
-    run_freq       str                      策略运行频率 包括”day" ,"tick"和 "min"
-    start_date     str                      回测开始日期
-    end_date       str                      回测结束日期
-    current_dt     str                      策略执行的当前时间 "yyyy-mm-dd HH:MM:SS"
-    benchmark      str                      基准指数代码
-    portfolio      :class:`.Portfolio`      交易账户对象
-    order_list     Dict                     当日的所有订单列表,key为order_id, value为 :class:`.Order`
-    df_orders      DataFrame                历史的订单列表,以DataFrame保存order对象
-    df_positions   DataFrame                历史仓位列表,以DataFrame模式保存Position对象
-    df_asset       DataFrame                收益曲线，以DataFrame模式保存：时间、收益、基准收益、持仓资产
-    strategy_file  str                      策略文件名称及路径
-    ============== =====================  =======================================================================
+    ================== =====================  =======================================================================
+        属性            类型                      说明
+    ================== =====================  =======================================================================
+    strategy_name      str                      策略名称
+    run_type           :class:`.RUN_TYPE`       当前框架运行模式，回测还是模拟
+    status             :class:`.RUN_STATUS`     策略当前运行状态
+    run_freq           str                      策略运行频率 包括”day" ,"tick"和 "min"
+    start_date         str                      回测开始日期
+    end_date           str                      回测结束日期
+    current_dt         str                      策略执行的当前时间 "yyyy-mm-dd HH:MM:SS"
+    previous_date      str                      策略执行的当前时间的前一天"yyyy-mm-dd”
+    benchmark          str                      基准指数代码
+    portfolio          :class:`.Portfolio`      交易账户对象
+    order_list         Dict                     当日的所有订单列表,key为order_id, value为 :class:`.Order`
+    order_hists        List                     历史订单列表,以List保存 :class:`.Order` 对象的message属性
+    positions_hists    List                     历史仓位列表,以List保存 :class:`.Position` 对象的message属性
+    asset_hists        List                     历史账户资产列表，以List保存 :class:`.Portfolio` 对象的message属性
+    strategy_file      str                      策略文件名称及路径
+    log_file           str                      日志文件名称及路径
+    run_start          str                      回测开始时间，格式"yyyy-mm-dd HH:MM:SS"
+    run_end            str                      回测运行结束时间（用于计算回测耗时）
+    output_dir         str                      策略运行结果文件输出路径
+    ================== =====================  =======================================================================
 
     """
+    status_tb = ['停止', '运行中', '已完成', '失败', '', '取消', '暂停']
 
     def __init__(self):
         self.strategy_name = None       # 策略名称
@@ -168,13 +105,17 @@ class Context:
         self.slippage = 0.00246         # 固定滑点
         self.universe = []              # 股票池，通过set_universe(stock_list)设定
         self.trade_cost = TradeCost()   # 股票交易费用对象
-        self.portfolio: Optional[Portfolio] = None   # 股票账户信息对象
+        self.portfolio = None           # 股票账户信息对象
         self.order_list = {}            # 当日的所有订单列表,key为order_ID
-        self.df_orders = None           # 历史的订单列表,以DataFrame模式保存order对象
-        self.df_positions = None        # 历史仓位列表,以DataFrame模式保存Position对象
-        self.df_asset = None            # 收益曲线，以DataFrame模式保存：时间、收益、基准收益、持仓资产
+        self.order_hists = []           # 历史订单列表,以List保存order对象的message属性
+        self.positions_hists = []       # 历史仓位列表,以List保存Position对象的message属性
+        self.asset_hists = []           # 历史账户资产,以List保存Portfolio对象的message属性
         self.pass_today = False         # 分钟运行频率时，设置该值则跳过当天分钟循环
         self.strategy_file = None       # 策略文件名称及路径
+        self.log_file = None            # 日志文件名称及路径
+        self.run_start = None           # 回测运行开始时间（用于计算回测耗时）
+        self.run_end = None             # 回测运行结束时间（用于计算回测耗时）
+        self.output_dir = None          # 策略运行结果文件输出路径
 
     @property
     def current_dt(self):
@@ -193,8 +134,92 @@ class Context:
     def previous_date(self):
         return get_pre_trade_day(self.current_dt)[:10]
 
+    @property
+    def get_run_type(self):
+        return '回测' if self.run_type == RUN_TYPE.BACK_TEST else '实盘'
+
+    @property
+    def get_run_status(self):
+        return self.status_tb[self.status.value]
+
+    def read_log_file(self):
+        ret = []
+        for str_line in open(self.log_file):
+            if str_line.startswith('qff>>'):
+                str_time = str_line[7:26]
+                str_level = str_line[29:39].split(' - ')[0]
+                str_content = str_line[32+len(str_level):]
+
+                ret.append([str_time, str_level, str_content])
+        return ret
+
+    @property
+    def run_progress(self):
+        total = get_trade_gap(self.start_date, self.end_date)
+        crt = get_trade_gap(self.start_date, self.current_dt[:10])
+        return round(crt / total, 4)
+
+    @property
+    def spend_time(self):
+        if self.status == RUN_STATUS.DONE:
+            end = self.run_end
+        elif self.status == RUN_STATUS.RUNNING:
+            end = datetime.now()
+        else:
+            return None
+
+        delta = end - self.run_start
+        hour = int(delta.seconds / 3600)
+        minute = int((delta.seconds % 3600) / 60)
+        second = delta.seconds % 60
+        return "{}天 {}时 {}分 {}秒".format(delta.days, hour, minute, second)
+
+    @property
+    def message(self):
+
+        return {
+            "策略名称": self.strategy_name,
+            "框架类型": self.get_run_type,
+            "当前状态": self.get_run_status,
+            "运行频率": self.run_freq,
+            "开始日期": self.start_date,
+            "结束日期": self.end_date,
+            "回测周期": get_trade_gap(self.start_date, self.end_date),
+            "当前日期": self.current_dt,
+            "运行天数": get_trade_gap(self.start_date, self.current_dt[:10]),
+            "基准指数": self.benchmark,
+            "初始资金": self.portfolio.starting_cash,
+        }
+
 
 class GlobalVar:
+    """
+    全局对象 g，用来存储用户的各类可被pickle.dumps函数序列化的全局数据
+
+    在模拟盘中，如果中途进程中断，我们会使用[pickle.dumps]序列化所有的g下面的变量内容, 保存到磁盘中，再启动的时候模拟盘就不会
+    有任何数据影响。如果没有用g声明，会出现模拟盘重启后，变量数据丢失的问题。
+
+    **如果不想 g 中的某个变量被序列化, 可以让变量以 '__' 开头, 这样, 这个变量在序列化时就会被忽略**
+
+    示例：
+
+    ::
+
+        def initialize(context):
+            g.security = "000001"
+            g.count = 1
+            g.flag = 0
+
+        def process_initialize(context):
+            # 保存不能被序列化的对象, 进程每次重启都初始化, 更多信息, 请看 [process_initialize]
+            g.__q = ["000001", "000002"]
+
+        def handle_data(context, data):
+            log.info(g.security)
+            log.info(g.count)
+            log.info(g.flag)
+
+    """
     def __init__(self):
         self.type = None
 
@@ -205,9 +230,12 @@ g = GlobalVar()
 
 
 def run_strategy_funcs(strategy_funcs):
+    # try:
     if isinstance(strategy_funcs, list):
         for func in strategy_funcs:
             if callable(func):
                 func()
     elif callable(strategy_funcs):
         strategy_funcs()
+    # except Exception as e:
+    #     print(e)

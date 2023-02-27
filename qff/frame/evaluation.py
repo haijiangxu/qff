@@ -343,6 +343,7 @@ def _plot_eval_data(data: pd.DataFrame, title: str = None, filename=None):
         plt.show()
     return
 
+
 def _strategy_run(get_signal_fun: Callable, hold_gaps, start, end, stock_list) -> pd.DataFrame:
     """
     策略运行函数，执行get_signal_fun，根据返回值生成pnl数据
@@ -403,16 +404,19 @@ def strategy_eval(get_signal_fun: Callable,
                   security: List[str] = None,
                   csv: str = None) -> None:
     """
-    策略评价入口函数
+    策略评价函数， 对每个股票的历史曲线数据进行择时，分析策略运行效果，并生成策略评价报告word文件。
+
     :param get_signal_fun: 择时函数,获取买点信号，输入参数为（code,kline数据), 返回值List[date_str]
     :param name: 策略名称
     :param desc: 策略描述
-    :param hold_gaps : 持仓周期，评估策略在不同持仓周期下的表现，默认[1, 3, 5, 10, 20]
+    :param hold_gaps: 持仓周期，评估策略在不同持仓周期下的表现，默认[1, 3, 5, 10, 20]
     :param start: 评价测试开始日期
     :param end: 评价测试结束日期
     :param security: 评价测试使用的股票集合，为None表示当前所有上市股票
     :param csv: 保存pnl的数据文件,如果存在该文件，则直接使用该文件数据，否则运行策略函数，并将运行结果保存至csv文件中。
+
     :return: None
+
     """
 
     csv_file = '{}{}{}'.format(temp_path, os.sep, csv) if csv else None

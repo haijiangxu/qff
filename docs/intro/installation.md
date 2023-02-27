@@ -56,7 +56,7 @@ QFF使用的是MongoDB数据库，它是一个高性能、无模式、文档型�
 | [Linux](https://www.runoob.com/mongodb/mongodb-linux-install.html)    |
 | [Mac OS](https://www.runoob.com/mongodb/mongodb-osx-install.html)     |
 
-**我们强烈推荐您直接拉取Docker镜像安装使用MongoDB数据库。**
+**我们强烈推荐您直接拉取[Docker镜像](mongoimage)安装使用MongoDB数据库。**
 
 ### 数据库配置
 
@@ -93,9 +93,36 @@ $ qff save all
 
 您也可以通过执行`qff save` 命令选择下载您所需要的数据类别。
 
+```{eval-rst} 
+       ===========================  ================================================
+        qff save all                 保存/更新所有数据                                   
+        qff save day                 保存/更新股票日数据、指数日数据、ETF日数据                     
+        qff save min                 保存/更新股票分钟数据、指数分钟数据、ETF分钟数据                  
+        ----------------------       ----------------------------------------------
+        qff save stock_list          保存/更新股票列表数据                                 
+        qff save stock_day           保存/更新股票日线数据                                 
+        qff save index_day           保存/更新指数日线数据                                 
+        qff save etf_day             保存/更新ETF日线数据                                
+        qff save stock_min           保存/更新股票分钟数据                                 
+        qff save index_min           保存/更新指数分钟数据                                 
+        qff save etf_min             保存/更新ETF分钟数据                                
+        qff save stock_xdxr          保存/更新日除权除息数据                                
+        qff save stock_block         保存/更新板块股票数据                                 
+        qff save report              保存/更新股票财务报表                                 
+        qff save valuation           保存/更新股票市值数据                                 
+        qff save mtss                保存/更新融资融券数据                                 
+        qff save index_stock         保存/更新指数成分股信息                                
+        ----------------------       -------------------------------------------
+        qff save init_info           初始化股票列表、指数列表、ETF列表                          
+        qff save init_name           初始化股票历史更名数据                                 
+        qff save save_delist         保存退市股票的日数据和分钟数据                             
+       ===========================  ================================================
+```
+
 ### 数据自动更新
 
-通过配置数据自动更新服务，QFF可以自动下载更新每日股市收盘后最新数据。指令`qff save all`具有数据更新功能，您需要在您使用的操作系统中，自行配置定时任务，定时任务开始时间建议16:00，执行周期即每个工作日。
+通过配置数据自动更新服务，QFF可以自动下载更新每日股市收盘后最新数据。指令`qff save all`具有数据更新功能，
+您需要在您使用的操作系统中，自行配置定时任务，定时任务开始时间建议16:00，执行周期即每个工作日。
 
-**我们强烈推荐您使用[QFF Docker镜像](<qffdocker.md#部署 QFF 镜像>)进行数据自动更新。**
+**我们强烈推荐您使用[QFF Docker镜像](qffimage)进行数据自动更新。**
 

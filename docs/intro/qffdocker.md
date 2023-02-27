@@ -20,6 +20,7 @@
 1. [Docker 国内镜像加速教程](https://www.runoob.com/docker/docker-mirror-acceleration.html)
 2. 请在国内使用的用户务必进行该项配置, 从而加速获取镜像的速度.
 
+(mongoimage)=
 ## 部署MongoDB镜像
 
 ```{important}
@@ -55,8 +56,8 @@ docker run -d  -v /root/db /data/db -p 27017:27017 mongo:4.2.2
 docker run -d -v MONGO_INITDB_ROOT_USERNAME admin -v MONGO_INITDB_ROOT_PASSWORD xxxxxx mongo:4.2.2
 ```
 其中`xxxxxx`为您设置的密码。
-
-## 部署 QFFF 镜像
+(qffimage)=
+## 部署 QFF 镜像
 
 此镜像会在每次 QFF 更新版本时自动更新
 
@@ -83,6 +84,6 @@ docker run -d -p 8765:8765 -v /root/work:/root/work -e MONGODB_URI="mongodb://ad
   启动QFF容器后，您不用再关心数据更新问题。
   
 - QFF镜像还安装了JupyterLab，方便用户直接在浏览器使用。打开本地浏览器输入地址：```http://服务器地址:8765 ```,
-显示密码框提示，输入密码:`qff`后，将进入JupyterLab 界面。
+显示密码框提示，输入密码:`qff`后，将进入[JupyterLab](https://jupyter.org/try) 界面。
+![jupyter-lab](https://jupyter.org/assets/homepage/labpreview.webp)
 
-[数据库安装](installation.md#数据库安装)

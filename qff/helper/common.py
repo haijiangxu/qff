@@ -112,7 +112,7 @@ def select_npgr_stock(npgr, date=None, count=1):
         date = datetime.now().strftime('%Y-%m-%d')
         date = get_real_trade_date(date, -1)
 
-    data = get_history_fundamentals(code=None, fields=['184'], watch_date=date, count=count)
+    data = get_history_fundamentals(code=None, fields=['f184'], watch_date=date, count=count)
     data = data.rename(columns={'184' : 'npgr'}).drop(['report_date', 'pub_date'], axis=1)
     # data = data[data['npgr'] >= npgr]
     df = data.groupby(['code']).apply(lambda x: (x['npgr'] >= npgr).all())

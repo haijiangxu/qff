@@ -61,7 +61,7 @@ extensions = [
 ]
 
 myst_heading_anchors = 3
-myst_enable_extensions = ["deflist", "tasklist", "colon_fence"]
+myst_enable_extensions = ["deflist", "tasklist", "colon_fence", "dollarmath", "amsmath"]
 myst_number_code_blocks = ["python"]
 
 templates_path = ['_templates']
@@ -95,3 +95,4 @@ html_show_copyright = True
 htmlhelp_basename = 'qffdoc'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+

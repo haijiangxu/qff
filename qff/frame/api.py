@@ -28,7 +28,8 @@ from datetime import datetime
 from typing import Optional, Callable
 from qff.tools.logs import log
 from qff.tools.date import is_trade_day, get_real_trade_date, util_date_valid, get_pre_trade_day
-from qff.frame.context import context, strategy, Portfolio
+from qff.frame.context import context, strategy
+from qff.frame.portfolio import Portfolio
 from qff.frame.const import RUN_TYPE
 from qff.frame.backtest import back_test_run
 from qff.frame.simtrade import sim_trade_run
@@ -77,20 +78,18 @@ def _load_strategy_file(path):
 def run_daily(func, run_time="every_bar", append=True):
     # type: (Callable, str,bool) -> None
     """
-    设置定时运行的策略函数
+    设置定时运行的策略函数。**回测环境/模拟专用API**
 
     指定每天要运行的函数, 可以在具体交易日的某一分钟执行。
 
-    :param func: 一个自定义的策略函数;例如自定义函数名`market_open()`。
+    :param func: 一个自定义的策略函数;例如自定义函数名 :code:`market_open()`。
     :param run_time: 具体执行时间,一个字符串格式的时间:
 
-        - 24小时内的任意时间，例如"10:00", "01:00"；
-        - **every_bar**,运行时间和您设置的运行频率一致，按天会在交易日的开盘时调用一次，按分钟会在交易时间每分钟运行。
+        - 交易时间内的任意时间点，上午“09:31-11:30”， 下午“13:01-15:00”，例如"10:00", "14:00"；
+        - **every_bar**，运行时间和您设置的运行频率一致，按天会在交易日的开盘时调用一次，按分钟会在交易时间每分钟运行。执行后将替代handle_data()策略框架函数.
         - **before_open**,设置func在开盘前运行，执行后将替代before_trading_start()策略框架函数.
         - **after_close**,设置func在收盘后运行，执行后将替代after_trading_end()策略框架函数.
     :param append: 如果run_time已注册运行函数，新函数是在原函数前面运行还是后面运行。append=True: 则新函数是在原函数后面运行。
-
-    :return: None
 
     .. note::
         一个策略中尽量不要同时使用run_daily和handle_data，更不能使用run_daily(handle_data, "xx:xx")
@@ -101,8 +100,13 @@ def run_daily(func, run_time="every_bar", append=True):
         ::
 
             def initialize():
-                run_daily(func, time='10:00')
+                run_daily(func, run_time='10:00')
 
+            def func():
+                print(context.current_dt)
+                print('-'*50)
+
+            # 参数 func 必须是一个全局的函数, 不能是类的成员函数, 并且func是可重入函数，即可重复调用。
 
     """
     def register_strategy_func(strategy_func, _func, _append=True):
@@ -118,18 +122,19 @@ def run_daily(func, run_time="every_bar", append=True):
                 obj.insert(0, _func)
         return obj
 
+    log.debug('调用run_daily' + str(locals()).replace('{', '(').replace('}', ')'))
     if not callable(func):
         log.error("run_daily函数输入的func参数不是函数对象")
         return
 
     if run_time == "before_open":
-        register_strategy_func(strategy.before_trading_start, func, append)
+        strategy.before_trading_start = register_strategy_func(strategy.before_trading_start, func, append)
 
     elif run_time == "after_close":
-        register_strategy_func(strategy.after_trading_end, func, append)
+        strategy.after_trading_end = register_strategy_func(strategy.after_trading_end, func, append)
 
     elif run_time == "every_bar":
-        register_strategy_func(strategy.handle_data, func, append)
+        strategy.handle_data = register_strategy_func(strategy.handle_data, func, append)
 
     else:
         try:
@@ -140,7 +145,8 @@ def run_daily(func, run_time="every_bar", append=True):
             if run_time + ':00' not in strategy.run_daily.keys():
                 strategy.run_daily[run_time + ':00'] = func  # 加上秒是为了防止在tick策略中多次执行
             else:
-                register_strategy_func(strategy.run_daily[run_time + ':00'], func, append)
+                strategy.run_daily[run_time + ':00'] = \
+                    register_strategy_func(strategy.run_daily[run_time + ':00'], func, append)
 
         except ValueError:
             log.error("run_daily函数输入的run_time参数不合法")
@@ -177,6 +183,10 @@ def _set_backtest_period(start=None, end=None):
         print('set_backtest_period函数参数日期格式设置错误！')
         raise ValueError
 
+    if context.start_date >= context.end_date:
+        print("回测日期参数设置错误！")
+        raise ValueError
+
     context.current_dt = context.start_date + " 09:00:00"    # 必需要设置，回测以该时间作为启动日期
 
 
@@ -197,7 +207,6 @@ def set_order_cost(open_tax=0,
     :param close_commission: 卖出时佣金，默认值为万分之二
     :param min_commission: 最低佣金，不包含印花税，默认值为5
 
-    :return: None
     """
 
     context.trade_cost.open_tax = open_tax
@@ -207,8 +216,7 @@ def set_order_cost(open_tax=0,
     context.trade_cost.min_commission = min_commission
 
 
-def set_benchmark(security):
-    # type: (str) -> None
+def set_benchmark(security: str):
     """
     设置基准
 
@@ -233,7 +241,7 @@ def set_slippage(slippage=0.00246):
 
     :param slippage: 固定滑点值，默认0.00246
 
-    :return: None
+
     """
 
     context.slippage = slippage
@@ -250,7 +258,7 @@ def set_universe(security_list):
     **该函数现在只用于设定history函数的默认security_list, 除此之外并无其他用处。**
 
     :param security_list: 证券标的列表
-    :return: None
+
     """
     if isinstance(security_list, str):
         security_list = [security_list]
@@ -270,24 +278,30 @@ def pass_today() -> None:
 
 
 def run_file(strategy_file: str,
-             run_type: int = RUN_TYPE.BACK_TEST,
+             run_type: str = 'bt',
              resume: bool = False,
              freq: str = 'day',
              cash: int = 1000000,
              start: Optional[str] = None,
              end: Optional[str] = None,
-             name: Optional[str] = None):
+             name: Optional[str] = None,
+             output_dir: Optional[str] = None,
+             log_level: str = 'info',
+             trace: bool = False):
     """
     运行策略文件，并初始化环境参数。
 
     :param strategy_file: 待运行策略文件路径
-    :param run_type: 指定策略运行方式。0-回测； 1-实盘模拟, 默认值为0
+    :param run_type: 指定策略运行方式。bt-回测； sim-实盘模拟, 默认值为bt
     :param resume: 是否执行恢复运行， True-恢复以前的策略执行，False-重新开始执行策略，默认False.
     :param freq: 策略执行频率，有效值为 'day','min','tick',默认值为 'day'
     :param cash: 账户初始资金，默认值1000000
     :param start: 回测开始日期，默认为结束日期前60个交易日
     :param end: 回测结束日期, 默认为上一个交易日
     :param name: 策略名称
+    :param output_dir: 指定结果数据输出目录
+    :param log_level: 控制台日志输出的级别, 有效值为 'debug', 'info', 'warning', 'error'，默认值为‘info’
+    :param trace: 策略运行过程中是否进行交互,模拟交易时自动有效
 
     :return: None
 
@@ -300,6 +314,8 @@ def run_file(strategy_file: str,
             run_file(__file__, 0,  start='2022-06-01', end='2022-08-31')
 
     """
+    log.set_level(log_level)
+    log.debug('调用run_file' + str(locals()).replace('{', '(').replace('}', ')'))
 
     if not _load_strategy_file(strategy_file):
         print("输入的策略文件路径加载失败！")
@@ -310,10 +326,11 @@ def run_file(strategy_file: str,
         if strategy.process_initialize is not None:
             strategy.process_initialize()
         if context.run_type == RUN_TYPE.BACK_TEST:
-            back_test_run()
+            back_test_run(trace)
         else:
             sim_trade_run()
     else:
+        context.log_file = log.file_name
         strategy.initialize()
 
         if freq in ['day', 'min', 'tick']:
@@ -328,8 +345,13 @@ def run_file(strategy_file: str,
             name = os.path.basename(strategy_file).split('.')[0]
         context.strategy_name = name
 
-        if run_type == RUN_TYPE.BACK_TEST:
+        if output_dir is not None:
+            context.output_dir = output_dir
+
+        if run_type == 'bt':
             _set_backtest_period(start, end)
-            back_test_run()
-        elif run_type == RUN_TYPE.SIM_TRADE:
+            back_test_run(trace)
+        elif run_type == 'sim':
             sim_trade_run()
+        else:
+            log.error('输入的参数run_type错误！')

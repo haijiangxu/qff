@@ -31,9 +31,9 @@ from qff.tools.logs import log
 
 
 def save_context(backup_file=None):
+    log.debug('调用save_context' + str(locals()).replace('{', '(').replace('}', ')'))
     if backup_file is None:
-        file_name = context.strategy_name+'_bt' if context.run_type == RUN_TYPE.BACK_TEST\
-                else context.strategy_name+'_sim'
+        file_name = os.path.basename(context.strategy_file).split('.')[0]
         backup_file = '{}{}{}'.format(cache_path, os.sep, file_name+'.pkl')
     try:
         if os.path.exists(backup_file):
@@ -48,6 +48,7 @@ def save_context(backup_file=None):
 
 def load_context(backup_file):
     # global context, g
+    log.debug('调用load_context' + str(locals()).replace('{', '(').replace('}', ')'))
     with open(backup_file, 'rb') as pk_file:
         res = pickle.load(pk_file)
         c_dict: dict = res[0]

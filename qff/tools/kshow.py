@@ -34,20 +34,30 @@ from pyecharts.charts import Kline, Line, Bar, Grid
 from qff.helper.formula import MA, MACD
 from qff.tools.local import temp_path
 from qff.price.query import get_stock_name, get_index_name
+from typing import Optional, Dict
+from pandas import DataFrame
 
 
 def kshow(df, code, mp=None, index=False):
+    # type:(DataFrame, str, Optional[Dict], bool) -> Grid
     """
-    通过pyechart生成K线图
+    通过echart生成K线图，并打开浏览器查看
+
     :param df: dataframe 股票数据
-    :param code: str 股票代码
-    :param mp: dict 标注点，用于标注买入信号或卖出信号，格式为
-      {
-       “标注名称1”：[日期，价格]，
-       “标注名称2”：[日期，价格]，
-       }
-    :param index: bool 是否指数代码
-    :return:
+    :param code: 股票代码
+    :param mp: 标注点，用于标注买入信号或卖出信号，格式为
+
+                ::
+
+                      {
+                       “标注名称1”：[日期，价格]，
+                       “标注名称2”：[日期，价格]，
+                       }``
+
+    :param index: 是否指数代码
+
+    :return: None
+
     """
     ky = df.loc[:, ['open', 'close', 'low', 'high']].to_dict('split')['data']
     kx = df.index.tolist()

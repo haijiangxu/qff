@@ -28,6 +28,7 @@ from functools import wraps
 import time
 import math
 import pandas as pd
+from typing import Optional, Callable
 
 
 year_end = datetime.today().replace(month=12, day=31).strftime("%Y-%m-%d")
@@ -612,9 +613,12 @@ trade_date_sse = pd.bdate_range(start="1990-12-19",
 def get_real_trade_date(date, towards=-1):
     """
     根据给定日期，获取真实的交易日期
+
     :param date: 给定日期 [str,date]
     :param towards:  方向， -1 -> 向前, 1 -> 向后 int
+
     :return: 返回计算后的日期str
+
     """
     day = str(date)[0:10]
     if towards == 1:
@@ -639,11 +643,13 @@ def get_real_trade_date(date, towards=-1):
             return str(day)[0:10]
 
 
-def is_trade_day(date):
+def is_trade_day(date: str) -> bool:
     """
     判断是否交易日期
-    :param date: 需判断的日期 str
-    :return: bool
+
+    :param date: 需判断的日期
+
+    :return: True：是交易日期
     """
     if date in trade_date_sse:
         return True
@@ -651,13 +657,16 @@ def is_trade_day(date):
         return False
 
 
-def get_date_gap(date, gap, methods):
+def get_date_gap(date: str, gap: int, methods: str) -> Optional[str]:
     """
     返回指定日期向前或向后间隔天数的交易日日期
-    :param date: 字符串起始日 str
-    :param gap: 间隔多数个交易日, int
-    :param methods: 方向 str ["gt->大于", "gte->大于等于","小于->lt", "小于等于->lte", "等于->==="]
-    :return: 返回计算后的日期 str
+
+    :param date: 字符串起始日
+    :param gap: 间隔多数个交易日
+    :param methods: 方向["gt->大于", "gte->大于等于","小于->lt", "小于等于->lte", "等于->==="]
+
+    :return: 返回计算后的日期
+
     """
 
     try:
@@ -682,12 +691,15 @@ def get_date_gap(date, gap, methods):
         return None
 
 
-def get_next_trade_day(date, n=1):
+def get_next_trade_day(date: str, n: int = 1) -> str:
     """
     获取下一个交易日的日期
-    :param date: 字符串起始日 str
-    :param n: 间隔多数个交易日, int
-    :return: 返回计算后的日期 str
+
+    :param date: 字符串起始日
+    :param n: 间隔多数个交易日
+
+    :return: 返回计算后的日期
+
     """
     date = str(date)[0:10]
 
@@ -697,12 +709,16 @@ def get_next_trade_day(date, n=1):
 
 
 def get_pre_trade_day(date, n=1, freq='day'):
+    # type: (str, int, str) -> str
     """
     获取前几个交易周期的日期
-    :param date: 字符串起始日 str
-    :param n: 间隔多数个交易日, int
+
+    :param date: 字符串起始日
+    :param n: 间隔多数个交易日
     :param freq: 间隔频率，支持['day','1min','5min','15min','30min','60min']
-    :return: 返回计算后的日期 str
+
+    :return: 返回计算后的日期
+
     """
     date = str(date)[0:10]
 
@@ -736,12 +752,15 @@ def get_pre_trade_day(date, n=1, freq='day'):
             raise ValueError
 
 
-def get_trade_days(start, end):
+def get_trade_days(start: str, end: str) -> Optional[list]:
     """
     获取指定范围交易日
-    :param start: 开始日期 str
-    :param end:   结束日期 str
+
+    :param start: 开始日期
+    :param end:   结束日期
+
     :return:  返回交易日期列表
+
     """
     real_start = get_real_trade_date(start, 1)
     real_end = get_real_trade_date(end, -1)
@@ -753,12 +772,15 @@ def get_trade_days(start, end):
                ]
 
 
-def get_trade_gap(start, end):
+def get_trade_gap(start: str, end: str) -> int:
     """
-    返回start_day到end_day中间有多少个交易天 算首尾
+    返回start到end中间有多少个交易天，算首尾
+
     :param start: 开始日期
     :param end: 结束日期
+
     :return: 交易日数量
+
     """
     real_start = get_real_trade_date(start, 1)
     real_end = get_real_trade_date(end, -1)
@@ -818,7 +840,23 @@ def util_time_stamp(time_):
         return time.mktime(time.strptime(str(time_)[0:19], '%Y-%m-%d %H:%M:%S'))
 
 
-def run_time(func):
+def util_get_date_gap(date: str, n: int):
+    """
+    获取前/后n天的日期
+    """
+    return str(datetime.strptime(date, "%Y-%m-%d") + timedelta(days=n))[0:10]
+
+
+def run_time(func: Callable) -> float:
+    """
+    计算函数运行时间的装饰函数
+
+    :param func: 函数名称， 在待计时函数上方输入@run_time即可
+
+    :return: 函数运行的时间
+
+    """
+
     @wraps(func)                                # <- 这里加 wraps(func) 保留函数的元信息
     def wrapper(*args, **kwargs):
         start = time.time()

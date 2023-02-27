@@ -71,7 +71,7 @@ def main(args: Optional[List[str]] = None) -> int:
     sub_parser = parser.add_subparsers(metavar='命令列表', dest='cmd')
 
     cmd_dict: Dict[str, Command] = {
-        'run': BackTestCommand(sub_parser),
+        'run': RunCommand(sub_parser),
         'sim': SimTradeCommand(sub_parser),
         'resume': ResumeCommand(sub_parser),
         'config': ConfigCommand(sub_parser),

@@ -37,7 +37,7 @@ from qff.tools.kshow import kshow
 
 # subprocess.Popen
 
-__all__ = ['Command', 'BackTestCommand', 'SimTradeCommand', 'ResumeCommand', 'CreateCommand',
+__all__ = ['Command', 'RunCommand', 'SimTradeCommand', 'ResumeCommand', 'CreateCommand',
            'ConfigCommand', 'SaveCommand', 'DbinfoCommand', 'KshowCommand']
 
 
@@ -64,32 +64,41 @@ class Command:
         pass
 
 
-class BackTestCommand(Command):
+class RunCommand(Command):
     """
-    使用qff框架对指定策略文件运行回测，以评价交易策略的效果。
-    1. 按qff框架规范编写的策略文件，可以通过本接口在终端窗口运行回测，
-    2. 接口可设置策略回测涉及历史数据的开始日期、结束日期、初始资金以及运行频率等参数。
-    3. 运行参数可在策略文件中设置，但通过本接口设置的参数会替代策略文件中的相同参数。
+    使用qff框架对指定策略文件运行回测或模拟交易，以评价交易策略的效果。
+    1. 按qff框架规范编写的策略文件，可以通过本接口在终端窗口运行策略，
+    2. 接口可设置策略回测或模拟涉及的参数，如：开始日期、结束日期、初始资金以及运行频率等。
+
     """
     usage = f"\nqff run <strategy_file> [options]"
-    summary = "对策略文件运行回测"
+    summary = "对策略文件运行回测或模拟交易"
 
     def __init__(self, sub_parser):
         super().__init__('run', sub_parser)
 
     def add_options(self) -> None:
         self.parser.add_argument("strategy_file", help="策略文件名称路径", nargs='?')
-        self.parser.add_argument("--name", help="策略名称,默认文件名", metavar="<name>")
-        self.parser.add_argument("--freq", choices=['day', 'min'], default='day',
-                                 help="设置回测执行频率,可选('day', 'min')", metavar="<freq>")
-        self.parser.add_argument("--cash", type=int, help="设置账户初始资金", metavar="<money>", default=1000000)
-        self.parser.add_argument("--start", type=lambda s: datetime.strptime(s, '%Y-%m-%d').strftime('%Y-%m-%d'),
-                                 help="设置回测开始日期", metavar="<YYYY-MM-DD>")
-        self.parser.add_argument("--end", type=lambda s: datetime.strptime(s, '%Y-%m-%d').strftime('%Y-%m-%d'),
-                                 help="设置回测结束日期", metavar="<YYYY-MM-DD>")
+        self.parser.add_argument("-n", "--name", help="策略名称,默认为策略文件名", metavar="<name>")
+        self.parser.add_argument("-rt", "--run-type", choices=['bt', 'sim'], default='bt',
+                                 help="设置策略运行类型,bt为回测,st为模拟交易,默认为bt")
+
+        self.parser.add_argument("-f", "--freq", choices=['day', 'min', 'tick'], default='day',
+                                 help="设置回测执行频率,可选(day, min, tick),默认day")
+        self.parser.add_argument("-c", "--cash", type=int, help="设置账户初始资金，默认￥1,000,000", metavar="<money>", default=1000000)
+        self.parser.add_argument("-s", "--start", type=lambda s: datetime.strptime(s, '%Y-%m-%d').strftime('%Y-%m-%d'),
+                                 help="设置回测开始日期,默认为结束日期前60个交易日", metavar="<YYYY-MM-DD>")
+        self.parser.add_argument("-e", "--end", type=lambda s: datetime.strptime(s, '%Y-%m-%d').strftime('%Y-%m-%d'),
+                                 help="设置回测结束日期,默认为当日之前最近一个交易日", metavar="<YYYY-MM-DD>")
+        self.parser.add_argument("-o", "--output-dir", help="结果数据输出到指定目录,默认<home>/.qff/output/")
+        self.parser.add_argument("-t", "--trace", action='store_true', help="策略运行过程中是否进行交互,模拟交易时自动生效")
+        self.parser.add_argument("--resume", action='store_true', help="恢复前期暂停的策略运行，一般用于模拟交易中")
+        self.parser.add_argument("-l", "--log-level", hoices=['verbose', 'info', 'warning', 'error'], default='info',
+                                 help="设置控制台日志输出的级别，可选(verbose,info,warning,error),默认info")
 
     def main(self, args):
         args = vars(args)
+        # print(args)
         args.pop('cmd')
         strategy_file = args.pop('strategy_file')
 
@@ -101,12 +110,21 @@ class BackTestCommand(Command):
             print(f'输入的策略文件不存在!{strategy_file}')
             return
 
-        run_file(strategy_file, 0, **args)
+        if args['resume']:
+            file_name = os.path.basename(strategy_file).split('.')[0]
+            backup_file = '{}{}{}'.format(cache_path, os.sep, file_name + '.pkl')
+            try:
+                load_context(backup_file)
+            except Exception as e:
+                print("导入context备份文件失败:{}".format(e))
+                return
+        run_file(strategy_file, **args)
 
 
 class SimTradeCommand(Command):
     """
     使用qff框架对指定策略文件运行模拟交易，以验证交易策略的效果。
+    运行效果等同于 qff run <strategy_file> -rt sim [options]
     """
     usage = f"\nqff sim <strategy_file> [options]"
     summary = "对策略文件运行模拟交易"
@@ -120,6 +138,8 @@ class SimTradeCommand(Command):
         self.parser.add_argument("--freq", choices=['day', 'min', 'tick'],
                                  help="设置回测执行频率,可选('day', 'min', 'tick')", metavar="<freq>")
         self.parser.add_argument("--cash", type=int, help="设置账户初始资金", metavar="<money>")
+        self.parser.add_argument("-l", "--log-level", hoices=['verbose', 'info', 'warning', 'error'], default='info',
+                                 help="设置控制台日志输出的级别，可选(verbose,info,warning,error),默认info")
 
     def main(self, args):
         args = vars(args)
@@ -134,16 +154,19 @@ class SimTradeCommand(Command):
             print(f'输入的策略文件不存在!{strategy_file}')
             return
 
-        run_file(strategy_file, 1, **args)
+        run_file(strategy_file, 'sim', **args)
 
 
 class ResumeCommand(Command):
     """
-    恢复前期暂停的策略运行,可以调整策略文件，一般用于模拟交易中。
+
+    本命令开启恢复前期暂停的策略运行,可以调整策略文件，一般用于模拟交易中。
     在回测或模拟交易过程的交互环境中，输入pause命令，可备份当前运行环境变量，并退出回测/模拟交易过程。
     通过设置backup_file参数，指定备份文件恢复前期暂停的回测/模拟交易过程。
     backup_file参数可输入备份文件的完整路径，也可只输入文件名称，系统将在默认保存备份文件目录中查找并载入。
     本命令默认会调取原有策略文件执行，如果策略文件改名或移动,可通过--strategy参数指定新的策略文件运行。
+    也可运行 qff run  <strategy_file> -resume
+    该命令将使用策略文件的默认备份文件进行恢复运行。
 
     """
     usage = f"\nqff resume <backup_file> [options]"
@@ -155,6 +178,8 @@ class ResumeCommand(Command):
     def add_options(self) -> None:
         self.parser.add_argument("backup_file", help="策略备份文件名称", nargs='?')
         self.parser.add_argument("--strategy", help="可选重新指定策略文件名称", metavar='<file>')
+        self.parser.add_argument("-l", "--log-level", hoices=['verbose', 'info', 'warning', 'error'], default='info',
+                                 help="设置控制台日志输出的级别，可选(verbose,info,warning,error),默认info")
 
     def main(self, args):
         backup_file = args.backup_file

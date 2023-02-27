@@ -291,7 +291,9 @@ def epc_by_fix_ratio(buy_price, stop_loss_price, ratio=0.1):
 
 
 #######################################################################################################################
-# 风险控制策略
+# 大盘风险控制策略
+# 风险控制0 - 大盘上证指数最近10日下跌10%时全部清仓，当日不买入。
+
 # 风险控制1-形态判断（三只乌鸦等）
 def mrc_by_form(ref_index, form_type):
     pass
@@ -395,7 +397,7 @@ def swc_fall_ma(ma_type=0, period=10):
                               fields=['close']).close.values
             new_close = get_current_data(stock).last_price
             close = np.append(close, new_close)
-            ma = np.around(tl.MA(close, timeperiod=period, matype=ma_type), 4)
+            ma = np.around(tl.MA(close, timeperiod=period, matype=ma_type), 4)[-1]
 
             if ma > new_close:
                 order_target(stock, 0)

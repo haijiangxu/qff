@@ -28,7 +28,7 @@
 
 import pandas as pd
 import datetime
-from typing import Dict
+from typing import Dict, Optional
 from dateutil.relativedelta import relativedelta
 from qff.tools.mongo import DATABASE
 from qff.tools.date import (
@@ -46,20 +46,35 @@ from qff.frame.const import RUN_TYPE, RUN_STATUS
 
 
 def get_fundamentals(filter, projection=None, date=None, report_date=None):
+    # type: (Optional[Dict], Optional[Dict], Optional[str], Optional[str]) -> Optional[pd.DataFrame]
     """
-    查询财务数据,详细的财务数据表及字段描述请见financial_dict
+    根据mongodb语法查询财务数据
+    详细的财务数据表及字段描述请见 :ref:`db_finance`
 
-        :传入date时, 查询指定日期date收盘后所能看到的最近的数据,
-         我们会查找上市公司在这个日期之前(包括此日期)发布的数据, 不会有未来函数.
-        :report_date, 查询 report_date 指定的季度或者年份的财务数
-    :param filter: dict 查询条件字典，按pymongo格式输入
+    * 输入date时, 查询指定日期date收盘后所能看到的最近的数据,我们会查找上市公司在这个日期之前(包括此日期)发布的数据, 不会有未来函数.
+    * 输入report_date, 查询 report_date 指定的季度或者年份的财务数。
+    * **参数report_date和date二选一，同时输入,则report_date有效。**
+
+    :param filter: 查询条件字典，按pymongo格式输入
     :param projection:  你需要查询的字段列表，按pymongo格式输入
-    :param date:查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
-                        等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+    :param date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :param report_date: 财报统计的季度或者年份, 一个字符串, 有两种格式:
-                        季度: 格式是: 年 + 'q' + 季度序号, 例如: '2015q1', '2013q4'.
-                        年份: 格式就是年份的数字, 例如: '2015', '2016'.
-    :return:返回一个 [pandas.DataFrame], 每一行对应数据库返回的每一行, 列索引是你查询的所有字段
+
+                        * 季度: 格式是: 年 + 'q' + 季度序号, 例如: '2015q1', '2013q4'.
+                        * 年份: 格式就是年份的数字, 例如: '2015', '2016'.
+
+    :return: 返回一个 [pandas.DataFrame], 每一行对应数据库返回的每一行, 列索引是你查询的所有字段
+
+    :example:
+
+    ::
+
+        # 策略在开盘前选择净利润增长率大于30%的股票
+        def before_trading_start():
+            filter = {'f184' : {"$gt": 0.3}}
+            df = get_fundamentals(filter=filter, projection={'f184': 1}, date=context.previous_date)
+            g.security = df['code'].to_list()
+
     """
     if filter is None:
         filter = {}
@@ -126,16 +141,27 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
 
 
 def get_financial_data(code, fields=None, watch_date=None, report_date=None):
+    # type: (Optional[list, str], Optional[list], Optional[str], Optional[str]) -> Optional[pd.DataFrame]
     """
-    查询股票给定日期的财务数据
+    查询多只股票给定日期的财务数据
+
     :param code:  一支股票代码或者一个股票代码的list，None表示所有股票代码
-    :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见financial_dict
-    :param watch_date:查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
-                        等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+    :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见 :ref:`db_finance`
+    :param watch_date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :param report_date: 财报统计的季度或者年份, 一个字符串, 有两种格式:
-                        季度: 格式是: 年 + 'q' + 季度序号, 例如: '2015q1', '2013q4'.
-                        年份: 格式就是年份的数字, 例如: '2015', '2016'.
+
+                        * 季度: 格式是: 年 + 'q' + 季度序号, 例如: '2015q1', '2013q4'.
+                        * 年份: 格式就是年份的数字, 例如: '2015', '2016'.
+
     :return:返回一个 [pandas.DataFrame], 每一行对应数据库返回的每一行, 列名是输入的field字段信息
+
+    :example:
+
+    ::
+
+        # 获取股票'000001'和'601567'的每股收益、扣非每股收益及净利润
+        df = get_financial_data(['000001', '601567'], ['f001', 'f002', 'f095'],watch_date='2020-04-22')
+
     """
     filter = {}
     if code is not None:
@@ -165,14 +191,17 @@ def get_financial_data(code, fields=None, watch_date=None, report_date=None):
 
 
 def get_stock_reports(code, fields=None, start=None, end=None):
+    # type: (str, Optional[list], Optional[str], Optional[str]) -> Optional[pd.DataFrame]
     """
-    获取股票期间发布的所有财报
+    获取单个股票多个报告期发布的财务数据
+
     :param code: 一支股票代码
-    :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见financial_dict
+    :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见 :ref:`db_finance`
     :param start: 查询期间开始日期，一个字符串(格式类似'2015-10-15')，可以是None, 代表从股票上市开始
     :param end: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
                         等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :return: 返回一个 [pandas.DataFrame]
+
     """
     if code is None:
         log.error("参数code不可为空！")
@@ -234,16 +263,19 @@ def get_stock_reports(code, fields=None, start=None, end=None):
 
 
 def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
+    # type: (str, Optional[list], Optional[str], Optional[int]) -> Optional[pd.DataFrame]
     """
-    查询多日财务数据，详细的财务数据表及字段描述请见financial_dict
+    查询单个股票连续多日的财务数据
+
+    详细的财务数据表及字段描述请见financial_dict
 
     :param code:  一支股票代码
-    :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见financial_dict
-    :param end_date:查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
-                        等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+    :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见 :ref:`db_finance`
+    :param end_date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :param count: 获取 end_date 前 count 个日期的数据
 
-    :return:返回一个 [pandas.DataFrame],
+    :return: 返回一个 [pandas.DataFrame]
+
     """
     if code is None:
         log.error("参数code不可为空！")
@@ -319,10 +351,13 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
 
 
 def get_history_fundamentals(code, fields, watch_date=None, report_date=None, count=1, interval='1q'):
+    # type: (Optional[str], Optional[list], Optional[str], Optional[str], int, str) -> Optional[pd.DataFrame]
     """
-    获取多个季度/年度的历史财务数据, 可指定单季度数据, 也可以指定年度数据。可以指定观察日期, 也可以指定最后一个报告期的结束日期
+    获取多只股票多个季度（年度）的历史财务数据
+    可指定单季度数据, 也可以指定年度数据。可以指定观察日期, 也可以指定最后一个报告期的结束日期
+
     :param code: 股票代码或者股票代码列表
-    :param fields: 要查询的财务数据的列表,详细的财务数据表及字段描述请见financial_dict
+    :param fields: 要查询的财务数据的列表,详细的财务数据表及字段描述请见 :ref:`db_finance`
     :param watch_date: 观察日期, 如果指定, 将返回 watch_date 日期前(包含该日期)发布的报表数据
     :param report_date: 财报日期, 可以是 '2019'/'2019q1'/'2018q4' 格式, 如果指定, 将返回 report_date 对应报告期及之前的历史报告期的报表数据
                         watch_date 和 stat_date 只能指定一个, 而且必须指定一个
@@ -330,6 +365,7 @@ def get_history_fundamentals(code, fields, watch_date=None, report_date=None, co
     :param interval: 查询多个报告期数据时, 指定报告期间隔, 可选值: '1q'/'1y', 表示间隔一季度或者一年，举例：
                         report_date='2019q1', interval='1q', count=4, 将返回 2018q2,2018q3,2018q4,2019q1 的数据
                         report_date='2019q1', interval='1y', count=4, 将返回 2016q1,2017q1,2018q1,2019q1 的数据
+
     :return: pandas.DataFrame, 数据库查询结果. 数据格式同 get_fundamentals. 每个股票每个报告期(一季度或者一年)的数据占用一行.
             推荐用户对结果使用pandas的groupby方法来进行分组分析数据
     """
@@ -448,25 +484,34 @@ def get_history_fundamentals(code, fields, watch_date=None, report_date=None, co
 
 
 def get_valuation(code, start=None, end=None, fields=None, count=None):
+    # type: (str, Optional[str], Optional[str], Optional[list], Optional[int]) -> Optional[pd.DataFrame]
     """
     获取多个股票在指定交易日范围内的市值表数据
+
     :param code: 一支股票代码或者一个股票代码的list，None表示所有股票代码
     :param start: 查询开始时间，不能与count共用
     :param end: 查询结束时间
     :param count: 表示往前查询每一个标的count个交易日的数据，如果期间标的停牌，则该标的返回的市值数据数量小于count
-    :param fields: 财务数据中市值表的字段，为None返回所有字段，返回结果中总会包含code、date字段，可用字段如下：
-                    quantity_ratio 量比
-                    capitalization 总股本(万股)
-                    circulating_cap 流通股本(万股)
-                    market_cap 总市值(亿元)
-                    circulating_market_cap 流通市值(亿元)
-                    turnover_ratio 换手率(%)
-                    pe_ratio 市盈率(PE, TTM)
-                    pe_ratio_lyr 市盈率(PE)s
-                    pe_ratio_dyn 市盈率（动态）
-                    pb_ratio 市净率(PB)
+    :param fields: 财务数据中市值表的字段，为None返回所有字段，可用字段如下：
 
-    :return: 返回一个dataframe，索引默认是pandas的整数索引，返回的结果中总会包含code、date字段。
+    :return: 返回一个dataframe，索引默认是pandas的整数索引，返回的结果字段描述如下：
+
+                        ==========================  ====================
+                         字段名	                        含义
+                        ==========================  ====================
+                         code                         股票代码
+                         date                         日期
+                         quantity_ratio               量比
+                         capitalization               总股本(万股)
+                         circulating_cap              流通股本(万股)
+                         market_cap                   总市值(亿元)
+                         circulating_market_cap       流通市值(亿元)
+                         turnover_ratio               换手率(%)
+                         pe_ratio                     市盈率(PE, TTM)
+                         pe_ratio_lyr                 市盈率(PE)s
+                         pe_ratio_dyn                 市盈率（动态）
+                         pb_ratio                     市净率(PB)
+                        ==========================  ====================
     """
 
     filter = {}
@@ -523,24 +568,42 @@ def get_valuation(code, start=None, end=None, fields=None, count=None):
 
 
 def query_valuation(filter, projection=None):
+    # type: (Dict, Optional[Dict]) -> Optional[pd.DataFrame]
     """
-    查询市值信息数据，可用查询条件字段如下：
-        code 股票代码
-        date 日期
-        quantity_ratio 量比
-        capitalization 总股本(万股)
-        circulating_cap 流通股本(万股)
-        market_cap 总市值(亿元)
-        circulating_market_cap 流通市值(亿元)
-        turnover_ratio 换手率(%)
-        pe_ratio 市盈率(PE, TTM)
-        pe_ratio_lyr 市盈率(PE)s
-        pe_ratio_dyn 市盈率（动态）
-        pb_ratio 市净率(PB)
+    查询满足条件的市值信息数据
+    可用查询条件字段如下：
+
+            ==========================  ====================
+             字段名	                        含义
+            ==========================  ====================
+             code                         股票代码
+             date                         日期
+             quantity_ratio               量比
+             capitalization               总股本(万股)
+             circulating_cap              流通股本(万股)
+             market_cap                   总市值(亿元)
+             circulating_market_cap       流通市值(亿元)
+             turnover_ratio               换手率(%)
+             pe_ratio                     市盈率(PE, TTM)
+             pe_ratio_lyr                 市盈率(PE)s
+             pe_ratio_dyn                 市盈率（动态）
+             pb_ratio                     市净率(PB)
+            ==========================  ====================
 
     :param filter: dict 查询条件字典，按pymongo格式输入
     :param projection:  你需要查询的字段列表，按pymongo格式输入，返回结果中总会包含code、date字段，无需输入
-    :return:返回一个 [pandas.DataFrame], 每一行对应数据库返回的每一行, 列索引是你查询的所有字段
+
+    :return: 返回一个 [pandas.DataFrame], 每一行对应数据库返回的每一行, 列索引是你查询的所有字段
+
+    :example:
+
+        ::
+
+            # 查询上一个交易日量比大于2，换手率小于2%的股票
+            yesterday = context.previous_date
+            filter = {'date': yesterday, 'quantity_ratio': {'$gt': 2}, 'turnover_ratio': {'$lt': 0.02}}
+            projection = {'quantity_ratio' : 1, 'turnover_ratio': 1}
+            signal = query_valuation(filter, projection)
 
     """
     if filter is None:

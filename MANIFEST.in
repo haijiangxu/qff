@@ -1,1 +1,2 @@
 include qff/*.json
+include qff/frame/template.html
