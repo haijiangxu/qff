@@ -35,6 +35,7 @@ from pytdx.crawler.history_financial_crawler import HistoryFinancialCrawler
 from qff.tools.local import download_path
 from qff.tools.mongo import DATABASE
 from qff.tools.utils import util_to_json_from_pandas
+from qff.store.save_price import print_progress
 
 __all__ = ['save_report']
 
@@ -116,13 +117,8 @@ def save_report(update_all=False):
     start = time.perf_counter()
     total = len(file_list)
     for item in range(total):
-        finsh = "▓" * int(item * 100 / total)
-        need_do = "-" * int((total - item) * 100 / total)
-        progress = (item / total) * 100
-        dur = time.perf_counter() - start
-        tt = dur / (item + 1) * total
         file_name = file_list[item]
-        print("\r{:^3.0f}%[{}->{}]{:.2f}s|{:.2f}s ({})".format(progress, finsh, need_do, dur, tt, file_name), end="")
+        print_progress(item, total, start, file_name)
 
         if file_name[0:4] != 'gpcw':
             continue
