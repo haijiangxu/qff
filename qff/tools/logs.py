@@ -26,20 +26,30 @@ import os
 import sys
 from zenlog import logging
 from qff.tools.local import log_path
+from qff.tools.config import get_config
 from qff.frame.context import context
 
 
 class Log:
+    """
+    分级别输出日志，跟python的logging模块一致print输出的结果等同于log.info
+
+    * log.error(content)  输出错误日志
+    * log.warn(content)  输出报警日志
+    * log.info(content) 输出信息日志
+    * log.debug(content) 输出调试日志
+
+    """
     def __init__(self):
         try:
-            _name = '{}{}qff-{}-{}-.log'.format(
+            self.file_name = '{}{}qff-{}-{}.log'.format(
                 log_path,
                 os.sep,
                 os.path.basename(sys.argv[0]).split('.py')[0],
                 str(datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
             )
         except:
-            _name = '{}{}qff-{}-.log'.format(
+            self.file_name = '{}{}qff-{}-.log'.format(
                 log_path,
                 os.sep,
                 str(datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
@@ -48,14 +58,16 @@ class Log:
         logging.basicConfig(
             level=logging.INFO,
             format='qff>>> %(message)s',
-            filename=_name,
+            filename=self.file_name,
             filemode='w',
         )
-        console = logging.StreamHandler()
-        console.setLevel(logging.INFO)
+        self.console = logging.StreamHandler()
         formatter = logging.Formatter('qff>> %(message)s')
-        console.setFormatter(formatter)
-        logging.getLogger('').addHandler(console)
+        self.console.setFormatter(formatter)
+        logging.getLogger().addHandler(self.console)
+        self.console_show = True
+        log_level = get_config('LOG', 'level', 'info')
+        self.set_level(log_level)
 
     @property
     def pre_time(self):
@@ -83,20 +95,33 @@ class Log:
     def set_level(self, level):
         """
         设置不同种类的log的级别, 低于这个级别的log不会输出. 所有log的默认级别是info
+
         :param level: 字符串, 必须是'debug', 'info', 'warning', 'error'中的一个, 级别: debug < info < warning < error
+
         :return: None
         """
-        logger = logging.getLogger('')
+        # logger = logging.getLogger('')
         if level == 'info':
-            logger.setLevel(logging.INFO)
-        elif level == 'warn':
-            logger.setLevel(logging.WARN)
-        elif level == 'debug':
-            logger.setLevel(logging.DEBUG)
+            self.console.setLevel(logging.INFO)
+        elif level in ['warn', 'warning']:
+            self.console.setLevel(logging.WARN)
+        elif level in ['debug', 'verbose']:
+            self.console.setLevel(logging.DEBUG)
         elif level == 'error':
-            logger.setLevel(logging.ERROR)
+            self.console.setLevel(logging.ERROR)
         else:
             self.error("set_level设置日志级别必须为：debug,info,warning,error")
+
+    def toggle(self):
+        """
+        开关日志终端显示
+        """
+        if self.console_show:
+            logging.getLogger().removeHandler(self.console)
+            self.console_show = False
+        else:
+            logging.getLogger().addHandler(self.console)
+            self.console_show = True
 
 
 log = Log()
