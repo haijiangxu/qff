@@ -27,7 +27,7 @@
 """
 
 import pandas as pd
-from typing import Dict
+from typing import Dict, Optional
 from datetime import datetime
 from bson.regex import Regex
 from qff.tools.mongo import DATABASE
@@ -36,7 +36,7 @@ from qff.tools.utils import util_code_tolist
 from qff.tools.logs import log
 from qff.frame.context import context
 
-__all__ = ['get_price', 'get_stock_list', 'get_stock_name', 'get_index_stocks', 'get_block_stock',
+__all__ = ['get_price', 'get_bars', 'get_stock_list', 'get_stock_name', 'get_index_stocks', 'get_block_stock',
            'get_mtss', 'get_all_securities', 'get_security_info', 'get_st_stock', 'get_paused_stock',
            'get_stock_block', 'history', 'attribute_history', 'get_index_name']
 
@@ -69,7 +69,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
 
         **关于停牌:** 因为此API可以获取多只股票的数据, 可能有的股票停牌有的没有, 为了保持时间轴的一致,我们默认没有跳过停牌的日期
 
-    :param fq: 复权选项: 'pre', 前复权； None,不复权, 返回实际价格；'post',后复权，暂未实现
+    :param fq: 复权选项: 'pre', 前复权； None,不复权, 返回实际价格；'post',后复权
 
     :param market: 市场类型，目前支持[“stock", ”index","ETF"], 默认“stock".
 
@@ -95,11 +95,17 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
 
     ::
 
-        # 获取一支股票
-        df = get_price('000001') # 获取股票000001当天的日数据
-        df = get_price('000001', start='2020-01-01', end='2020-01-31 23:00:00', frequency='1m', fields=['open', 'close']) # 获得000001的2020年01月的分钟数据, 只获取open+close字段
-        df = get_price('000001', count = 2, end='2015-01-31', freq='daily', fields=['open', 'close']) # 获取获得000001在2020年01月31日前2个交易日的数据
-        df = get_price('000001', start='2020-12-01 14:00:00', end_date='2020-12-02 12:00:00', freq='1m') # 获得000001的2020年12月1号14:00-2020年12月2日12:00的分钟数据
+        # 获取股票000001当天的日数据
+        df = get_price('000001')
+
+        # 获得000001的2020年01月的分钟数据, 只获取open+close字段
+        df = get_price('000001', start='2020-01-01', end='2020-01-31 23:00:00', frequency='1m', fields=['open', 'close'])
+
+        # 获取获得000001在2020年01月31日前2个交易日的数据
+        df = get_price('000001', count = 2, end='2015-01-31', freq='daily', fields=['open', 'close'])
+
+        # 获得000001的2020年12月1号14:00-2020年12月2日12:00的分钟数据
+        df = get_price('000001', start='2020-12-01 14:00:00', end_date='2020-12-02 12:00:00', freq='1m')
 
         # 获取多只股票
         panel =  get_price(get_index_stocks('000903')) # 获取中证100的所有成分股的当天日数据, 返回一个[pandas.DataFrame]
@@ -111,7 +117,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
     # 1、参数合法性判断
     if market not in ['stock', 'index', 'etf'] or \
             freq not in ['daily', '1d', 'day', '1min', '5min', '15min', '30min', '60min', '1m', '5m', '15m', '30m',
-                         '60m'] or fq not in ['pre', None]:
+                         '60m'] or fq not in ['pre', 'post', None]:
         log.error('get_price：参数错误！对照API文档检查market、freq、fq等参数的合法性！')
     if market != 'stock' and skip_paused:
         log.error('get_price：参数错误！对照API文档检查market、skip_paused、fq等参数的合法性！')
@@ -209,7 +215,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
             data = data.drop('vol', axis=1)
 
     # 7、对股票进行复权计算
-    if market == 'stock' and fq == 'pre':
+    if market == 'stock' and fq in ['pre', 'post']:
         cursor = DATABASE.stock_adj.find(
             {
                 'code': {
@@ -229,16 +235,22 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
                 data['date'] = data.datetime.apply(lambda x: str(x)[:10])  # 生成日期
             data.set_index(['date', 'code'], inplace=True)
             adj.set_index(['date', 'code'], inplace=True)
-            data = data.join(adj)
+            data = data.join(adj, how='left')
+            if fq == 'pre':
+                data['qfq'] = data['qfq'].fillna(1)  # 前复权空值填1，倒序
+                cof = data['qfq']
+            else:
+                data['hfq'] = data['hfq'].fillna(method='ffill')  # # 后复权空值填最后一个系数
+                cof = data['hfq']
             for col in ['open', 'high', 'low', 'close']:
                 if col in data.columns.values:
-                    data[col] = round(data[col] * data['adj'], 2)
+                    data[col] = round(data[col] * cof, 2)
             data.reset_index(inplace=True)
-            data.drop('adj', axis=1, inplace=True)
+            data.drop(['qfq', 'hfq'], axis=1, inplace=True)
             if date_index == 'datetime':
                 data.drop('date', axis=1, inplace=True)
         else:
-            log.error("get_price获取复权因子失败！返回未复权值")
+            log.debug("get_price获取复权因子失败！返回未复权值")
 
     if count is not None:
         data = data.groupby(['code'], as_index=False).tail(count)
@@ -251,6 +263,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
 
 
 def history(count, unit='1d', field='close', security_list=None, skip_paused=False, fq='pre'):
+    # type: (int, str, str, list, bool, str ) -> Optional[pd.DataFrame]
     """
 
     回测环境/模拟专用API
@@ -354,6 +367,46 @@ def attribute_history(security, count, unit='1d', fields=None, fq='pre'):
     return data
 
 
+def get_bars(security, count, unit='1d', fields=None, include_now=False, end_dt=None, fq_ref_date=None):
+    # type: (list, int, str, Optional[list], bool, Optional[str], Optional[str]) -> Optional[pd.DataFrame]
+    """
+    获取各种时间周期的 bar 数据， bar 的分割方式与主流股票软件相同， 而且支持返回当前时刻所在 bar 的数据；
+    get_bars 开盘时取的bar高开低收都是当天的开盘价，成交量成交额为0；
+    get_bars 没有跳过停牌选项，所获取的数据都是不包含停牌的数据，如果bar个数少于count个，则返回实际个数，并不会填充。
+
+    :param security: 标的代码或列表,支持一个或多个标的
+    :param count: 大于0的整数，表示获取bar的个数。如果行情数据的bar不足count个，返回的长度则小于count个数。
+    :param unit: bar的时间单位, 支持标准bar,包括['1m', '5m', '15m', '30m', '60m', '1d']
+    :param fields: 获取数据的字段， 支持如下值：['date', 'open', 'close', 'high', 'low', 'vol', 'amount']，默认为None,表示全部字段。
+    :param include_now: 取值True 或者False。 表示是否包含当前bar, 比如策略时间是9:33，unit参数为5m，如果 include_now=True,则返回9:30-9:33这个分钟 bar。
+    :param end_dt: 查询的截止时间，支持的类型为None或str。默认值为None
+
+        * 在回测/模拟环境下默认为context.current_dt
+        * 在其他环境下默认为datetime.now()
+        * 由于bar的最小单位是一分钟，所以end_dt的秒没有什么意义，会被替换为0，例如："2019-11-22 9:35:23" 和 "2019-11-22 9:35:00" 是一样的。
+    :param fq_ref_date: 复权基准日期，支持的类型为str或None,为None时为不复权数据。
+
+    :return:
+
+       * 若security为字符串格式的标的代码时，返回pandas.DataFrame，dataframe 的index是一个日期字符串
+       * 若security为list格式的标的代码时，返回pandas.DataFrame，dataframe 的index是一个MultiIndex
+
+
+    :example:
+
+    ::
+
+        # 获取平安银行最近5天数据,包括context.current_date
+        df =  get_bars('000001', 5, unit='1d',fields=['open','close'],include_now=True)
+
+        # 设置复权基准日为 2018-01-05 , 取得的最近5条包括 end_dt 的天数据
+        get_bars('600507',5,unit='1d', fields=['date','open', 'high', 'low', 'close'],include_now=True, end_dt='2018-01-05 11:00:00', fq_ref_date='2018-01-05')
+
+
+    """
+    return None
+
+
 def get_all_securities(date=None, market='stock', df=False):
     """
     获取平台支持的所有股票信息
@@ -427,7 +480,7 @@ def get_all_securities(date=None, market='stock', df=False):
     if df:
         return pd.DataFrame([item for item in cursor]).set_index('code').sort_index()
     else:
-        return [item["code"] for item in cursor]
+        return sorted([item["code"] for item in cursor])
 
 
 def get_security_info(code, market='stock'):
