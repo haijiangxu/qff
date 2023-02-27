@@ -98,7 +98,6 @@ $ qff save all
         qff save all                 保存/更新所有数据                                   
         qff save day                 保存/更新股票日数据、指数日数据、ETF日数据                     
         qff save min                 保存/更新股票分钟数据、指数分钟数据、ETF分钟数据                  
-        ----------------------       ----------------------------------------------
         qff save stock_list          保存/更新股票列表数据                                 
         qff save stock_day           保存/更新股票日线数据                                 
         qff save index_day           保存/更新指数日线数据                                 
@@ -112,7 +111,6 @@ $ qff save all
         qff save valuation           保存/更新股票市值数据                                 
         qff save mtss                保存/更新融资融券数据                                 
         qff save index_stock         保存/更新指数成分股信息                                
-        ----------------------       -------------------------------------------
         qff save init_info           初始化股票列表、指数列表、ETF列表                          
         qff save init_name           初始化股票历史更名数据                                 
         qff save save_delist         保存退市股票的日数据和分钟数据                             
