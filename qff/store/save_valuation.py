@@ -31,6 +31,7 @@ from qff.tools.date import get_next_trade_day, get_pre_trade_day
 from qff.price.finance import get_stock_reports
 from qff.tools.utils import util_to_json_from_pandas
 from qff.price.query import get_stock_list
+from qff.store.save_price import print_progress
 
 
 def save_valuation_by_code(code, err):
@@ -184,18 +185,14 @@ def save_valuation_data():
          ("date",
           pymongo.ASCENDING)]
     )
+    coll.create_index("date")
     err = []
 
     start = time.perf_counter()
     total = len(stock_list)
     for item in range(total):
-        finsh = "▓" * int(item * 100 / total)
-        need_do = "-" * int((total - item) * 100 / total)
-        progress = (item / total) * 100
-        dur = time.perf_counter() - start
-        tt = dur / (item + 1) * total
         code = stock_list[item]
-        print("\r{:^3.0f}%[{}->{}]{:.2f}s|{:.2f}s ({})".format(progress, finsh, need_do, dur, tt, code), end="")
+        print_progress(item, total, start, code)
 
         save_valuation_by_code(code, err)
 
