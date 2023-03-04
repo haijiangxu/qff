@@ -93,7 +93,7 @@ class RunCommand(Command):
         self.parser.add_argument("-o", "--output-dir", help="结果数据输出到指定目录,默认<home>/.qff/output/")
         self.parser.add_argument("-t", "--trace", action='store_true', help="策略运行过程中是否进行交互,模拟交易时自动生效")
         self.parser.add_argument("--resume", action='store_true', help="恢复前期暂停的策略运行，一般用于模拟交易中")
-        self.parser.add_argument("-l", "--log-level", hoices=['verbose', 'info', 'warning', 'error'], default='info',
+        self.parser.add_argument("-l", "--log-level", choices=['verbose', 'info', 'warning', 'error'], default='info',
                                  help="设置控制台日志输出的级别，可选(verbose,info,warning,error),默认info")
 
     def main(self, args):
@@ -138,7 +138,7 @@ class SimTradeCommand(Command):
         self.parser.add_argument("--freq", choices=['day', 'min', 'tick'],
                                  help="设置回测执行频率,可选('day', 'min', 'tick')", metavar="<freq>")
         self.parser.add_argument("--cash", type=int, help="设置账户初始资金", metavar="<money>")
-        self.parser.add_argument("-l", "--log-level", hoices=['verbose', 'info', 'warning', 'error'], default='info',
+        self.parser.add_argument("-l", "--log-level", choices=['verbose', 'info', 'warning', 'error'], default='info',
                                  help="设置控制台日志输出的级别，可选(verbose,info,warning,error),默认info")
 
     def main(self, args):
@@ -178,7 +178,7 @@ class ResumeCommand(Command):
     def add_options(self) -> None:
         self.parser.add_argument("backup_file", help="策略备份文件名称", nargs='?')
         self.parser.add_argument("--strategy", help="可选重新指定策略文件名称", metavar='<file>')
-        self.parser.add_argument("-l", "--log-level", hoices=['verbose', 'info', 'warning', 'error'], default='info',
+        self.parser.add_argument("-l", "--log-level", choices=['verbose', 'info', 'warning', 'error'], default='info',
                                  help="设置控制台日志输出的级别，可选(verbose,info,warning,error),默认info")
 
     def main(self, args):
