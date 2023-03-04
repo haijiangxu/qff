@@ -7,7 +7,7 @@ pymongo~=3.12.0
 pyecharts~=2.0.1
 requests>=2.26.0
 prettytable~=2.2.0
-akshare>=1.8.44
+akshare==1.8.96
 python-dateutil~=2.8.2
 empyrical==0.5.5
 Jinja2==3.1.2

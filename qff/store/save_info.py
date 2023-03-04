@@ -55,8 +55,12 @@ def save_stock_list():
     :return: 无
     """
     print('====  开始更新股票列表信息 ====')
+    if 'stock_list' not in DATABASE.list_collection_names():
+        print('stock_list未初始化，请先运行qff save init_info命令')
+        return
+    else:
+        coll_list = DATABASE.get_collection('stock_list')
 
-    coll_list = DATABASE.get_collection('stock_list')
     if 'stock_name' not in DATABASE.list_collection_names():
         # print('stock_name 数据集合未初始化，请手动初始化！......')
         coll_name = None
@@ -337,23 +341,30 @@ def init_stock_list():
 def init_stock_name():
     """
     初始化stock_name表, 必须在init_stock_list后面运行
-
-    在聚宽研究环境中运行以下代码 ::
-        from jqdata import finance
-        import pandas as pd
-
-        df = pd.concat([finance.run_query(query(finance.STK_NAME_HISTORY).\
-                       filter(finance.STK_NAME_HISTORY.pub_date < str(year)+'-12-31',\
-                       finance.STK_NAME_HISTORY.pub_date>= str(year)+'-01-01')) for year in range(1980,2023)])
-        print(len(df))
-        df.to_csv("stock_name_history.csv")
-    下载"stock_name_history.csv"文件至".qff/cache" 目录
     """
+
     try:
-        print(f'==== Now initialized stock_name_history ====')
+        print(f'==== 初始化stock_name表, 必须在init_stock_list后面运行 ====')
 
         # 读取csv文件
         stock_name_file = '{}{}{}'.format(cache_path, os.sep, 'stock_name_history.csv')
+        if not os.path.exists(stock_name_file):
+            info = """
+                本地未保存股票历史名称csv文件。
+                在聚宽研究环境中运行以下代码：
+                from jqdata import finance
+                import pandas as pd
+        
+                df = pd.concat([finance.run_query(query(finance.STK_NAME_HISTORY).\r
+                               filter(finance.STK_NAME_HISTORY.pub_date < str(year)+'-12-31',\r
+                               finance.STK_NAME_HISTORY.pub_date>= str(year)+'-01-01')) for year in range(1980,2023)])
+                df.to_csv("stock_name_history.csv")
+                
+                下载"stock_name_history.csv"文件至".qff/cache" 目录
+            """
+            print(info)
+            return
+
         df_csv = pd.read_csv(stock_name_file, index_col=0)
         df_csv = df_csv[['code', 'new_name', 'start_date']]
         df_csv.code = df_csv.code.apply(lambda x: str(x)[:6])
