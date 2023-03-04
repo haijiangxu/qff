@@ -21,7 +21,7 @@ QFF是基于Python语言开发的一个量化金融框架库，提供数据获�
 
 .. note::
 
-   请访问 `Github`_ 网站获取QFF源代码，如果有任何问题请访问 `Github Issues`_ 查询或提交。
+   请访问 `Github`_ 网站获取QFF源代码，如果有任何问题请访问 `Github Issues`_ 查询或提交，或加入QQ群 775477625 参与讨论。
 
 .. _Github: https://github.com/haijiangxu/qff
 

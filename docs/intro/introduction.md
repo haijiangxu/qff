@@ -6,8 +6,8 @@
 :::{admonition} 提示
 :class: tip
 请访问 [Github](https://github.com/haijiangxu/qff) 网站获取QFF源代码，
-如果有任何问题请访问 [Github Issues](https://github.com/haijiangxu/qff/issues) 查询或提交。
-
+如果有任何问题请访问 [Github Issues](https://github.com/haijiangxu/qff/issues) 查询或提交，
+或加入QQ群 775477625 参与讨论。
 :::
 
 
