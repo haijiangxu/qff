@@ -37,7 +37,7 @@ def crawl_delist_stock():
 1    000013  *ST石化A  1992-05-06  2004-09-20
 2    000015   PT中浩Ａ  1992-06-25  2001-10-25
     """
-    sz = ak.stock_info_sz_delist(indicator="终止上市公司")
+    sz = ak.stock_info_sz_delist(symbol="终止上市公司")
     sz.columns = pd.Index(['code', 'name', 'start', 'end'])
 
     sh = ak.stock_info_sh_delist()
@@ -53,8 +53,8 @@ def crawl_stock_list():
     获取A股股票列表
     :return:
     """
-    sh1 = ak.stock_info_sh_name_code(indicator="主板A股")
-    sh2 = ak.stock_info_sh_name_code(indicator="科创板")
+    sh1 = ak.stock_info_sh_name_code(symbol="主板A股")
+    sh2 = ak.stock_info_sh_name_code(symbol="科创板")
     sh = pd.concat([sh1, sh2])
     sh = sh.iloc[:, [0, 1, 3]]
     sh.columns = pd.Index(['code', 'name', 'start'])
