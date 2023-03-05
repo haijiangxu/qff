@@ -563,10 +563,6 @@ def get_stock_name(code=None, date=None):
     :return dict: 返回股票代码与股票名称的字典
 
     """
-    if 'stock_name' not in DATABASE.list_collection_names():
-        log.error('stock_name 数据集合未初始化，请手动初始化！......')
-        return None
-
     filter: Dict[str, any] = {}
     if code is not None:
         code = util_code_tolist(code)
@@ -580,8 +576,10 @@ def get_stock_name(code=None, date=None):
     else:
         log.error('get_stock_name：参数错误！date参数不合法！')
         return None
-
-    coll = DATABASE.stock_name
+    if 'stock_name' in DATABASE.list_collection_names():
+        coll = DATABASE.stock_name
+    else:
+        coll = DATABASE.stock_list
     cursor = coll.find(filter, {"_id": 0, "code": 1, "name": 1})
     return {item["code"]: item["name"] for item in cursor}
 
@@ -622,10 +620,6 @@ def get_st_stock(code=None, date=None):
     :return dict: 返回股票代码与股票名称的字典
 
     """
-    if 'stock_name' not in DATABASE.list_collection_names():
-        log.error('stock_name 数据集合未初始化，请手动初始化！......')
-        return None
-
     filter: Dict[str, any] = {}
     if code is not None:
         code = util_code_tolist(code)
@@ -641,8 +635,11 @@ def get_st_stock(code=None, date=None):
         return None
 
     filter['name'] = Regex(u".*ST.*", "i")
+    if 'stock_name' in DATABASE.list_collection_names():
+        coll = DATABASE.stock_name
+    else:
+        coll = DATABASE.stock_list
 
-    coll = DATABASE.stock_name
     cursor = coll.find(filter, {"_id": 0, "code": 1, "name": 1})
     return {item["code"]: item["name"] for item in cursor}
 
