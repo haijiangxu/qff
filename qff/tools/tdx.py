@@ -115,7 +115,7 @@ def get_best_ip_by_ping():
 
 
 def select_best_ip():
-    log.info('Selecting the Best Server IP of TDX')
+    log.debug('Selecting the Best Server IP of TDX')
 
     default_ip = {'ip': None, 'port': None}
     default_ip = get_config(section='IPLIST', option='default', default_value=default_ip)
