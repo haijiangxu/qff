@@ -98,7 +98,7 @@ def _back_test_run():
             if context.run_freq == 'day':
                 # 执行每日策略函数
                 if strategy.handle_data is not None:
-                    context.current_dt = day + " 09:31:00"  # 分钟第一条数据时间
+                    context.current_dt = day + " 09:30:00"  # 分钟第一条数据时间
                     run_strategy_funcs(strategy.handle_data)
 
                 if len(strategy.run_daily) > 0:
@@ -126,9 +126,6 @@ def _back_test_run():
                     if context.pass_today:
                         context.pass_today = False
                         break
-
-
-
         # 每日收盘处理函数
         context.current_dt = day + " 15:30:00"
         settle_by_day()
