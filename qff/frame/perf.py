@@ -66,19 +66,23 @@ class Perf:
         order_hists = ctx.order_hists
         keys_name = ['股票代码', '股票名称', '交易方向', '交易日期', '成交单价', '成交数量', '交易费用']
         orders = [{key: value for key, value in x.items() if key in keys_name} for x in order_hists]
-        df_order = pd.DataFrame(orders)
+        if len(orders) > 0:
+            df_order = pd.DataFrame(orders)
 
-        df_order.rename(columns={'股票代码': 'security',
-                                 '股票名称': 'security_name',
-                                 '交易方向': 'is_buy',
-                                 '交易日期': 'trade_date',
-                                 '成交单价': 'trade_price',
-                                 '成交数量': 'trade_amount',
-                                 '交易费用': 'commission'
-                                 }, inplace=True)
+            df_order.rename(columns={'股票代码': 'security',
+                                     '股票名称': 'security_name',
+                                     '交易方向': 'is_buy',
+                                     '交易日期': 'trade_date',
+                                     '成交单价': 'trade_price',
+                                     '成交数量': 'trade_amount',
+                                     '交易费用': 'commission'
+                                     }, inplace=True)
 
-        self._orders = df_order
-        self.pnl = self.pnl_fifo
+            self._orders = df_order
+            self.pnl = self.pnl_fifo
+        else:
+            self._orders = None
+            self.pnl = None
 
     @property
     def pnl_fifo(self):
@@ -434,7 +438,7 @@ class Perf:
             }
         else:
             return {
-                '成交记录': len(self._orders),
+                '成交记录': len(self._orders) if self._orders else 0,
                 '配对记录': 0
             }
 

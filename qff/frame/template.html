@@ -356,18 +356,20 @@
                     </tr>
                 </thead>
                 <tbody id="tbody-analy">
-                    {% for pnl in perf.pnl.to_dict('split')['data'] %}
-                        {% if pnl[8] > 0 %}
-                            <tr style="color: red">
-                        {% else %}
-                            <tr style="color: green">
-                        {% endif %}
-                                <td>{{loop.index}} </td>
-                        {% for data in pnl %}
-                                <td>{{data}}</td>
+                    {% if perf.pnl %}
+                        {% for pnl in perf.pnl.to_dict('split')['data'] %}
+                            {% if pnl[8] > 0 %}
+                                <tr style="color: red">
+                            {% else %}
+                                <tr style="color: green">
+                            {% endif %}
+                                    <td>{{loop.index}} </td>
+                            {% for data in pnl %}
+                                    <td>{{data}}</td>
+                            {% endfor %}
+                                </tr>
                         {% endfor %}
-                            </tr>
-                    {% endfor %}
+                    {% endif %}
 
                 </tbody>
             </table>
