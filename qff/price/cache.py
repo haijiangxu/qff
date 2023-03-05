@@ -254,11 +254,11 @@ class BacktestData(UnitData):
     def _get_min_buff(self):
         for freq in ["1min", "5min", "15min", "30min"]:
             data = get_price(self.code, end=context.current_dt[0:10], freq=freq, market=self.market)
-            if data is not None:
+            if data is not None and len(data) >= 1:
                 self._min_buff = data
                 self._min_buff_freq = freq
                 break
-        if data is None:
+        if data is None or len(data) < 1:
             log.error("获取BacktestData对象分钟数据失败！：{}-{}".format(context.current_dt[0:10], self.code))
             # 按照日数据生成分钟数据
             date_list = get_trade_min_list(context.current_dt[0:10])
@@ -290,12 +290,16 @@ class BacktestData(UnitData):
     def min_data_before(self):
         if self._min_buff is None:
             self._get_min_buff()
+        if context.current_dt < self._min_buff.index[0]:
+            return self._min_buff.loc[:self._min_buff.index[0]]
         return self._min_buff.loc[:context.current_dt]
 
     @property
     def min_data_after(self):
         if self._min_buff is None:
             self._get_min_buff()
+        if context.current_dt > self._min_buff.index[-1]:
+            return self._min_buff.loc[self._min_buff.index[-1]:]
         return self._min_buff.loc[context.current_dt:]
 
     @property
