@@ -45,7 +45,7 @@ def initialize():
 # 1
 # 设置策略参数
 def set_params():
-    g.security = '000063'
+    g.security = '000001'
     # 系统1入市的trailing date
     g.short_in_date = 20
     # 系统2入市的trailing date
@@ -95,7 +95,7 @@ def set_variables():
 def set_backtest():
     # 作为判断策略好坏和一系列风险值计算的基准
     set_benchmark(g.security)
-    log.set_level('error')  # 设置报错等级
+    log.set_level('info')  # 设置报错等级
 
 
 '''
@@ -134,6 +134,8 @@ def set_slip_fee():
 # 按分钟回测
 def handle_data():
     dt = context.current_dt  # 当前日期
+    if dt[:10] == '2020-04-20':
+        log.info(dt)
     data = get_current_data(g.security)
     current_price = data.last_price  # 当前价格N
     if dt[11:15] == '09:30':
@@ -322,3 +324,7 @@ def stop_loss(current_price):
 # 每日收盘后要做的事情（本策略中不需要）
 def after_trading_end():
     return
+
+
+if __name__ == '__main__':
+    run_file(__file__, start="2020-01-01", end="2022-12-01")

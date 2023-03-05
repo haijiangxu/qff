@@ -41,4 +41,3 @@ def market_open():
 
 if __name__ == '__main__':
     run_file(__file__, start="2021-08-27", end="2022-03-25")
-

@@ -55,7 +55,9 @@ def market_open():
         # 用所有 cash 买入股票
         order_value(security, cash)
     # 如果上一时间点价格低于五天平均价, 则空仓卖出
-    elif current_price < MA5 and context.portfolio.positions[security].closeable_amount > 0:
+    elif current_price < MA5 and \
+            security in context.portfolio.positions.keys() and\
+            context.portfolio.positions[security].closeable_amount > 0:
         # 记录这次卖出
         log.info("价格低于均价, 卖出 %s" % security)
         # 卖出所有股票,使这只股票的最终持有量为0
