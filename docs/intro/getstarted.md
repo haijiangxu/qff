@@ -83,7 +83,9 @@ def market_open():
         # 用所有 cash 买入股票
         order_value(security, cash)
     # 如果上一时间点价格低于五天平均价, 则空仓卖出
-    elif current_price < MA5 and context.portfolio.positions[security].closeable_amount > 0:
+    elif current_price < MA5 and \
+            security in context.portfolio.positions.keys() and\
+            context.portfolio.positions[security].closeable_amount > 0:
         # 记录这次卖出
         log.info("价格低于均价, 卖出 %s" % security)
         # 卖出所有股票,使这只股票的最终持有量为0
@@ -94,12 +96,11 @@ def market_open():
 def after_market_close():
     log.info(str('函数运行时间(after_market_close):'+context.current_dt))
 
-
 ```
 
 一个完整策略只需要两步:
 
-*   设置初始化函数:[initialize],上面的例子中, 注册一个函数每个交易日09:50执行。
+*   设置初始化函数:[initialize],上面的例子中, 注册每个交易日盘前、盘中、盘后运行的函数。
 *   编写函数代码, 实现突破5日均线买入，下穿5日均线卖出的策略。
 
 

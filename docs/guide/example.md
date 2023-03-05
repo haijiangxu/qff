@@ -12,7 +12,8 @@
 # 双均线策略，当五日均线位于十日均线上方则买入，反之卖出。
 from qff import *
 
-## 初始化函数，设定要操作的股票、基准等等
+
+# 初始化函数，设定要操作的股票、基准等等
 def initialize():
     # 定义一个全局变量, 保存要操作的股票
     # 000002(股票:万科A)
@@ -22,7 +23,8 @@ def initialize():
     # 运行函数
     run_daily(trade, 'every_bar')
 
-## 交易程序
+
+# 交易程序
 def trade():
     security = g.security
     # 设定均线窗口长度
@@ -42,14 +44,21 @@ def trade():
         # 用所有 cash 买入股票
         order_value(security, cash)
         # 记录这次买入
-        log.info("Buying %s" % (security))
+        log.info("Buying %s" % security)
 
     # 如果n1日均线小于n2日均线，并且目前有头寸
-    elif ma_n1 < ma_n2 and context.portfolio.positions[security].closeable_amount > 0:
+    elif ma_n1 < ma_n2 and\
+            security in context.portfolio.positions.keys() and\
+            context.portfolio.positions[security].closeable_amount > 0:
         # 全部卖出
         order_target(security, 0)
         # 记录这次卖出
-        log.info("Selling %s" % (security))
+        log.info("Selling %s" % security)
+
+
+if __name__ == '__main__':
+    run_file(__file__)
+
 
 ```
 
