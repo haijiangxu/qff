@@ -27,7 +27,6 @@
 """
 数据保存统一接口文件，在定时任务中自动执行
 """
-import pandas
 
 from qff.store.save_info import save_stock_list, init_index_list, init_etf_list, \
     init_stock_list, save_index_stock, init_stock_name
@@ -38,6 +37,7 @@ from qff.store.save_valuation import save_valuation_data
 from qff.store.save_mtss import save_mtss_data
 from qff.tools.mongo import DATABASE
 from qff.tools.date import is_trade_day
+from qff.tools.logs import log
 import datetime
 import pandas as pd
 
@@ -45,7 +45,7 @@ import pandas as pd
 def update_all(date=None):
     if date is None:
         date = str(datetime.date.today())
-    print(f'====更新数据日期:{date} ==========')
+    log.info(f'====更新数据日期:{date} ==========')
 
     # 判断是否需要初始化
     colls = DATABASE.list_collection_names()
@@ -68,6 +68,8 @@ def update_all(date=None):
     save_mtss_data()
     save_index_stock()
     save_security_block()
+
+    log.info('==== 更新数据完成 ==========')
 
 
 def init_delist_date():
