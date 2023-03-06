@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = "0.5.3"
+__version__ = "0.5.4"
 
 import sys
 
@@ -159,6 +159,6 @@ from qff.helper.formula import (
 )
 
 from qff.helper.indicator import ind_ma, ind_macd, ind_atr, ind_kdj, ind_rsi, ind_boll
-from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, select_zt_stock
+from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, select_zt_stock, filter_bj_stock
 from qff.price.cache import get_current_data, UnitData
 from qff.frame.evaluation import strategy_eval
