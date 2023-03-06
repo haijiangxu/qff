@@ -30,7 +30,7 @@ import pandas as pd
 import numpy as np
 import datetime
 import time
-from typing import  Optional
+from typing import Optional
 from qff.price.fetch import fetch_price, fetch_stock_xdxr, fetch_stock_block
 from qff.price.query import get_all_securities
 from qff.tools.date import get_real_trade_date, get_next_trade_day, util_get_date_gap, get_trade_days, get_pre_trade_day
@@ -159,24 +159,14 @@ def save_security_min(market='stock', freq='1min', security=None):
         coll = DATABASE.get_collection(table_name)
         coll.create_index([("type", 1), ("code", 1), ("datetime", 1)], unique=True)
 
+        data_num = 0
+        data_list = []
+
         start = time.perf_counter()
         total = len(stock_list)
         for item in range(total):
             code = stock_list[item]
             print_progress(item, total, start, code)
-
-        data_num = 0
-        data_list = []
-        start = time.perf_counter()
-        total = len(stock_list)
-        for item in range(total):
-            finsh = "▓" * int(item * 100 / total)
-            need_do = "-" * int((total - item) * 100 / total)
-            progress = (item / total) * 100
-            dur = time.perf_counter() - start
-            tt = dur/(item+1) * total
-            code = stock_list[item]
-            print("\r{:^3.0f}%[{}->{}]{:.2f}s|{:.2f}s ({})".format(progress, finsh, need_do, dur, tt, code), end="")
 
             try:
                 start_date = coll.find_one({'type': freq, 'code': code}, sort=[('datetime', -1)])['datetime']
@@ -410,6 +400,3 @@ def calc_hfq_cof(bfq: pd.DataFrame, xdxr: pd.DataFrame) -> Optional[pd.DataFrame
 if __name__ == '__main__':
 
     save_stock_xdxr('601399')
-
-
-
