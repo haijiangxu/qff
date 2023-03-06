@@ -35,8 +35,10 @@ from qff.tools.date import  get_real_trade_date
 def filter_st_stock(security, date=None):
     """
     过滤股票列表中的st股票
+
     :param security: 股票列表
     :param date: 查询日期
+
     :return: 返回剔除ST股票的股票代码列表
     """
     st_code = get_st_stock(security, date).keys()
@@ -46,19 +48,37 @@ def filter_st_stock(security, date=None):
 def filter_paused_stock(security, date=None):
     """
     过滤股票列表中当日停牌的股票
+
     :param security: 股票列表
     :param date: 查询日期
+
     :return: 返回剔除当日停牌的股票代码列表
     """
     paused_code = get_paused_stock(security, date)
     return [x for x in security if x not in paused_code]
 
 
+def filter_bj_stock(security):
+    """
+    过滤股票列表中北交所的股票
+
+    :param security: 股票列表
+
+    :return: 返回剔除当日停牌的股票代码列表
+    """
+    if isinstance(security, str):
+        security = [security]
+
+    return [x for x in security if x[:2] not in ['43', '83', '87', '82', '88']]
+
+
 def filter_20pct_stock(security, date=None):
     """
     过滤涨停20%的创业板和科创板股票
+
     :param security: 股票列表
     :param date: 查询日期
+
     :return: 返回剔除当日停牌的股票代码列表
     """
     if date is None:
@@ -73,10 +93,12 @@ def filter_20pct_stock(security, date=None):
 def select_zt_stock(security=None, date=None, n=1, m=1):
     """
     查找最近n天连续涨停,且前面m天未涨停的股票代码
+
     :param security: 股票代码list
     :param date: 查询日期
     :param n: 连续涨停的天数
     :param m: 涨停前多少天未涨停
+
     :return: 返回股票代码list
     """
     def zt(d, k):
@@ -103,9 +125,11 @@ def select_npgr_stock(npgr, date=None, count=1):
     选择净利润增长率大于指定值的股票。
     对于上个季度亏损的股票，会造成净利润增长率很大，不能真实反映股票的成长性.
     可以选择连续三个季报净利润增长率大于指定值的股票。
+
     :param npgr:净利润增长率阀值,30% 输入30
     :param date:查询日期
     :param count:连续n个报告期,默认最近一个报告期
+
     :return: 返回满足条件的股票列表
     """
     if date is None:
@@ -123,7 +147,9 @@ def macd_diverge(df):
     """
     判断当前MACD是否顶/底背离
     原理：按MACD金叉分为两个周期，周期类股价最高点对应的dif值进行比较。
+
     :param df: DataFrame  包含OCHLV的股票价格数据以及生成的MACD、CS数据
+
     :return: 1：顶背离，-1：底背离，0：其他
     """
     pass
