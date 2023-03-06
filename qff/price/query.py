@@ -31,7 +31,7 @@ from typing import Dict, Optional
 from datetime import datetime
 from bson.regex import Regex
 from qff.tools.mongo import DATABASE
-from qff.tools.date import util_time_stamp, get_pre_trade_day, is_trade_day, get_real_trade_date, util_date_valid
+from qff.tools.date import get_pre_trade_day, is_trade_day, get_real_trade_date, util_date_valid
 from qff.tools.utils import util_code_tolist
 from qff.tools.logs import log
 from qff.frame.context import context
@@ -681,7 +681,7 @@ def get_paused_stock(code=None, date=None):
         log.error("参数date输入不合法！")
         return None
 
-    filter['date_stamp'] = util_time_stamp(date)
+    filter['date'] = date
     filter['vol'] = {'$lt': 1}
 
     coll = DATABASE.stock_day

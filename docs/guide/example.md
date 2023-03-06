@@ -120,61 +120,64 @@ def market_open():
 ```python
 
 from qff import *
-## 初始化函数，设定要操作的股票、基准等等
+
+
+# 初始化函数，设定要操作的股票、基准等等
 def initialize():
     # 设定沪深300作为基准
     set_benchmark('000300')
     # 持仓数量
-    g.stocknum = 3 
+    g.stock_num = 3
     # 交易日计时器
-    g.days = 0 
+    g.days = 0
     # 调仓频率
     g.refresh_rate = 5
 
-    
+
 def before_trading_start():
     log.info("before_trading_start函数运行...")
 
-    
 
 def check_stocks():
-    ## 选出小市值股票
-    
-    filter = {'date':  context.previous_date, 'market_cap': {'$gt': 20, '$lt': 30}}
-    projection = {'market_cap' : 1}
+    # 选出小市值股票
+
+    filter = {'date': context.previous_date, 'market_cap': {'$gt': 20, '$lt': 30}}
+    projection = {'market_cap': 1}
     df = query_valuation(filter, projection)
     df = df.sort_values('market_cap').reset_index()
-    buylist =list(df['code'])
+    buy_list = list(df['code'])[:g.stock_num*2]
 
     # 过滤停牌股票
-    buylist = filter_paused_stock(buylist, context.previous_date)
+    paused_code = get_paused_stock(buy_list, context.previous_date)
+    filter_paused = [x for x in buy_list if x not in paused_code]
 
-    return buylist[:g.stocknum]
-  
-## 交易函数
+    return filter_paused[:g.stock_num]
+
+
+# 交易函数
 def handle_data():
-    if g.days%g.refresh_rate == 0:
+    if g.days % g.refresh_rate == 0:
 
-        ## 获取持仓列表
+        # 获取持仓列表
         sell_list = list(context.portfolio.positions.keys())
         # 如果有持仓，则卖出
-        if len(sell_list) > 0 :
+        if len(sell_list) > 0:
             for stock in sell_list:
                 order_target_value(stock, 0)
 
-        ## 分配资金
-        if len(context.portfolio.positions) < g.stocknum :
-            Num = g.stocknum - len(context.portfolio.positions)
-            Cash = context.portfolio.available_cash/Num
-        else: 
+        # 分配资金
+        if len(context.portfolio.positions) < g.stock_num:
+            Num = g.stock_num - len(context.portfolio.positions)
+            Cash = context.portfolio.available_cash / Num
+        else:
             Cash = 0
 
-        ## 选股
+        # 选股
         stock_list = check_stocks()
 
-        ## 买入股票
+        # 买入股票
         for stock in stock_list:
-            if len(context.portfolio.positions.keys()) < g.stocknum:
+            if len(context.portfolio.positions.keys()) < g.stock_num:
                 order_value(stock, Cash)
 
         # 天计数加一
@@ -182,10 +185,6 @@ def handle_data():
     else:
         g.days += 1
 
-# 过滤停牌股票
-def filter_st_stock(security, date=None):
-    paused_code = get_paused_stock(security, date)
-    return [x for x in security if x not in paused_code]
 ```
 
 ## 海龟策略
