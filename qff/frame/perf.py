@@ -438,7 +438,7 @@ class Perf:
             }
         else:
             return {
-                '成交记录': len(self._orders) if self._orders else 0,
+                '成交记录': len(self._orders) if self._orders is not None else 0,
                 '配对记录': 0
             }
 
