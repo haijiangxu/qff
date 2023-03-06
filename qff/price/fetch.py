@@ -30,7 +30,7 @@ import pandas as pd
 from datetime import date
 from pytdx.hq import TdxHq_API
 from retrying import retry
-from qff.tools.date import is_trade_day, get_trade_gap, run_time, get_real_trade_date
+from qff.tools.date import is_trade_day, get_trade_gap, get_real_trade_date
 from qff.tools.logs import log
 from qff.tools.tdx import get_best_ip, select_market_code, select_index_code
 
@@ -117,7 +117,7 @@ def fetch_price(code, count=None, freq='day', market='stock', start=None):
         if start is None:
             count = 1
         else:
-            count = get_trade_gap(start, date.today())
+            count = get_trade_gap(start, str(date.today()))
             count = int(count * c)
             if count > 40800:
                 count = 40800
