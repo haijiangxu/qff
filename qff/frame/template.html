@@ -356,7 +356,7 @@
                     </tr>
                 </thead>
                 <tbody id="tbody-analy">
-                    {% if perf.pnl %}
+                    {% if perf.pnl is not none %}
                         {% for pnl in perf.pnl.to_dict('split')['data'] %}
                             {% if pnl[8] > 0 %}
                                 <tr style="color: red">
