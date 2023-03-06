@@ -581,7 +581,14 @@ def get_stock_name(code=None, date=None):
     else:
         coll = DATABASE.stock_list
     cursor = coll.find(filter, {"_id": 0, "code": 1, "name": 1})
-    return {item["code"]: item["name"] for item in cursor}
+    rtn = {item["code"]: item["name"] for item in cursor}
+
+    # 修复stock_list和stock_name两个结合数据来源不一致造成的bug
+    if code is not None and len(code) > len(rtn):
+        diff = {i: "-" for i in code if i not in rtn.keys()}
+        rtn = dict(**rtn, **diff)
+
+    return rtn
 
 
 def get_index_name(code=None):
