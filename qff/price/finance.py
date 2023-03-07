@@ -582,11 +582,11 @@ def query_valuation(filter, projection=None):
              capitalization               总股本(万股)
              circulating_cap              流通股本(万股)
              market_cap                   总市值(亿元)
-             circulating_market_cap       流通市值(亿元)
+             cir_market_cap               流通市值(亿元)
              turnover_ratio               换手率(%)
-             pe_ratio                     市盈率(PE, TTM)
-             pe_ratio_lyr                 市盈率(PE)s
-             pe_ratio_dyn                 市盈率（动态）
+             pe_ttm                       市盈率(PE, TTM)
+             pe_lyr                       市盈率(PE)s
+             pe_dyn                       市盈率（动态）
              pb_ratio                     市净率(PB)
             ==========================  ====================
 

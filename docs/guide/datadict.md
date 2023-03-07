@@ -1,7 +1,7 @@
 # 数据字典
 
 ## 市值数据
-每日更新
+每日更新，保存至2005-01-01之后的所有数据
 
 通过函数 {func}`.get_valuation` 和 {func}`.query_valuation` 获取
 
@@ -17,11 +17,11 @@
              capitalization               总股本(万股)
              circulating_cap              流通股本(万股)
              market_cap                   总市值(亿元)
-             circulating_market_cap       流通市值(亿元)
+             cir_market_cap               流通市值(亿元)
              turnover_ratio               换手率(%)
-             pe_ratio                     市盈率(PE, TTM)
-             pe_ratio_lyr                 市盈率(PE)s
-             pe_ratio_dyn                 市盈率（动态）
+             pe_ttm                       市盈率(PE, TTM)
+             pe_lyr                       市盈率(PE)s
+             pe_dyn                       市盈率（动态）
              pb_ratio                     市净率(PB)
             ==========================  ====================
 ```
