@@ -873,5 +873,14 @@ def date_to_int(date: str):
 
 
 def int_to_date(d: int):
-    s = "{:>08d}".format(int(d))
-    return s[:4]+'-'+s[4:6]+'-'+s[6:]
+    d = int(d)
+    if len(str(d)) <= 6:
+        s = "{:>06d}".format(d)
+        ret = s[:2]+'-'+s[2:4]+'-'+s[4:]
+        if d > 800000:
+            return '19'+ret
+        else:
+            return '20'+ret
+    else:
+        s = str(d)
+        return s[:4]+'-'+s[4:6]+'-'+s[6:]
