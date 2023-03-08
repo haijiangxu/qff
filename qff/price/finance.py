@@ -60,7 +60,7 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
     :param filter: 查询条件字典，按pymongo格式输入
     :param projection:  你需要查询的字段列表，按pymongo格式输入
     :param date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
-    等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+                等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :param report_date: 财报统计的季度或者年份, 一个字符串, 有两种格式:
 
                         * 季度: 格式是: 年 + 'q' + 季度序号, 例如: '2015q1', '2013q4'.
@@ -158,7 +158,7 @@ def get_financial_data(code, fields=None, date=None, report_date=None):
     :param code:  一支股票代码或者一个股票代码的list，None表示所有股票代码
     :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见 :ref:`db_finance`
     :param date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
-    等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。**注意：不支持2000年之前的查询**
+                等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :param report_date: 财报统计的季度或者年份, 一个字符串, 有两种格式:
 
                         * 季度: 格式是: 年 + 'q' + 季度序号, 例如: '2015q1', '2013q4'.
@@ -464,7 +464,7 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
     :param code:  一支股票代码
     :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见 :ref:`db_finance`
     :param end_date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
-    等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+                    等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :param count: 获取 end_date 前 count 个日期的数据
 
     :return: 返回一个 [pandas.DataFrame]
