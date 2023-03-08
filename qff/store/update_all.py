@@ -134,7 +134,7 @@ def qff_save(*args):
         save_security_block()
 
     elif args[0] == 'report':
-        save_report()
+        save_report(True)
 
     elif args[0] == 'valuation':
         save_valuation_data()
