@@ -43,6 +43,7 @@ from qff.tools.date import (
 from qff.tools.logs import log
 from qff.frame.context import context
 from qff.frame.const import RUN_TYPE, RUN_STATUS
+from qff.tools.utils import util_code_tolist
 
 
 def get_fundamentals(filter, projection=None, date=None, report_date=None):
@@ -54,10 +55,12 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
     * 输入date时, 查询指定日期date收盘后所能看到的最近的数据,我们会查找上市公司在这个日期之前(包括此日期)发布的数据, 不会有未来函数.
     * 输入report_date, 查询 report_date 指定的季度或者年份的财务数。
     * **参数report_date和date二选一，同时输入,则report_date有效。**
+    * **注意：不支持2000年之前的查询**
 
     :param filter: 查询条件字典，按pymongo格式输入
     :param projection:  你需要查询的字段列表，按pymongo格式输入
-    :param date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+    :param date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
+    等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :param report_date: 财报统计的季度或者年份, 一个字符串, 有两种格式:
 
                         * 季度: 格式是: 年 + 'q' + 季度序号, 例如: '2015q1', '2013q4'.
@@ -114,13 +117,15 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
             else:
                 today = datetime.date.today()
                 end = (today - relativedelta(days=1)).strftime('%Y-%m-%d')
-        elif util_date_valid(date):
+        elif util_date_valid(date) and date > '2000-01-01':
             end = date
         else:
             log.error("参数date不合法！")
             return None
         # 三季报一般在10月中下旬，年报一般在4月下旬，则最长财报间隔在6-7个月。
         start = (datetime.datetime.strptime(end, '%Y-%m-%d') - relativedelta(months=8)).strftime('%Y-%m-%d')
+        if start < '2000-01-01':
+            start = '2000-01-01'
         filter['f314'] = {
             "$lte": date_to_int(end[2:]),
             "$gte": date_to_int(start[2:])
@@ -140,14 +145,20 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
     return rtn
 
 
-def get_financial_data(code, fields=None, watch_date=None, report_date=None):
+def get_financial_data(code, fields=None, date=None, report_date=None):
     # type: (Optional[list, str], Optional[list], Optional[str], Optional[str]) -> Optional[pd.DataFrame]
     """
     查询多只股票给定日期的财务数据
 
+    * 输入date时, 查询指定日期date收盘后所能看到的最近的数据,我们会查找上市公司在这个日期之前(包括此日期)发布的数据, 不会有未来函数.
+    * 输入report_date, 查询 report_date 指定的季度或者年份的财务数。
+    * **参数report_date和date二选一，同时输入,则report_date有效。**
+    * **注意：不支持2000年之前的查询**
+
     :param code:  一支股票代码或者一个股票代码的list，None表示所有股票代码
     :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见 :ref:`db_finance`
-    :param watch_date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+    :param date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
+    等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。**注意：不支持2000年之前的查询**
     :param report_date: 财报统计的季度或者年份, 一个字符串, 有两种格式:
 
                         * 季度: 格式是: 年 + 'q' + 季度序号, 例如: '2015q1', '2013q4'.
@@ -184,7 +195,7 @@ def get_financial_data(code, fields=None, watch_date=None, report_date=None):
     else:
         projection = None
     try:
-        return get_fundamentals(filter, projection, watch_date, report_date)
+        return get_fundamentals(filter, projection, date, report_date)
     except Exception as e:
         log.error("get_fundamentals运行异常：{}".format(e))
         return None
@@ -228,28 +239,33 @@ def get_stock_reports(code, fields=None, start=None, end=None):
     else:
         log.error("参数fields不合法！,应该为字符串列表！")
         return None
+
     if end is None:
         if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
             end = context.previous_date
         else:
             today = datetime.date.today()
             end = (today - relativedelta(days=1)).strftime('%Y-%m-%d')
-    elif util_date_valid(end):
+    elif util_date_valid(end) and end > '2000-01-01':
         if not is_trade_day(end):
             end = get_real_trade_date(end)
     else:
-        log.error("参数end_date不合法！")
+        log.error("参数end不合法！查询日期需大于2000-01-01")
         return None
 
     if start is None:
         filter['f314'] = {
             "$lte": date_to_int(end[2:]),
         }
-    else:
+    elif end > start > '2000-01-01':
         filter['f314'] = {
             "$lte": date_to_int(end[2:]),
             "$gte": date_to_int(start[2:])
         }
+    else:
+        log.error("参数start不合法！查询日期需大于2000-01-01")
+        return None
+
     coll = DATABASE.report
     cursor = coll.find(filter=filter, projection=projection)
     db_data = pd.DataFrame([item for item in cursor])
@@ -257,6 +273,182 @@ def get_stock_reports(code, fields=None, start=None, end=None):
         db_data = db_data.sort_values('report_date')
         db_data.insert(2, 'pub_date', db_data['f314'].apply(int_to_date))
         db_data.drop(columns=['f314'], inplace=True)
+        return db_data
+    else:
+        return None
+
+
+def get_stock_forecast(code=None, start=None, end=None):
+    # type: (Optional[str], Optional[str], Optional[str]) -> Optional[pd.DataFrame]
+    """
+    获取股票业绩预告数据
+
+    :param code: 一支股票代码或股票列表，可以是None值，代表整个市场
+    :param start: 查询期间开始日期，一个字符串(格式类似'2015-10-15')，可以是None, 代表从股票上市开始
+    :param end: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
+                        等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+    :return: 返回一个 [pandas.DataFrame]，包含以下数据：
+
+                        ==========================  ====================
+                         字段名	                        含义
+                        ==========================  ====================
+                         code                         股票代码
+                         pub_date                     业绩预告公告日期
+                         report_date                  报告期
+                         profit_min                   本期利润下限
+                         profit_max                   本期利润上限
+                         profit_ratio_min             本期利润同比增幅下限
+                         profit_ratio_max             本期利润同比增幅上限
+                        ==========================  ====================
+
+    """
+    if code is not None:
+        code = util_code_tolist(code)
+        filter = {'code': {'$in': code}}
+    else:
+        filter = {}
+
+    if end is None:
+        if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
+            end = context.previous_date
+        else:
+            today = datetime.date.today()
+            end = (today - relativedelta(days=1)).strftime('%Y-%m-%d')
+    elif not util_date_valid(end):
+        log.error("参数end不合法！")
+        return None
+
+    if start is None:
+        filter['f313'] = {
+            "$lte": date_to_int(end[2:]),
+        }
+    elif util_date_valid(start):
+        filter['f313'] = {
+            "$lte": date_to_int(end[2:]),
+            "$gte": date_to_int(start[2:])
+        }
+    else:
+        log.error("参数start不合法！")
+        return None
+
+    projection = {
+        "_id": 0,
+        "code": 1,
+        "report_date": 1,
+        'f313': 1,
+        'f317': 1,
+        'f318': 1,
+        'f285': 1,
+        'f286': 1,
+    }
+    coll = DATABASE.report
+    cursor = coll.find(filter=filter, projection=projection)
+    db_data = pd.DataFrame([item for item in cursor])
+    if len(db_data) >= 1:
+        db_data['f313'] = db_data['f313'].apply(int_to_date)
+        db_data.rename(columns={
+            'f313': 'pub_date',
+            'f317': 'profit_min',
+            'f318': 'profit_max',
+            'f285': 'profit_ratio_min',
+            'f286': 'profit_ratio_max',
+        }, inplace=True)
+        db_data = db_data.sort_values('code')
+        return db_data[['code', 'pub_date', 'report_date', 'profit_min', 'profit_max',
+                        'profit_ratio_min', 'profit_ratio_max']]
+    else:
+        return None
+
+
+def get_stock_express(code=None, start=None, end=None):
+    # type: (Optional[str], Optional[str], Optional[str]) -> Optional[pd.DataFrame]
+    """
+    获取股票业绩快报数据
+
+    :param code: 一支股票代码或股票列表，可以是None值，代表整个市场
+    :param start: 查询期间开始日期，一个字符串(格式类似'2015-10-15')，可以是None, 代表从股票上市开始
+    :param end: 查询日期结束日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
+                        等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+
+    :return: 返回一个 [pandas.DataFrame]，包含以下数据：
+
+                        ==========================  ====================
+                         字段名	                        含义
+                        ==========================  ====================
+                         code                         股票代码
+                         pub_date                     业绩快报公告日期
+                         report_date                  报告期
+                         net_profit                   归母公司净利润
+                         adjusted_profit              扣非净利润
+                         total_assets                 总资产
+                         net_assets                   净资产
+                         eps                          每股收益
+                         roe_diminish                 摊薄净资产收益率
+                         roe_weighting                加权净资产收益率
+                         naps                         每股净资产
+                        ==========================  ====================
+
+    """
+    if code is not None:
+        code = util_code_tolist(code)
+        filter = {'code': {'$in': code}}
+    else:
+        filter = {}
+
+    if end is None:
+        if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
+            end = context.previous_date
+        else:
+            today = datetime.date.today()
+            end = (today - relativedelta(days=1)).strftime('%Y-%m-%d')
+    elif not util_date_valid(end):
+        log.error("参数end不合法！")
+        return None
+
+    if start is None:
+        filter['f315'] = {
+            "$lte": date_to_int(end[2:]),
+        }
+    elif util_date_valid(start):
+        filter['f315'] = {
+            "$lte": date_to_int(end[2:]),
+            "$gte": date_to_int(start[2:])
+        }
+    else:
+        log.error("参数start不合法！")
+        return None
+
+    projection = {
+        "_id": 0,
+        "code": 1,
+        "report_date": 1,
+        'f315': 1,
+        'f287': 1,
+        'f288': 1,
+        'f289': 1,
+        'f290': 1,
+        'f291': 1,
+        'f292': 1,
+        'f293': 1,
+        'f294': 1,
+    }
+    coll = DATABASE.report
+    cursor = coll.find(filter=filter, projection=projection)
+    db_data = pd.DataFrame([item for item in cursor])
+    if len(db_data) >= 1:
+        db_data.insert(2, 'pub_date', db_data['f315'].apply(int_to_date))
+        db_data.drop(columns=['f315'], inplace=True)
+        db_data.rename(columns={
+            'f287': 'net_profit',
+            'f288': 'adjusted_profit',
+            'f289': 'total_assets',
+            'f290': 'net_assets',
+            'f291': 'eps',
+            'f292': 'roe_diminish',
+            'f293': 'roe_weighting',
+            'f294': 'naps',
+        }, inplace=True)
+        db_data = db_data.sort_values('code')
         return db_data
     else:
         return None
@@ -271,7 +463,8 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
 
     :param code:  一支股票代码
     :param fields: 返回的财务数据字段list，'001'-'580',None表示所有财务指标,详细的财务数据表及字段描述请见 :ref:`db_finance`
-    :param end_date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
+    :param end_date: 查询日期, 一个字符串(格式类似'2015-10-15')，可以是None, 使用默认日期. 这个默认日期在回测时，
+    等于 context.current_dt 的前一天。在实盘时，为当前最新日期，一般是昨天。
     :param count: 获取 end_date 前 count 个日期的数据
 
     :return: 返回一个 [pandas.DataFrame]
@@ -309,7 +502,7 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
         else:
             today = datetime.date.today()
             end = (today - relativedelta(days=1)).strftime('%Y-%m-%d')
-    elif util_date_valid(end_date):
+    elif util_date_valid(end_date) and end_date > '2000-01-01':
         end = end_date
     else:
         log.error("参数end_date不合法！")
@@ -321,13 +514,18 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
         filter['f314'] = dict({"$lte": date_to_int(end[2:])})
     else:
         start = get_pre_trade_day(end, count)
+
         # 查询财报日期向前移8个月，避免4月下旬只能查看到去年10月发布的三季报
         query_start = (datetime.datetime.strptime(start, '%Y-%m-%d') - relativedelta(months=8))\
             .strftime('%Y-%m-%d')
+        if query_start < '2000-01-01':
+            query_start = '2000-01-01'
+
         filter['f314'] = {
             "$lte": date_to_int(end[2:]),
             "$gte": date_to_int(query_start[2:])
         }
+
     coll = DATABASE.report
     cursor = coll.find(filter=filter, projection=projection)
     db_data = pd.DataFrame([item for item in cursor])
@@ -431,10 +629,12 @@ def get_history_fundamentals(code, fields, watch_date=None, report_date=None, co
                 }
 
             elif watch_date is not None:
-                if util_date_valid(watch_date):
+                if util_date_valid(watch_date) and watch_date > '2000-01-01':
                     end = watch_date
                     start = (datetime.datetime.strptime(end, '%Y-%m-%d')
                              - relativedelta(months=8+inter_months)).strftime('%Y-%m-%d')
+                    if start < '2000-01-01':
+                        start = '2000-01-01'
                     filter['f314'] = {
                         "$lte": date_to_int(end[2:]),
                         "$gte": date_to_int(start[2:])

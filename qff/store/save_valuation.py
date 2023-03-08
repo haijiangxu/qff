@@ -27,10 +27,10 @@ import pymongo
 import time
 from dateutil.relativedelta import relativedelta
 from qff.tools.mongo import DATABASE
-from qff.tools.date import get_next_trade_day, get_pre_trade_day
+from qff.tools.date import get_next_trade_day, get_pre_trade_day, int_to_date
 from qff.price.finance import get_stock_reports
 from qff.tools.utils import util_to_json_from_pandas
-from qff.price.query import get_stock_list
+from qff.price.query import get_stock_list, get_security_info
 from qff.store.save_price import print_progress
 
 
@@ -44,8 +44,8 @@ def save_valuation_by_code(code, err):
         if len(vdf) > 0:
             start = get_next_trade_day(vdf[-1]["date"], 1)
         else:
-            start = '2005-01-04'  # TODO,用IPO日期
-
+            start = '2005-01-04'
+            # start = get_security_info(code)['start']  # 使用IPO日期
         # 查询股票日数据，读取开始日期前5天的数据，用于计算量比
         ref2 = DATABASE.stock_day.find(
             {
@@ -77,23 +77,39 @@ def save_valuation_by_code(code, err):
         # 从数据库中读取财务数据
         query_start = (datetime.datetime.strptime(start, '%Y-%m-%d') - relativedelta(months=14))\
             .strftime('%Y-%m-%d')
-        # '238': 1,  # 总股本, 财报中的股本数据严重滞后，取除权库信息
-        # '239': 1,  # 上市流通A股
-        # '232': 1,  # 归属于母公司所有者的净利润,季度数据
-        # "004": 1,  # 每股净资产
-        # "096": 1,  # 归属于母公司所有者的净利润
-        # "266": 1,  # 自由流通股
-        fin = get_stock_reports(code, fields=['f232', 'f096', 'f004', 'f238', 'f239'], start=query_start)
+        # 'f238':  总股本, 财报中的股本数据严重滞后，取除权库信息
+        # 'f239':  上市流通A股
+        # 'f232':  归属于母公司所有者的净利润,季度数据
+        # "f004":  每股净资产
+        # "f096":  归属于母公司所有者的净利润
+        # "f266":  自由流通股
+        # "f287":  业绩快报-归属母公司净利润
+        # "f294":  业绩快报-每股净资产
+        # "f315":  业绩快报公告日期
+        fin = get_stock_reports(code, fields=['f232', 'f096', 'f004', 'f238', 'f239', 'f287', 'f294', 'f315'],
+                                start=query_start)
         if len(fin) < 1:
             raise ValueError("查询财报数据无返回！")
+
         fin['ttm'] = fin['f232'].rolling(4).apply(sum)
+        # 如已公布当年业绩快报，则在快报发布日期和年报发布日期之间使用快报数据（同花顺）
+        new_rows = fin[fin['f315'] > 1].copy()
+        new_rows['report_date'] = new_rows['report_date'].apply(lambda y: int(y/10000)*10000+1231)
+        new_rows['pub_date'] = new_rows['f315'].apply(int_to_date)
+        new_rows['f096'] = new_rows['f287']
+        new_rows['f004'] = new_rows['f294']
+        fin = pd.concat([fin, new_rows], ignore_index=True)
+        fin = fin.sort_values('pub_date').reset_index(drop=True)
+
         fin['dyn'] = fin['f096'] * 12 / (fin['report_date'] % 2000 / 100).astype('int')
-        tmp_list = [1231, 331, 630, 930]
-        fin['lyr'] = None
+
+        lyr = None
         for i in range(len(fin)):
-            x = tmp_list.index(fin.loc[i, 'report_date'] % 2000)
-            x = i - x if i >= x else 0
-            fin.loc[i, 'lyr'] = fin.loc[x, 'f096']
+            if fin.loc[i, 'report_date'] % 2000 == 1231:
+                lyr = fin.loc[i, 'lyr'] = fin.loc[i, 'f096']
+            else:
+                fin.loc[i, 'lyr'] = lyr
+
         # 股票日数据开始部分无法匹配到财报日期，因此将start前的财报数据匹配到第一条数据上
         fin_pre = fin[fin['pub_date'] <= kdf.date[0]]
         if len(fin_pre) > 0:
@@ -142,7 +158,7 @@ def save_valuation_by_code(code, err):
         kdf['pe_ttm'] = round(kdf['f238'] * kdf['close'] * 10000 / kdf['ttm'], 2)  # 市盈率(PE, TTM)
         kdf['pe_lyr'] = round(kdf['f238'] * kdf['close'] * 10000 / kdf['lyr'], 2)  # 市盈率(PE)s
         kdf['pe_dyn'] = round(kdf['f238'] * kdf['close'] * 10000 / kdf['dyn'], 2)  # 市盈率（动态）
-        kdf['pb_ratio'] = round(kdf['close'] / kdf['f004'], 2)  # 市净率(PB)
+        kdf['pb_ratio'] = round(kdf['close'] / kdf['f004'], 3)  # 市净率(PB)
 
         kdf = kdf.set_index('date')
         kdf = kdf.loc[start:end, ['code', 'quantity_ratio', 'capitalization', 'circulating_cap',
