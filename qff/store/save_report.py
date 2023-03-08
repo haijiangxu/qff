@@ -109,7 +109,10 @@ def save_report(update_all=False):
 
     coll = DATABASE.report
     coll.create_index([("code", 1), ("report_date", 1)], unique=True)
-    coll.create_index([("f314", 1)])
+    coll.create_index([("f314", 1)])  # 财报公告日期
+    coll.create_index([("f315", 1)])  # 业绩快报发布日期
+    coll.create_index([("f313", 1)])  # 业绩预告发布日期
+    coll.create_index([("report_date", 1)])  # 业绩预告发布日期
 
     if update_all:
         file_list = os.listdir(download_path)
