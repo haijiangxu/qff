@@ -56,11 +56,12 @@ def save_valuation_by_code(code, err):
                     }
             },
             {
-                "_id" : 0,
+                "_id": 0,
                 "date": 1,
                 "close": 1,
                 "vol": 1
-            }
+            },
+            sort=[("date", 1)]
         )
         kdf = pd.DataFrame([item for item in ref2])
 
@@ -110,7 +111,7 @@ def save_valuation_by_code(code, err):
                 'category': {'$in': [2, 3, 5, 7, 8, 9, 10]}
             },
             {
-                "_id" : 0,
+                "_id": 0,
                 "date": 1,
                 "shares_after": 1,
                 "liquidity_after": 1
