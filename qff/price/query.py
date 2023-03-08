@@ -491,19 +491,28 @@ def get_security_info(code, market='stock'):
     :type code: 字符串
     :param market: 用来过滤code的类型,目前支持的type仅有['stock', 'index', 'etf]
     :type market: 字符串
-    :return: 一个对象, 有如下属性:
-        1. name: 中文名称
-        2. start: 上市日期, 字符串类型
-        3. end: 退市日期（股票是最后一个交易日，不同于摘牌日期）, 如果没有退市则为2200-01-01
+    :return: 一个字典对象, 有如下key值:
 
-    示例：
+        1. code: 股票代码
+        2. name: 中文名称
+        3. start: 上市日期, 字符串类型
+        4. end: 退市日期（股票是最后一个交易日，不同于摘牌日期）, 如果没有退市则为2200-01-01
+
+    :example:
+
+    ::
         # 获取股票000001的上市时间
         start_date = get_security_info('000001').start
         print(start)
+
     """
     coll = DATABASE.get_collection(market + '_list')
     cursor = coll.find({'code': code}, {'_id': 0})
-    return cursor[0]
+    try:
+        rtn = cursor[0]
+    except IndexError:
+        rtn = {'code': code, 'name': '代码不存在', 'start': '', 'end': ''}
+    return rtn
 
 
 def get_stock_list(date=None):
