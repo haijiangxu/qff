@@ -145,6 +145,16 @@ get_history_fundamentals- 获取多只股票多个季度（年度）的历史财
 
 .. autofunction:: get_history_fundamentals
 
+get_stock_forecast- 获取股票业绩预告数据
+--------------------------------------------------------------
+
+.. autofunction:: get_stock_forecast
+
+get_stock_express- 获取股票业绩快报数据
+--------------------------------------------------------------
+
+.. autofunction:: get_stock_express
+
 
 get_valuation- 获取多个股票在指定交易日范围内的市值表数据
 --------------------------------------------------------------
