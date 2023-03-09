@@ -164,8 +164,8 @@ def qff_drop(*args):
     if table_name not in table_list:
         print("输入的数据库不存在！")
     else:
-        ack = input(f"请确认是否真的删除数据表{table_name}?[回复y确认]:")
-        if ack.strip() == 'y':
+        ack = input(f"注意：请确认是否真的删除数据表{table_name}(Y/N)?:")
+        if ack.strip().lower() == 'y':
             DATABASE.drop_collection(table_name)
             print(f"qff数据表{table_name}删除成功！")
         else:
