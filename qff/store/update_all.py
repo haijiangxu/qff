@@ -158,11 +158,26 @@ def qff_save(*args):
         print("命令格式不合法！")
 
 
+def qff_drop(*args):
+    table_name = args[0]
+    table_list = DATABASE.list_collection_names()
+    if table_name not in table_list:
+        print("输入的数据库不存在！")
+    else:
+        ack = input(f"请确认是否真的删除数据表{table_name}?[回复y确认]:")
+        if ack.strip() == 'y':
+            DATABASE.drop_collection(table_name)
+            print(f"qff数据表{table_name}删除成功！")
+        else:
+            print(f"qff数据表{table_name}删除取消！")
+
+
 if __name__ == '__main__':
     op_date = str(datetime.date.today())
     if not is_trade_day(op_date):
         print('======== 当前不是交易日，无需更新数据！ ==========')
     else:
+
         update_all(op_date)
 
     # mongo_info()
