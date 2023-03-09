@@ -77,6 +77,7 @@ def main(args: Optional[List[str]] = None) -> int:
         'config': ConfigCommand(sub_parser),
         'create': CreateCommand(sub_parser),
         'save': SaveCommand(sub_parser),
+        'drop': DropCommand(sub_parser),
         'dbinfo': DbinfoCommand(sub_parser),
         'kshow': KshowCommand(sub_parser)
     }

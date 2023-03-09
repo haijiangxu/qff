@@ -38,7 +38,7 @@ from qff.tools.kshow import kshow
 # subprocess.Popen
 
 __all__ = ['Command', 'RunCommand', 'SimTradeCommand', 'ResumeCommand', 'CreateCommand',
-           'ConfigCommand', 'SaveCommand', 'DbinfoCommand', 'KshowCommand']
+           'ConfigCommand', 'SaveCommand', 'DropCommand', 'DbinfoCommand', 'KshowCommand']
 
 
 class Command:
@@ -349,6 +349,28 @@ class SaveCommand(Command):
             self.parser.print_help()
             return
         qff_save(args.subcommand)
+
+
+class DropCommand(Command):
+    """
+    删除指定的数据表，用于数据维护，数据表名称可通过qff dbinfo查看。
+    """
+    usage = f"\nqff drop <table_name>"
+    summary = "删除指定的数据表"
+
+    def __init__(self, sub_parser):
+        super().__init__('drop', sub_parser)
+
+    def add_options(self) -> None:
+        self.parser.add_argument("table_name", help="需要删除的数据表名称", nargs='?')
+
+    def main(self, args):
+        from qff.store.update_all import qff_drop
+
+        if args.table_name is None:
+            self.parser.print_help()
+        else:
+            qff_drop(args.table_name)
 
 
 class DbinfoCommand(Command):
