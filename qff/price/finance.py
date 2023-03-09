@@ -127,7 +127,7 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
         if start < '2000-01-01':
             start = '2000-01-01'
         filter['f314'] = {
-            "$lte": date_to_int(end[2:]),
+            "$lt": date_to_int(end[2:]),
             "$gte": date_to_int(start[2:])
         }
 
@@ -255,6 +255,7 @@ def get_stock_reports(code, fields=None, start=None, end=None):
 
     if start is None:
         filter['f314'] = {
+            "$gt": 0,
             "$lte": date_to_int(end[2:]),
         }
     elif end > start > '2000-01-01':
@@ -320,6 +321,7 @@ def get_stock_forecast(code=None, start=None, end=None):
 
     if start is None:
         filter['f313'] = {
+            "$gt": 0,
             "$lte": date_to_int(end[2:]),
         }
     elif util_date_valid(start):
@@ -354,6 +356,7 @@ def get_stock_forecast(code=None, start=None, end=None):
             'f286': 'profit_ratio_max',
         }, inplace=True)
         db_data = db_data.sort_values('code')
+        db_data.report_date = db_data.report_date.apply(lambda x: int(x/10000)*10000+1231)
         return db_data[['code', 'pub_date', 'report_date', 'profit_min', 'profit_max',
                         'profit_ratio_min', 'profit_ratio_max']]
     else:
@@ -407,6 +410,7 @@ def get_stock_express(code=None, start=None, end=None):
 
     if start is None:
         filter['f315'] = {
+            "$gt": 0,
             "$lte": date_to_int(end[2:]),
         }
     elif util_date_valid(start):
@@ -448,6 +452,7 @@ def get_stock_express(code=None, start=None, end=None):
             'f293': 'roe_weighting',
             'f294': 'naps',
         }, inplace=True)
+        db_data.report_date = db_data.report_date.apply(lambda x: int(x / 10000) * 10000 + 1231)
         db_data = db_data.sort_values('code')
         return db_data
     else:
