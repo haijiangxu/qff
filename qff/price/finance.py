@@ -174,14 +174,14 @@ def get_financial_data(code, fields=None, date=None, report_date=None):
         df = get_financial_data(['000001', '601567'], ['f001', 'f002', 'f095'],watch_date='2020-04-22')
 
     """
-    filter = {}
+    _filter = {}
     if code is not None:
         if isinstance(code, str):
             code = [code]
         elif not isinstance(code, list):
             log.error("参数code不合法！,应该为字符串或列表！")
             return None
-        filter['code'] = {'$in': code}
+        _filter['code'] = {'$in': code}
 
     if fields is not None:
         if isinstance(fields, list):
@@ -195,7 +195,7 @@ def get_financial_data(code, fields=None, date=None, report_date=None):
     else:
         projection = None
     try:
-        return get_fundamentals(filter, projection, date, report_date)
+        return get_fundamentals(_filter, projection, date, report_date)
     except Exception as e:
         log.error("get_fundamentals运行异常：{}".format(e))
         return None
@@ -220,7 +220,7 @@ def get_stock_reports(code, fields=None, start=None, end=None):
     elif not isinstance(code, str):
         log.error("参数code不合法！,应该为字符串")
         return None
-    filter: Dict[str, any] = {'code': code}
+    _filter: Dict[str, any] = {'code': code}
 
     if fields is None:
         projection = {"_id": 0}
@@ -254,12 +254,12 @@ def get_stock_reports(code, fields=None, start=None, end=None):
         return None
 
     if start is None:
-        filter['f314'] = {
+        _filter['f314'] = {
             "$gt": 0,
             "$lte": date_to_int(end[2:]),
         }
     elif end > start > '2000-01-01':
-        filter['f314'] = {
+        _filter['f314'] = {
             "$lte": date_to_int(end[2:]),
             "$gte": date_to_int(start[2:])
         }
@@ -268,7 +268,7 @@ def get_stock_reports(code, fields=None, start=None, end=None):
         return None
 
     coll = DATABASE.report
-    cursor = coll.find(filter=filter, projection=projection)
+    cursor = coll.find(filter=_filter, projection=projection)
     db_data = pd.DataFrame([item for item in cursor])
     if len(db_data) > 1:
         db_data = db_data.sort_values('report_date')
@@ -305,9 +305,9 @@ def get_stock_forecast(code=None, start=None, end=None):
     """
     if code is not None:
         code = util_code_tolist(code)
-        filter = {'code': {'$in': code}}
+        _filter = {'code': {'$in': code}}
     else:
-        filter = {}
+        _filter = {}
 
     if end is None:
         if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
@@ -320,12 +320,12 @@ def get_stock_forecast(code=None, start=None, end=None):
         return None
 
     if start is None:
-        filter['f313'] = {
+        _filter['f313'] = {
             "$gt": 0,
             "$lte": date_to_int(end[2:]),
         }
     elif util_date_valid(start):
-        filter['f313'] = {
+        _filter['f313'] = {
             "$lte": date_to_int(end[2:]),
             "$gte": date_to_int(start[2:])
         }
@@ -344,7 +344,7 @@ def get_stock_forecast(code=None, start=None, end=None):
         'f286': 1,
     }
     coll = DATABASE.report
-    cursor = coll.find(filter=filter, projection=projection)
+    cursor = coll.find(filter=_filter, projection=projection)
     db_data = pd.DataFrame([item for item in cursor])
     if len(db_data) >= 1:
         db_data['f313'] = db_data['f313'].apply(int_to_date)
@@ -356,7 +356,7 @@ def get_stock_forecast(code=None, start=None, end=None):
             'f286': 'profit_ratio_max',
         }, inplace=True)
         db_data = db_data.sort_values('code')
-        db_data.report_date = db_data.report_date.apply(lambda x: int(x/10000)*10000+1231)
+        db_data.report_date = db_data.report_date.apply(lambda x: get_next_report_date(x))
         return db_data[['code', 'pub_date', 'report_date', 'profit_min', 'profit_max',
                         'profit_ratio_min', 'profit_ratio_max']]
     else:
@@ -394,9 +394,9 @@ def get_stock_express(code=None, start=None, end=None):
     """
     if code is not None:
         code = util_code_tolist(code)
-        filter = {'code': {'$in': code}}
+        _filter = {'code': {'$in': code}}
     else:
-        filter = {}
+        _filter = {}
 
     if end is None:
         if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
@@ -409,12 +409,12 @@ def get_stock_express(code=None, start=None, end=None):
         return None
 
     if start is None:
-        filter['f315'] = {
+        _filter['f315'] = {
             "$gt": 0,
             "$lte": date_to_int(end[2:]),
         }
     elif util_date_valid(start):
-        filter['f315'] = {
+        _filter['f315'] = {
             "$lte": date_to_int(end[2:]),
             "$gte": date_to_int(start[2:])
         }
@@ -437,7 +437,7 @@ def get_stock_express(code=None, start=None, end=None):
         'f294': 1,
     }
     coll = DATABASE.report
-    cursor = coll.find(filter=filter, projection=projection)
+    cursor = coll.find(filter=_filter, projection=projection)
     db_data = pd.DataFrame([item for item in cursor])
     if len(db_data) >= 1:
         db_data.insert(2, 'pub_date', db_data['f315'].apply(int_to_date))
@@ -452,7 +452,7 @@ def get_stock_express(code=None, start=None, end=None):
             'f293': 'roe_weighting',
             'f294': 'naps',
         }, inplace=True)
-        db_data.report_date = db_data.report_date.apply(lambda x: int(x / 10000) * 10000 + 1231)
+        db_data.report_date = db_data.report_date.apply(lambda x: get_next_report_date(x))
         db_data = db_data.sort_values('code')
         return db_data
     else:
@@ -481,7 +481,7 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
     elif not isinstance(code, str):
         log.error("参数code不合法！,应该为字符串")
         return None
-    filter = {'code': code}
+    _filter = {'code': code}
 
     if fields is None:
         projection = {"_id": 0}
@@ -516,7 +516,7 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
         end = get_real_trade_date(end)
 
     if count is None:
-        filter['f314'] = dict({"$lte": date_to_int(end[2:])})
+        _filter['f314'] = dict({"$lte": date_to_int(end[2:])})
     else:
         start = get_pre_trade_day(end, count)
 
@@ -526,13 +526,13 @@ def get_fundamentals_continuously(code, fields=None, end_date=None, count=None):
         if query_start < '2000-01-01':
             query_start = '2000-01-01'
 
-        filter['f314'] = {
+        _filter['f314'] = {
             "$lte": date_to_int(end[2:]),
             "$gte": date_to_int(query_start[2:])
         }
 
     coll = DATABASE.report
-    cursor = coll.find(filter=filter, projection=projection)
+    cursor = coll.find(filter=_filter, projection=projection)
     db_data = pd.DataFrame([item for item in cursor])
     if len(db_data) > 1:
         db_data = db_data.sort_values('report_date')
@@ -572,14 +572,14 @@ def get_history_fundamentals(code, fields, watch_date=None, report_date=None, co
     :return: pandas.DataFrame, 数据库查询结果. 数据格式同 get_fundamentals. 每个股票每个报告期(一季度或者一年)的数据占用一行.
             推荐用户对结果使用pandas的groupby方法来进行分组分析数据
     """
-    filter = {}
+    _filter = {}
     if code is not None:
         if isinstance(code, str):
             code = [code]
         elif not isinstance(code, list):
             log.error("参数code不合法！,应该为字符串或列表！")
             return None
-        filter['code'] = {'$in': code}
+        _filter['code'] = {'$in': code}
 
     if fields is not None:
         if isinstance(fields, list):
@@ -594,7 +594,7 @@ def get_history_fundamentals(code, fields, watch_date=None, report_date=None, co
         projection = None
     try:
         if count == 1:
-            return get_fundamentals(filter, projection, watch_date, report_date)
+            return get_fundamentals(_filter, projection, watch_date, report_date)
 
         elif count > 1 and isinstance(count, int):
             if projection is None:
@@ -628,7 +628,7 @@ def get_history_fundamentals(code, fields, watch_date=None, report_date=None, co
                     return None
                 start = (datetime.datetime.strptime(end, '%Y-%m-%d')
                          - relativedelta(months=inter_months)).strftime('%Y-%m-%d')
-                filter['report_date'] = {
+                _filter['report_date'] = {
                     "$lte": date_to_int(end),
                     "$gte": date_to_int(start)
                 }
@@ -640,7 +640,7 @@ def get_history_fundamentals(code, fields, watch_date=None, report_date=None, co
                              - relativedelta(months=8+inter_months)).strftime('%Y-%m-%d')
                     if start < '2000-01-01':
                         start = '2000-01-01'
-                    filter['f314'] = {
+                    _filter['f314'] = {
                         "$lte": date_to_int(end[2:]),
                         "$gte": date_to_int(start[2:])
                     }
@@ -654,7 +654,7 @@ def get_history_fundamentals(code, fields, watch_date=None, report_date=None, co
                 return None
 
             coll = DATABASE.report
-            cursor = coll.find(filter=filter, projection=projection)
+            cursor = coll.find(filter=_filter, projection=projection)
 
             db_data = pd.DataFrame([item for item in cursor])
             if len(db_data) < 1:
@@ -833,6 +833,21 @@ def query_valuation(filter, projection=None):
     coll = DATABASE.valuation
     cursor = coll.find(filter=filter, projection=projection)
     return pd.DataFrame([item for item in cursor])
+
+
+def get_next_report_date(report_date: int) -> int :
+    periods = [331, 630, 930, 1231]
+    year = int(report_date / 10000)
+    md = report_date % 10000
+    if periods.index(md) < 3:
+        next_index = periods.index(md) + 1
+    else:
+        next_index = 0
+        year += 1
+    return year * 10000 + periods[next_index]
+
+
+
 
 
 financial_dict = {
