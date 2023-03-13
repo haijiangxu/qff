@@ -65,6 +65,10 @@ def back_test_run(trace=False):
                                 start=get_pre_trade_day(context.start_date),
                                 end=context.end_date,
                                 market='index')
+    if context.bm_data is None:
+        log.error(f"基准{context.benchmark}指数数据未成功获取，可能数据未下载!")
+        return
+
     context.bm_start = context.bm_data.iloc[0].close
     context.run_start = datetime.datetime.now()
     if trace:
