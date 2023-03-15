@@ -513,9 +513,9 @@ def order_broker():
                     _order.deal()
                     log.info("订单成交：订单编号{}，股票代码{},成交数量{}，成交时间{}"
                              .format(_order.id, code, _order.trade_amount, context.current_dt[11:]))
-                    break
+
             elif data.last_high > _order.order_price:
                 _order.deal()
                 log.info("订单成交：订单编号{}，股票代码{},成交数量{}，成交时间{}"
                          .format(_order.id, code, _order.trade_amount, context.current_dt[11:]))
-                break
+
