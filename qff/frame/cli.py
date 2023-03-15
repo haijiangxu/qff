@@ -81,7 +81,7 @@ class RunCommand(Command):
         self.parser.add_argument("strategy_file", help="策略文件名称路径", nargs='?')
         self.parser.add_argument("-n", "--name", help="策略名称,默认为策略文件名", metavar="<name>")
         self.parser.add_argument("-rt", "--run-type", choices=['bt', 'sim'], default='bt',
-                                 help="设置策略运行类型,bt为回测,st为模拟交易,默认为bt")
+                                 help="设置策略运行类型,bt为回测,sim为模拟交易,默认为bt")
 
         self.parser.add_argument("-f", "--freq", choices=['day', 'min', 'tick'], default='day',
                                  help="设置回测执行频率,可选(day, min, tick),默认day")
