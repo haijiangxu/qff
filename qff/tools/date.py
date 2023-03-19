@@ -824,6 +824,19 @@ def util_date_valid(date):
         return False
 
 
+def util_time_valid(date_time):
+    """
+    判断字符串格式(1982-05-11 12:00:00)
+    :param date_time: 日期 Str
+    :return: bool
+    """
+    try:
+        datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
+        return True
+    except ValueError:
+        return False
+
+
 def util_time_stamp(time_):
     """
     转换日期时间的字符串为浮点数的时间戳
