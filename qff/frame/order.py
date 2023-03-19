@@ -167,6 +167,9 @@ class Order:
                                     self.trade_price)
                 context.portfolio.positions[self.security] = position
 
+            log.info("订单成交：买入，订单编号：{}，股票代码：{}，下单数量：{}， 成交时间：{}.".
+                     format(self.id, self.security, self.trade_amount, self.deal_time))
+
         else:  # 卖出
             context.portfolio.available_cash += self.trade_money
             position: Position = context.portfolio.positions[self.security]
@@ -179,8 +182,9 @@ class Order:
             if position.total_amount == 0:
                 context.portfolio.positions.pop(position.security)
 
-        log.info("订单成交：订单编号：{}，股票代码：{}，下单数量：{}， 成交时间：{}.".
-                 format(self.id, self.security, self.trade_amount, self.deal_time))
+            log.info("订单成交：卖出，订单编号：{}，股票代码：{}，下单数量：{}， 成交时间：{}.".
+                     format(self.id, self.security, self.trade_amount, self.deal_time))
+
         if self._callback is not None:
             self._callback(ORDER_STATUS.DEAL)
 
@@ -511,11 +515,11 @@ def order_broker():
             if _order.is_buy:
                 if data.last_low < _order.order_price:
                     _order.deal()
-                    log.info("订单成交：订单编号{}，股票代码{},成交数量{}，成交时间{}"
-                             .format(_order.id, code, _order.trade_amount, context.current_dt[11:]))
+                    # log.info("订单成交：订单编号{}，股票代码{},成交数量{}，成交时间{}"
+                    #          .format(_order.id, code, _order.trade_amount, context.current_dt[11:]))
 
             elif data.last_high > _order.order_price:
                 _order.deal()
-                log.info("订单成交：订单编号{}，股票代码{},成交数量{}，成交时间{}"
-                         .format(_order.id, code, _order.trade_amount, context.current_dt[11:]))
+                # log.info("订单成交：订单编号{}，股票代码{},成交数量{}，成交时间{}"
+                #          .format(_order.id, code, _order.trade_amount, context.current_dt[11:]))
 
