@@ -91,7 +91,10 @@ def mongo_info():
         for item in colls:
             coll = DATABASE.get_collection(item)
             count = coll.estimated_document_count()
-            columns = coll.find_one().keys()
+            if count > 0:
+                columns = coll.find_one().keys()
+            else:
+                columns = None
             value.append([item, count, len(columns), columns])
         # df = pd.DataFrame(value, columns=['数据集名称', '记录数量', '字段数量', '字段信息'])
         df = pd.DataFrame(value, columns=['table_name', 'count', 'column_num', 'column'])
