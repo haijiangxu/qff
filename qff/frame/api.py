@@ -346,7 +346,11 @@ def run_file(strategy_file: str,
         context.strategy_name = name
 
         if output_dir is not None:
-            context.output_dir = output_dir
+            if os.path.exists(output_dir):
+                context.output_dir = output_dir
+            else:
+                print("output_dir参数指定的目录不存在！")
+                return
 
         if run_type == 'bt':
             _set_backtest_period(start, end)
