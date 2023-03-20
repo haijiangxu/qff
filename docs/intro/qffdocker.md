@@ -88,5 +88,5 @@ docker run -d -p 8765:8765 -v /root/work:/root/work -e MONGODB_URI="mongodb://ad
 ![jupyter-lab](https://jupyter.org/assets/homepage/labpreview.webp)
 
 ```{important}
-由于QFF目前还处于开发阶段，版本不稳定，请在使用docker镜像时，运行 `pip install -U qff` 升级QFF库版本。 
+由于QFF目前还处于开发阶段，版本不稳定，在使用docker镜像时，可以在JupyterLab的终端中运行 `pip install -U qff` 升级QFF库版本。 
 ```
