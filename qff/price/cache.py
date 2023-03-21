@@ -384,11 +384,11 @@ class RealtimeData(UnitData):
             self._ticks = fetch_current_ticks(self.code, self.market)
             return self._ticks['price']
         elif self._bar_time == context.current_dt[11:16]:
-            return self._bar['close']
+            return self._bar['close'][0]
         else:
             self._bar = fetch_price(self.code, 1, '1m', self.market)
             self._bar_time = context.current_dt[11:16]
-            return self._bar['close']
+            return self._bar['close'][0]
 
     @property
     def high_all_day(self):
@@ -415,11 +415,11 @@ class RealtimeData(UnitData):
             self._ticks = fetch_current_ticks(self.code, self.market)
             return self._ticks['price']
         elif self._bar_time == context.current_dt[11:16]:
-            return self._bar['high']
+            return self._bar['high'][0]
         else:
             self._bar = fetch_price(self.code, 1, '1m', self.market)
             self._bar_time = context.current_dt[11:16]
-            return self._bar['high']
+            return self._bar['high'][0]
 
     @property
     def last_low(self):
@@ -427,11 +427,11 @@ class RealtimeData(UnitData):
             self._ticks = fetch_current_ticks(self.code, self.market)
             return self._ticks['price']
         elif self._bar_time == context.current_dt[11:16]:
-            return self._bar['low']
+            return self._bar['low'][0]
         else:
             self._bar = fetch_price(self.code, 1, '1m', self.market)
             self._bar_time = context.current_dt[11:16]
-            return self._bar['low']
+            return self._bar['low'][0]
 
     def paused(self):
         self._ticks = fetch_current_ticks(self.code, self.market)

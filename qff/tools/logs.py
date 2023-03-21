@@ -77,19 +77,19 @@ class Log:
             return "-------------------"
 
     def info(self, msg, *args, **kwargs):
-        msg = self.pre_time + ' - INFO - ' + msg
+        msg = self.pre_time + ' - INFO - ' + str(msg)
         logging.info(msg, *args, **kwargs)
 
     def warning(self, msg, *args, **kwargs):
-        msg = self.pre_time + ' - WARNING - ' + msg
+        msg = self.pre_time + ' - WARNING - ' + str(msg)
         logging.warning(msg, *args, **kwargs)
 
     def debug(self, msg, *args, **kwargs):
-        msg = self.pre_time + ' - DEBUG - ' + msg
+        msg = self.pre_time + ' - DEBUG - ' + str(msg)
         logging.debug(msg, *args, **kwargs)
 
     def error(self, msg, *args, **kwargs):
-        msg = self.pre_time + ' - ERROR - ' + msg
+        msg = self.pre_time + ' - ERROR - ' + str(msg)
         logging.error(msg, *args, **kwargs)
 
     def set_level(self, level):
