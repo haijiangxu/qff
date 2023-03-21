@@ -73,6 +73,7 @@ def back_test_run(trace=False):
     context.run_start = datetime.datetime.now()
     if trace:
         bt_thread = threading.Thread(target=_back_test_run)
+        context.thread_id = bt_thread
         bt_thread.setDaemon(True)
         # 运行命令行环境...
         trace = Trace()
@@ -143,7 +144,7 @@ def _back_test_run():
     if context.status == RUN_STATUS.PAUSED:
         # log.warning("_back_test_run回测运行暂停，保存过程数据...!")
 
-        default_name = context.strategy_name+'_bt.pkl'
+        default_name = context.strategy_name+'.pkl'
         if ' ' in default_name:
             default_name = '_'.join(default_name.split(' '))
         bf_input = input(f"输入备份文件名称[{default_name}]:")
