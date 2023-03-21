@@ -63,12 +63,13 @@ def sim_trade_run():
         context.bm_start = fetch_current_ticks(context.benchmark, market='index')['price']
 
     sim_thread = threading.Thread(target=_sim_trade_run)
+    context.thread_id = sim_thread
     sim_thread.setDaemon(True)   # 主线程A一旦执行结束，不管子线程B是否执行完成，会全部被终止。
     sim_thread.start()
     # 运行命令行环境...
     trace = Trace()
     trace.cmdloop()
-    # sim_thread.join()  # 主线程等待子线程执行完成
+    # sim_thread.join()  # 主线程等待子线程执行完成，屏蔽原因：执行quit命令后，结束不了进程
     log.warning("实盘模拟框架运行结束！")
 
 
@@ -85,24 +86,19 @@ def _sim_trade_run():
             if stime[11:16] == '09:00':
                 if strategy.before_trading_start is not None:
                     run_strategy_funcs(strategy.before_trading_start)
-                sleep((_time.ceil(freq="1min") - pd.Timestamp.now()).total_seconds())
+
             elif '09:30' <= stime[11:16] <= '11:30' or '13:00' <= stime[11:16] <= '15:00':
                 # 按策略频率运行的策略函数
                 if context.run_freq == 'day':
                     if stime[11:16] == '09:30' and strategy.handle_data is not None:
                         run_strategy_funcs(strategy.handle_data)
-                        sleep((_time.ceil(freq="1min") - pd.Timestamp.now()).total_seconds())
+
                 else:
                     if strategy.handle_data is not None:
                         run_strategy_funcs(strategy.handle_data)
 
                 # 订单撮合 order_broker
                 order_broker()
-
-                _freq = "3s" if context.run_freq == 'tick' else '1min'     # 3s是为了tick频率运行
-                _t = pd.Timestamp.now()
-                sleep((_t.ceil(freq=_freq) - _t).total_seconds())         # 考虑前面运行超过_freq，造成sleep负数
-                # sleep((pd.Timestamp.now().ceil(freq='3s') - pd.Timestamp.now()).total_seconds())
 
             elif stime[11:16] == '15:30':
                 settle_by_day()
@@ -114,14 +110,17 @@ def _sim_trade_run():
                 log.info("##################### 一天结束 ######################")
                 log.info("")
 
-                sleep((_time.ceil(freq="1min") - pd.Timestamp.now()).total_seconds())
             else:
-                sleep((_time.ceil(freq="1min") - pd.Timestamp.now()).total_seconds())
+                pass
+
+            _freq = "3s" if context.run_freq == 'tick' else '1min'     # 3s是为了tick频率运行
+            _t = pd.Timestamp.now()
+            sleep((_t.ceil(freq=_freq) - _t).total_seconds())         # 考虑前面运行超过_freq，造成sleep负数
         else:
             sleep(60)
     if context.status == RUN_STATUS.PAUSED:
         log.warning("回测运行暂停，保存过程数据...!")
-        default_name = context.strategy_name+'_bt.pkl'
+        default_name = context.strategy_name+'.pkl'
         if ' ' in default_name:
             default_name = '_'.join(default_name.split(' '))
         bf_input = input(f"输入备份文件名称[{default_name}]:")
@@ -130,6 +129,7 @@ def _sim_trade_run():
         backup_file = '{}{}{}'.format(cache_path, os.sep, bf_input)
         print(f"策略备份文件：{backup_file}")
         save_context(backup_file)
-        save_context()
+        if bf_input != default_name:
+            save_context()
     elif context.status == RUN_STATUS.CANCELED:
         log.warning("回测执行取消...!")
