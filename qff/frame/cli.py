@@ -115,6 +115,7 @@ class RunCommand(Command):
             backup_file = '{}{}{}'.format(cache_path, os.sep, file_name + '.pkl')
             try:
                 load_context(backup_file)
+                args['trace'] = True
             except Exception as e:
                 print("导入context备份文件失败:{}".format(e))
                 return
