@@ -164,12 +164,10 @@ class Context:
 
     @property
     def spend_time(self):
-        if self.status == RUN_STATUS.DONE:
+        if self.run_type == RUN_TYPE.BACK_TEST and self.status == RUN_STATUS.DONE:
             end = self.run_end
-        elif self.status == RUN_STATUS.RUNNING:
-            end = datetime.now()
         else:
-            return None
+            end = datetime.now()
 
         delta = end - self.run_start
         hour = int(delta.seconds / 3600)
