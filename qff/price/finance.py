@@ -127,7 +127,7 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
         if start < '2000-01-01':
             start = '2000-01-01'
         filter['f314'] = {
-            "$lt": date_to_int(end[2:]),
+            "$lte": date_to_int(end[2:]),
             "$gte": date_to_int(start[2:])
         }
 
