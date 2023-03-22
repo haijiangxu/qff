@@ -352,6 +352,8 @@ def run_file(strategy_file: str,
                 print("output_dir参数指定的目录不存在！")
                 return
 
+        context.run_start = datetime.now()
+
         if run_type == 'bt':
             _set_backtest_period(start, end)
             back_test_run(trace)

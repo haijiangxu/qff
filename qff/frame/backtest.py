@@ -70,7 +70,6 @@ def back_test_run(trace=False):
         return
 
     context.bm_start = context.bm_data.iloc[0].close
-    context.run_start = datetime.datetime.now()
     if trace:
         bt_thread = threading.Thread(target=_back_test_run)
         context.thread_id = bt_thread
@@ -153,6 +152,8 @@ def _back_test_run():
         backup_file = '{}{}{}'.format(cache_path, os.sep, bf_input)
         print(f"策略备份文件：{backup_file}")
         save_context(backup_file)
+        if bf_input != default_name:
+            save_context()
     elif context.status == RUN_STATUS.CANCELED:
         log.warning("_back_test_run回测执行取消...!")
     else:
