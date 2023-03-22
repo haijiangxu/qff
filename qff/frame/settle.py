@@ -137,11 +137,12 @@ def profit_analyse():
     else:
         out_path = context.output_dir
 
-    pkl_file = '{}{}{}.pkl'.format(out_path, os.sep, context.strategy_name)
-    pkl_file = auto_file_name(pkl_file)
+    if context.run_type == RUN_TYPE.BACK_TEST:
+        pkl_file = '{}{}{}.pkl'.format(out_path, os.sep, context.strategy_name)
+        pkl_file = auto_file_name(pkl_file)
 
-    with open(pkl_file, 'wb') as pk_file:
-        pickle.dump(context, pk_file)
+        with open(pkl_file, 'wb') as pk_file:
+            pickle.dump(context, pk_file)
 
     report_file = os.path.join(out_path, '策略运行报告({}).html'.format(context.strategy_name))
     report_file = auto_file_name(report_file)
