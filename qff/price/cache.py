@@ -376,7 +376,7 @@ class RealtimeData(UnitData):
     def pre_close(self):
         if self._ticks is None:
             self._ticks = fetch_current_ticks(self.code, self.market)
-        return self._ticks['pre_close']
+        return self._ticks['last_close']
 
     @property
     def last_price(self):
