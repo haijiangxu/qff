@@ -165,8 +165,9 @@ def fetch_price(code, count=None, freq='day', market='stock', start=None):
                 # 这里的问题是: 如果只取了一天的股票,而当天停牌, 那么就直接返回None了
                 return None
 
-    except Exception as e:
-        log.error(e)
+    except Exception as err:
+        log.error(f'fetch_price exception:{err}')
+        return None
 
 
 def fetch_today_min_curve(code, market='stock'):
@@ -289,7 +290,7 @@ def fetch_today_transaction(code):
                 data = data.drop(['value'], axis=1)
             return data
     except Exception as err:
-        log.error(err)
+        log.error(f'fetch_today_transaction exception:{err}')
         return None
 
 
