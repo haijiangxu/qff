@@ -72,10 +72,9 @@ def back_test_run(trace=False):
     context.bm_start = context.bm_data.iloc[0].close
     if trace:
         bt_thread = threading.Thread(target=_back_test_run)
-        context.thread_id = bt_thread
         bt_thread.setDaemon(True)
         # 运行命令行环境...
-        trace = Trace()
+        trace = Trace(bt_thread)
         bt_thread.start()
         trace.cmdloop()
         log.warning("命令行交互环境退出...")
