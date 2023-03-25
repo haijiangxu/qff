@@ -63,11 +63,11 @@ def sim_trade_run():
         context.bm_start = fetch_current_ticks(context.benchmark, market='index')['price']
 
     sim_thread = threading.Thread(target=_sim_trade_run)
-    context.thread_id = sim_thread
+
     sim_thread.setDaemon(True)   # 主线程A一旦执行结束，不管子线程B是否执行完成，会全部被终止。
     sim_thread.start()
     # 运行命令行环境...
-    trace = Trace()
+    trace = Trace(sim_thread)
     trace.cmdloop()
     # sim_thread.join()  # 主线程等待子线程执行完成，屏蔽原因：执行quit命令后，结束不了进程
     log.warning("实盘模拟框架运行结束！")
