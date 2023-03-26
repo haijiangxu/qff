@@ -23,7 +23,7 @@
 - [x] pip 发布qff包   
 - [x] 更改svn至git,项目上线github    
 - [x] 制作docker镜像并发布   
-- [ ] 邮件通知
+- [x] 邮件通知
 - [ ] 微信通知
 - [x] 完成qff命令行功能
 - [?] 增加qff事件驱动功能
@@ -48,5 +48,4 @@
 - [x] 辅助交易系统实现(仓位、止损、止盈、选股、择时等)
 
 
-http://doc.yonyoucloud.com/doc/zh-sphinx-doc/contents.html
-https://www.osgeo.cn/sphinx/index.html
+pip install -U qff -i https://pypi.python.org/simple/
