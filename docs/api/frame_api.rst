@@ -319,6 +319,11 @@ kshow - 生成网页版K线图
 
 ..  autoclass:: qff.tools.kshow.kshow
 
+send_message - 发送消息提醒
+------------------------------------------------------
+
+..  autoclass:: qff.tools.email.send_message
+
 .. _api-base-types:
 
 类和对象
