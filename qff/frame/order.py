@@ -90,8 +90,14 @@ class Order:
 
         # 对账户资金或股票进行锁定
         if self.is_buy:  # 买入
-            context.portfolio.locked_cash += self.amount * self.order_price
-            context.portfolio.available_cash -= self.amount * self.order_price
+
+            money = round(price * amount, 2)
+            commission = round(max(money * context.trade_cost.open_commission, context.trade_cost.min_commission)
+                               + money * context.trade_cost.open_tax, 2)
+            self.lock_money = money + commission
+
+            context.portfolio.locked_cash += self.lock_money
+            context.portfolio.available_cash -= self.lock_money
         else:  # 卖出
             context.portfolio.positions[security].locked_amount += self.amount
             context.portfolio.positions[security].closeable_amount -= self.amount
@@ -126,7 +132,7 @@ class Order:
 
         :return:
         """
-        self.status = ORDER_STATUS.DEAL
+
         money = round(self.order_price * self.amount, 2)
         self.trade_amount = self.amount
         if self.is_buy:
@@ -146,9 +152,7 @@ class Order:
 
         # 对账户资金或股票数据进行更新
         if self.is_buy:  # 买入
-            context.portfolio.locked_cash -= self.amount * self.order_price
-            context.portfolio.available_cash += self.amount * self.order_price
-            context.portfolio.available_cash -= self.trade_money
+            context.portfolio.locked_cash -= self.lock_money
             if self.security in context.portfolio.positions.keys():
                 # 加仓
                 position: Position = context.portfolio.positions[self.security]
@@ -185,6 +189,8 @@ class Order:
             log.info("订单成交：卖出，订单编号：{}，股票代码：{}，下单数量：{}， 成交时间：{}.".
                      format(self.id, self.security, self.trade_amount, self.deal_time))
 
+        self.status = ORDER_STATUS.DEAL
+
         if self._callback is not None:
             self._callback(ORDER_STATUS.DEAL)
 
@@ -201,8 +207,8 @@ class Order:
 
         # 对账户资金或股票进行解锁
         if self.is_buy:  # 买入
-            context.portfolio.locked_cash -= self.amount * self.order_price
-            context.portfolio.available_cash += self.amount * self.order_price
+            context.portfolio.locked_cash -= self.lock_money
+            context.portfolio.available_cash += self.lock_money
         else:  # 卖出
             context.portfolio.positions[self.security].locked_amount -= self.amount
             context.portfolio.positions[self.security].closeable_amount += self.amount
@@ -257,7 +263,7 @@ def order(security, amount=100, price=None, callback=None):
     """
 
     # log.info('调用order_amount' + str(locals()).replace('{', '(').replace('}', ')'))
-    log.info(f'调用order_amount(security={security}, amount={amount}, price={price})')
+    log.info(f'调用order(security={security}, amount={amount}, price={price})')
     slippage = context.slippage if amount > 0 else -context.slippage
     cur_data = get_current_data(security)
     if cur_data.paused:
@@ -285,8 +291,18 @@ def order(security, amount=100, price=None, callback=None):
             amount = new_amount
             log.info('注意：开仓数量必须是100的整数倍，调整为{}。'.format(amount))
 
-        if context.portfolio.available_cash <= order_price * amount:
-            new_amount = int((context.portfolio.available_cash / order_price) / 100) * 100
+        money = round(order_price * amount, 2)
+        commission = round(max(money * context.trade_cost.open_commission, context.trade_cost.min_commission)
+                           + money * context.trade_cost.open_tax, 2)
+        money = money + commission
+
+        if context.portfolio.available_cash <= money:
+            available_cash = context.portfolio.available_cash - round(
+                max(context.portfolio.available_cash * context.trade_cost.open_commission,
+                    context.trade_cost.min_commission) + context.portfolio.available_cash * context.trade_cost.open_tax,
+                2)
+
+            new_amount = int((available_cash / order_price) / 100) * 100
             if new_amount == 0:
                 log.warning("下单失败：账户可用资金可购买股票数量不足一手!")
                 return None
@@ -522,4 +538,3 @@ def order_broker():
                 _order.deal()
                 # log.info("订单成交：订单编号{}，股票代码{},成交数量{}，成交时间{}"
                 #          .format(_order.id, code, _order.trade_amount, context.current_dt[11:]))
-
