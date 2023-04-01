@@ -401,7 +401,7 @@ def fetch_stock_xdxr(code):
                                         'qianzongguben': 'shares_before'}) \
 
         data = data.assign(date=data['date'].apply(lambda x: str(x)[0:10]))\
-            .set_index('date', drop=False, inplace=False)
+            .set_index('date', drop=False, inplace=False).sort_index()
 
     else:
         data = None
