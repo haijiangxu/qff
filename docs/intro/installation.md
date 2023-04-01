@@ -23,7 +23,7 @@ QFF依赖于许多其他Python包，使用软件包安装工具像PIP或Conda等
 P.S. 由于目前版本更新迭代频繁, 请在使用 QFF 前先升级, 命令如下所示:
 
 ```bash
-$ pip install qff --upgrade -i https://pypi.douban.com/simple
+$ pip install -U qff -i https://pypi.python.org/simple/
 ```
 
 查看 QFF 是否安装成功可以通过如下方式:
