@@ -1,4 +1,4 @@
-#！/usr/bin/python
+# ！/usr/bin/python
 
 # coding :utf-8
 #
@@ -38,6 +38,7 @@ from qff.store.save_mtss import save_mtss_data
 from qff.tools.mongo import DATABASE
 from qff.tools.date import is_trade_day
 from qff.tools.logs import log
+import prettytable as pt
 import datetime
 import pandas as pd
 
@@ -82,26 +83,58 @@ def init_delist_date():
     save_stock_xdxr(stock_list)
 
 
+def bytes_to_human(n):
+    symbols = ('K', 'M', 'G', 'T', 'P')
+    prefix = {}
+    for i, s in enumerate(symbols):
+        prefix[s] = 1 << (i + 1) * 10
+    for s in reversed(symbols):
+        if n >= prefix[s]:
+            value = float(n) / prefix[s]
+            return '%.1f%s' % (value, s)
+    return '%sB' % n
+
+
 def mongo_info():
-    colls = DATABASE.list_collection_names()
+    colls = sorted(DATABASE.list_collection_names())
     if len(colls) == 0:
         print("数据库qff未创建或数据集为空！")
     else:
         value = []
         for item in colls:
             coll = DATABASE.get_collection(item)
-            count = coll.estimated_document_count()
-            if count > 0:
+            stats = DATABASE.command("collstats", item)
+            if stats['count'] > 0:
                 columns = coll.find_one().keys()
+                col_num = len(columns)
+                count = "{:,}".format(stats['count'])
             else:
-                columns = None
-            value.append([item, count, len(columns), columns])
-        # df = pd.DataFrame(value, columns=['数据集名称', '记录数量', '字段数量', '字段信息'])
-        df = pd.DataFrame(value, columns=['table_name', 'count', 'column_num', 'column'])
-        pd.set_option('display.width', 300)
-        pd.set_option('display.max_colwidth', 80)
-        pd.set_option('display.max_columns', 4)
-        print(df)
+                col_num = 0
+                count = 0
+
+            data_size = bytes_to_human(stats['size'])
+            storage_size = bytes_to_human(stats['storageSize'])
+            nindex = stats['nindexes']
+            total_index_size = bytes_to_human(stats['totalIndexSize'])
+            index = list(stats['indexSizes'].keys())
+
+            value.append([item, count, col_num, data_size, storage_size, nindex, total_index_size, index])
+        df = pd.DataFrame(value,
+                          columns=['数据集合', '记录数量', '字段数量', '集合大小', '存储空间', '索引数量', '索引大小',
+                                   '索引值'])
+        # df = pd.DataFrame(value, columns=['table_name', 'count', 'column_num', 'column'])
+        # pd.set_option('display.width', 300)
+        # pd.set_option('display.max_colwidth', 80)
+        # pd.set_option('display.max_columns', 4)
+
+        tb = pt.PrettyTable()
+        tb.add_column('序号', df.index)
+        for col in df.columns.values:
+            tb.add_column(col, df[col])
+            tb.align[col] = "r"
+
+        print(tb)
+
         print("\n")
         last_date = DATABASE.stock_day.find_one({'code': '000001'}, sort=[('date', -1)])['date']
         print(f"数据库最后一次更新日期：{last_date}")
