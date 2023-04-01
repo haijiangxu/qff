@@ -46,6 +46,3 @@
 - [x] 通过指数和行业选择股票
 - [x] 技术指标计算
 - [x] 辅助交易系统实现(仓位、止损、止盈、选股、择时等)
-
-
-pip install -U qff -i https://pypi.python.org/simple/
