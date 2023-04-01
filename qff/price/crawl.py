@@ -45,6 +45,8 @@ def crawl_delist_stock():
 
     delist = pd.concat([sz, sh])
     delist = delist[delist['code'].str[:1].isin(['6', '0', '3'])]
+    delist.start = delist.start.apply(lambda x: str(x)[:10])
+    delist.end = delist.end.apply(lambda x: str(x)[:10])
     return delist
 
 
@@ -67,7 +69,10 @@ def crawl_stock_list():
     bj = bj.iloc[:, [0, 1, 4]]
     bj.columns = pd.Index(['code', 'name', 'start'])
 
-    return pd.concat([sh, sz, bj])
+    df = pd.concat([sh, sz, bj])
+    df.start = df.start.apply(lambda x: str(x)[:10])
+
+    return df
 
 
 def crawl_index_list():
