@@ -235,46 +235,46 @@ def save_stock_xdxr(security=None):
 
             xdxr = fetch_stock_xdxr(str(code))
             if xdxr is None:
+                time.sleep(1)
                 xdxr = fetch_stock_xdxr(str(code))
                 if xdxr is None:
-                    print(f"\n {code}:无复权信息！")
+                    # print(f"\n {code}:无复权信息！")
                     continue
             new_count = len(xdxr)
             db_count = coll_xdxr.count_documents({'code': code})
-            if new_count == db_count:
-                # 无需更新数据库
-                continue
-            elif new_count > db_count:
-                # 将新数据插入xdxr数据库
-                xdxr_insert = xdxr.iloc[db_count - new_count:]
-            else:
+
+            if new_count != db_count:
+
                 # 出现数据库记录数量比实时获取的数据多，则删除
-                xdxr_insert = xdxr
                 coll_xdxr.delete_many({'code': code})
 
-            # try:
-            coll_xdxr.insert_many(util_to_json_from_pandas(xdxr_insert))
-            # except PyMongoError:
-            #     pass
-            # 判断更新的xdxr数据中是否有除权除息类型
-            if 1 not in xdxr_insert['category'].to_list():
-                continue
+                # try:
+                coll_xdxr.insert_many(util_to_json_from_pandas(xdxr))
+                # except PyMongoError:
+                #     pass
 
-            cursor = DATABASE.stock_day.find({'code': code}, {'_id': 0, 'date': 1, 'code': 1, 'close': 1})
-            data = pd.DataFrame([item for item in cursor])
-            if len(data) == 0:
-                continue
-            data = data.set_index('date')
+                # 判断更新的xdxr数据中是否有除权除息类型
+                if new_count > db_count:
+                    xdxr_new = xdxr.iloc[db_count - new_count:]
+                    if 1 not in xdxr_new['category'].to_list():
+                        continue
 
-            qfq = calc_qfq_cof(data, xdxr)  # 计算前复权系数
-            if qfq is None:
-                print(f"\n复权系数均为1，忽略！{code}")
-                continue
-            hfq = calc_hfq_cof(qfq, xdxr)  # 计算后复权系数
-            hfq = hfq.reset_index()
-            adjdata = util_to_json_from_pandas(hfq.loc[:, ['date', 'code', 'qfq', 'hfq']])
-            coll_adj.delete_many({'code': code})
-            coll_adj.insert_many(adjdata)
+                # 计算并更新复权系数
+                cursor = DATABASE.stock_day.find({'code': code}, {'_id': 0, 'date': 1, 'code': 1, 'close': 1})
+                data = pd.DataFrame([item for item in cursor])
+                if len(data) == 0:
+                    continue
+                data = data.set_index('date')
+
+                qfq = calc_qfq_cof(data, xdxr)  # 计算前复权系数
+                if qfq is None:
+                    print(f"\n复权系数均为1，忽略！{code}")
+                    continue
+                hfq = calc_hfq_cof(qfq, xdxr)  # 计算后复权系数
+                hfq = hfq.reset_index()
+                adjdata = util_to_json_from_pandas(hfq.loc[:, ['date', 'code', 'qfq', 'hfq']])
+                coll_adj.delete_many({'code': code})
+                coll_adj.insert_many(adjdata)
 
         except Exception as e:
             print("\nError save_stock_xdxr exception!")
