@@ -233,7 +233,7 @@
         </div>
         <div style="flex: 1">
             <meter value="{{ctx.run_progress*100 | int}}" min="0" max="100" style="padding-left: 20px; width: 200px"></meter>
-            <span>{{ctx.run_progress*100 }}% {{ctx.get_run_status | safe}}</span>
+            <span>{{ctx.run_progress*100 | round(2) }}% {{ctx.get_run_status | safe}}</span>
         </div>
         
         <div class="info-title">
