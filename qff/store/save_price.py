@@ -95,13 +95,16 @@ def save_security_day(market='stock', security=None):
                     else:
 
                         data = data.loc[:end_date]
-                        dl = get_trade_days(data.index[0], end_date)
+                        dl = get_trade_days(start_date, end_date)
                         if len(dl) > len(data):
                             # 存在停牌日数据
                             dl_df = pd.DataFrame(index=pd.Index(dl, name='date'))
                             data = dl_df.join(data).sort_index()
 
                             data.code.fillna(value=code, inplace=True)
+
+                            if np.isnan(data.loc[start_date, 'close']):
+                                data.loc[start_date, 'close'] = last_recode['close']
                             data.close.fillna(method='ffill', inplace=True)
 
                             data = data.fillna(method='bfill', axis=1)
