@@ -28,7 +28,7 @@ from qff.tools.date import get_trade_min_list
 from qff.price.fetch import fetch_current_ticks, fetch_today_min_curve, fetch_price
 
 from qff.frame.context import context
-from qff.frame.const import RUN_TYPE
+from qff.frame.const import RUN_TYPE, RUN_STATUS
 from typing import Optional
 import pandas as pd
 
@@ -483,6 +483,10 @@ def get_current_data(code, market='stock'):
 
 
     """
+    if context.status != RUN_STATUS.RUNNING:
+        print("get_current_data为回测模拟专用API函数，只能在策略运行过程中使用！")
+        return None
+
     if market not in ['stock', 'index', 'etf']:
         log.error("get_current_data()出错，market值错误{}".format(market))
         return None

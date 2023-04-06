@@ -277,7 +277,7 @@ def history(count, unit='1d', field='close', security_list=None, skip_paused=Fal
     # type: (int, str, str, list, bool, str ) -> Optional[pd.DataFrame]
     """
 
-    回测环境/模拟专用API
+    回测/模拟专用API
     获取历史数据，可查询多个股票的单个数据字段，返回数据格式为 DataFrame
     当取天数据时, 不包括当天的, 即使是在收盘后；分钟数据不包括当前分钟的数据，没有未来
 
@@ -297,6 +297,10 @@ def history(count, unit='1d', field='close', security_list=None, skip_paused=Fal
     :return:  [pandas.DataFrame]对象, 行索引是datetime字符串, 列索引是股票代号.
 
     """
+    if context.status != RUN_STATUS.RUNNING:
+        print("history为回测模拟专用API函数，只能在策略运行过程中使用！")
+        return None
+
     log.debug('调用history' + str(locals()).replace('{', '(').replace('}', ')'))
     code = security_list if security_list is not None else context.universe
     code = util_code_tolist(code)
@@ -335,7 +339,7 @@ def history(count, unit='1d', field='close', security_list=None, skip_paused=Fal
 
 def attribute_history(security, count, unit='1d', fields=None, fq='pre'):
     """
-    回测环境/模拟专用API
+    回测/模拟专用API
     查看某一支股票的历史数据, 可以选这只股票的多个属性, 默认跳过停牌日期.
     当取天数据时, 不包括当天的, 即使是在收盘后；分钟数据不包括当前分钟的数据，没有未来；
 
@@ -360,6 +364,10 @@ def attribute_history(security, count, unit='1d', fields=None, fq='pre'):
     :type fq: str or None
 
     """
+    if context.status != RUN_STATUS.RUNNING:
+        print("attribute_history为回测模拟专用API函数，只能在策略运行过程中使用！")
+        return None
+
     log.debug('调用attribute_history' + str(locals()).replace('{', '(').replace('}', ')'))
     if fields is None:
         fields = ['open', 'close', 'high', 'low', 'vol', 'amount']
