@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = "0.5.12"
+__version__ = "0.5.13"
 
 import sys
 
@@ -95,11 +95,7 @@ from qff.price.fetch import (
     fetch_today_transaction,
     fetch_ticks,
 )
-from qff.frame.context import (
-    context,
-    g,
-    Context,
-)
+from qff.frame.context import g
 from qff.frame.portfolio import Portfolio
 from qff.frame.position import Position
 from qff.frame.const import RUN_TYPE, RUN_STATUS, ORDER_TYPE, ORDER_STATUS
@@ -162,5 +158,5 @@ from qff.helper.formula import (
 
 from qff.helper.indicator import ind_ma, ind_macd, ind_atr, ind_kdj, ind_rsi, ind_boll
 from qff.helper.common import filter_st_stock, filter_paused_stock, filter_20pct_stock, select_zt_stock, filter_bj_stock
-from qff.price.cache import get_current_data, UnitData
+from qff.price.cache import get_current_data, SecurityUnitData
 from qff.frame.evaluation import strategy_eval
