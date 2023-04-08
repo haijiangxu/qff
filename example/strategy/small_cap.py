@@ -25,7 +25,7 @@ from qff import *
 
 
 # 初始化函数，设定要操作的股票、基准等等
-def initialize():
+def initialize(context):
     # 设定沪深300作为基准
     set_benchmark('000300')
     # 持仓数量
@@ -36,11 +36,11 @@ def initialize():
     g.refresh_rate = 5
 
 
-def before_trading_start():
+def before_trading_start(context):
     log.info("before_trading_start函数运行...")
 
 
-def check_stocks():
+def check_stocks(context):
     # 选出小市值股票
 
     filter = {'date': context.previous_date, 'market_cap': {'$gt': 20, '$lt': 30}}
@@ -57,7 +57,7 @@ def check_stocks():
 
 
 # 交易函数
-def handle_data():
+def handle_data(context, data):
     if g.days % g.refresh_rate == 0:
 
         # 获取持仓列表
@@ -75,7 +75,7 @@ def handle_data():
             Cash = 0
 
         # 选股
-        stock_list = check_stocks()
+        stock_list = check_stocks(context)
 
         # 买入股票
         for stock in stock_list:

@@ -14,19 +14,22 @@
 initialize - 策略初始化
 ---------------------------
 
-..  py:function:: initialize()
+..  py:function:: initialize(context)
 
-初始化函数 - 在回测和实时模拟交易只会在启动的时候触发一次，用于初始一些全局变量。
-作为策略文件的入口，**本方法必须实现。**
+    初始化函数 - 在回测和实时模拟交易只会在启动的时候触发一次，用于初始一些全局变量。作为策略文件的入口，**本方法必须实现。**
 
-在初始化函数中，除了初始化全局变量，用户可以设置基准、交易费率、固定滑点等参数。
-另外通过调用 :func:`.run_daily` ，还可以配置定时运行的策略函数，用以替代其他的框架函数。
+    在初始化函数中，除了初始化全局变量，用户可以设置基准、交易费率、固定滑点等参数。
+    另外通过调用 :func:`.run_daily` ，还可以配置定时运行的策略函数，用以替代其他的框架函数。
 
-示例:
+
+    :param context: 策略上下文，存放有当前的账户/股票持仓信息
+    :type context: :class:`.Context` 对象
+
+    :example:
 
     ..  code-block:: python
 
-        def initialize():
+        def initialize(context):
 
             # 设置指数基准
             set_benchmark(security="000300")
@@ -44,35 +47,41 @@ initialize - 策略初始化
 handle_data - 盘中策略运行函数(可选)
 ------------------------------------------
 
-..  py:function:: handle_data()
+..  py:function:: handle_data(context, data)
 
-盘中策略运行函数，该函数每个单位时间会调用一次, 如果按天回测,则每天调用一次,如果按分钟,则每分钟调用一次。
-如果在initialize()函数中run_daily设置了盘中策略函数，则本函数可以不实现。
+    盘中策略运行函数 - 该函数每个单位时间会调用一次, 如果按天回测,则每天调用一次,如果按分钟,则每分钟调用一次。
+    如果在initialize()函数中run_daily设置了盘中策略函数，则本函数可以不实现。
 
-**该函数运行的时间是股票的交易时间，即 9:31 - 15:00。**
+    **该函数运行的时间是股票的交易时间，即 9:30 - 15:00。**
 
-该函数在回测中的非交易日是不会触发的（如回测结束日期为2021年1月5日，则程序在2022年1月1日-3日时，handle_data不会运行，4日继续运行）。
+    该函数在回测中的非交易日是不会触发的（如回测结束日期为2021年1月5日，则程序在2022年1月1日-3日时，handle_data不会运行，4日继续运行）。
 
-对于使用日级回测或模拟， 策略内获取到逻辑时间(context.current_dt)是 9:31。
+    对于使用日级回测或模拟， 策略内获取到逻辑时间(context.current_dt)是 9:30。
 
-示例：
 
- ..  code-block:: python
+    :param context: 策略上下文， 存放有当前的账户/股票持仓信息
+    :type context: :class:`.Context` 对象
 
-        def handle_data():
-            for i in g.security:
+    :param data: 一个字典(dict), key是股票代码, value是当时的SecurityUnitData对象，存放当前时间的股票数据，与使用 :func:`~qff.price.cache.get_current_data` 功能相同。注意： 为了加速, data 里面的数据是按需获取的, 每次 handle_data 被调用时,    data 是空的 dict, 当你使用data[security]时该 security 的数据才会被获取.
+    :type data: Dict[:class:`.SecurityUnitData`]
+
+    :example:
+
+    ..  code-block:: python
+
+        def handle_data(context, data):
+            for code in g.security:
                 # 获取当前时间点的股票数据
-                data = get_current_data(i)
-                last_price = data.last_close
-                average_price = data.mavg(20, 'close')
+                last_price = data[code].last_price
+                average_price = data[code].mavg(20, 'close')
                 # 获取账户剩余资金
                 cash = context.portfolio.available_cash
                 if last_price > average_price:
                     # 下单买入指定金额的股票
-                    order_value(i, cash)
+                    order_value(code, cash)
                 elif last_price < average_price:
                     # 卖出指定股票
-                    order_target(i, 0)
+                    order_target(code, 0)
 
 
         # 在交易时间段内的策略函数中，使用 :func:`get_current_data` 来获取当前时间点的数据，此数据只在这一个时间点有效,请不要存起来到下一个 handle_data 再用。
@@ -86,38 +95,44 @@ handle_data - 盘中策略运行函数(可选)
 before_trading_start - 开盘前运行策略(可选)
 --------------------------------------------------
 
-..  py:function:: before_trading_start()
+..  py:function:: before_trading_start(context)
 
 
-开盘前运行函数，该函数会在每天开始交易前被调用一次, 您可以在这里添加一些每天都要初始化的东西。比如根据历史量价数据或基本面数据，
-选择符合策略条件的股票加入股票池，再根据当日开盘后的表现，进行买入或卖出。
+    开盘前运行函数 - 该函数会在每天开始交易前被调用一次, 您可以在这里添加一些每天都要初始化的东西。比如根据历史量价数据或基本面数据，
+    选择符合策略条件的股票加入股票池，再根据当日开盘后的表现，进行买入或卖出。需要注意，不能在这个函数中发送订单。
 
-**该函数依据的时间是股票的交易时间，即该函数启动时间为'09:00'。**
+    **该函数依据的时间是股票的交易时间，即该函数启动时间为'09:00'。**
 
-示例:
+    :param context: 策略上下文，存放有当前的账户/股票持仓信息
+    :type context: :class:`.Context` 对象
 
- ..  code-block:: python
+    :example:
 
-        def before_trading_start():
-            log.info(str(context.current_dt))
+     ..  code-block:: python
+
+        def before_trading_start(context):
+            log.info(context.current_dt)
 
 .. _api_after_trading_end:
 
 after_trading_end - 收盘后运行策略(可选)
 --------------------------------------------------
 
-..  py:function:: after_trading_end()
+..  py:function:: after_trading_end(context)
 
-收盘后运行函数，该函数会在每天结束交易后被调用一次, 您可以在这里添加一些每天收盘后要执行的内容。
-这个时候所有未完成的订单已经取消。
+    收盘后运行函数 - 该函数会在每天结束交易后被调用一次, 您可以在这里添加一些每天收盘后要执行的内容。
+    这个时候所有未完成的订单已经取消。
 
-**该函数依据的时间是股票的交易时间，即该函数启动时间为 15:30。**
+    **该函数依据的时间是股票的交易时间，即该函数启动时间为 15:30。**
 
-示例:
+    :param context: 策略上下文，存放有当前的账户/股票持仓信息
+    :type context: :class:`.Context` 对象
 
- ..  code-block:: python
+    :example:
 
-        def after_trading_end():
+     ..  code-block:: python
+
+        def after_trading_end(context):
             log.info(str(context.current_dt))
 
 .. _api_on_strategy_end:
@@ -125,16 +140,20 @@ after_trading_end - 收盘后运行策略(可选)
 on_strategy_end - 策略运行结束时调用函数(可选)
 --------------------------------------------------
 
-..  py:function:: on_strategy_end()
+..  py:function:: on_strategy_end(context)
 
 
-策略运行结束时调用函数，在回测、模拟交易正常结束时被调用，失败或取消不会被调用。
+    策略运行结束时调用函数，在回测、模拟交易正常结束时被调用，失败或取消不会被调用。
 
-示例:
 
- ..  code-block:: python
+    :param context: 策略上下文，存放有当前的账户/股票持仓信息
+    :type context: :class:`.Context` 对象
 
-        def on_strategy_end():
+    :example:
+
+     ..  code-block:: python
+
+        def on_strategy_end(context):
             print('回测结束')
 
 
@@ -143,16 +162,20 @@ on_strategy_end - 策略运行结束时调用函数(可选)
 process_initialize - 策略恢复启动时运行函数(可选)
 --------------------------------------------------
 
-..  py:function:: process_initialize()
+..  py:function:: process_initialize(context)
 
-每次程序启动时运行函数，该函数会在每次模拟盘/回测任务恢复运行时执行, 一般用来初始化一些不能持久化保存的内容。
-恢复运行时，函数initialize不再执行。
+    每次程序启动时运行函数，该函数会在每次模拟盘/回测任务恢复运行时执行, 一般用来初始化一些不能持久化保存的内容。
+    恢复运行时，函数initialize不再执行。
 
-示例:
 
- ..  code-block:: python
+    :param context: 策略上下文，存放有当前的账户/股票持仓信息
+    :type context: :class:`.Context` 对象
 
-        def process_initialize():
+    :example:
+
+     ..  code-block:: python
+
+        def process_initialize(context):
             print('回测重启运行！')
 
 
@@ -354,9 +377,9 @@ Order - 订单对象
 ------------------------------------------------------
 ..  autoclass:: qff.frame.order.Order
 
-UnitData - 当前数据对象
+SecurityUnitData - 当前数据对象
 ------------------------------------------------------
-..  autoclass:: qff.price.cache.UnitData
+..  autoclass:: qff.price.cache.SecurityUnitData
 
 
 .. _class_tick:

@@ -3,7 +3,7 @@ from qff import *
 
 
 # 初始化函数，设定基准等等
-def initialize():
+def initialize(context):
     # 输出内容到日志 log.info()
     log.info('初始函数开始运行且全局只运行一次')
 
@@ -27,7 +27,7 @@ def initialize():
 
 
 # 开盘前运行函数
-def before_market_open():
+def before_market_open(context):
     # 输出运行时间
     log.info('函数运行时间(before_market_open)：' + context.current_dt)
 
@@ -36,7 +36,7 @@ def before_market_open():
 
 
 # 开盘时运行函数
-def market_open():
+def market_open(context, data):
     log.info('函数运行时间(market_open):'+context.current_dt)
     security = g.security
     # 获取股票的收盘价
@@ -65,7 +65,7 @@ def market_open():
 
 
 # 收盘后运行函数
-def after_market_close():
+def after_market_close(context):
     log.info(str('函数运行时间(after_market_close):'+context.current_dt))
 
 

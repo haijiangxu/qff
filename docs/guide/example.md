@@ -14,7 +14,7 @@ from qff import *
 
 
 # 初始化函数，设定要操作的股票、基准等等
-def initialize():
+def initialize(context):
     # 定义一个全局变量, 保存要操作的股票
     # 000002(股票:万科A)
     g.security = '000002'
@@ -25,7 +25,7 @@ def initialize():
 
 
 # 交易程序
-def trade():
+def trade(context, data):
     security = g.security
     # 设定均线窗口长度
     n1 = 5
@@ -60,6 +60,7 @@ if __name__ == '__main__':
     run_file(__file__)
 
 
+
 ```
 
 ## MACD策略
@@ -74,7 +75,7 @@ import talib as tl
 import numpy as np
 
 
-def initialize():
+def initialize(context):
 
     # 设置指数基准
     set_benchmark(security="000300")
@@ -86,7 +87,7 @@ def initialize():
     log.info("initialize : 初始化运行")
 
 
-def market_open():
+def market_open(context):
     log.info("market_open函数，每天运行一次...")
     # 读取历史数据，前100天的收盘价
     close = history(100, '1d', 'close', g.s1).values
@@ -110,6 +111,10 @@ def market_open():
         order_value(g.s1, context.portfolio.available_cash)
 
 
+if __name__ == '__main__':
+    run_file(__file__, start="2021-08-27", end="2022-03-25")
+
+
 ```
 
 ## 小市值策略
@@ -118,12 +123,11 @@ def market_open():
 等权重买入，无单只股票仓位上限控制、无止盈止损。小市值策略曾经在15年期间有非常好的收益，未来有可能还能重现。
 
 ```python
-
 from qff import *
 
 
 # 初始化函数，设定要操作的股票、基准等等
-def initialize():
+def initialize(context):
     # 设定沪深300作为基准
     set_benchmark('000300')
     # 持仓数量
@@ -134,11 +138,11 @@ def initialize():
     g.refresh_rate = 5
 
 
-def before_trading_start():
+def before_trading_start(context):
     log.info("before_trading_start函数运行...")
 
 
-def check_stocks():
+def check_stocks(context):
     # 选出小市值股票
 
     filter = {'date': context.previous_date, 'market_cap': {'$gt': 20, '$lt': 30}}
@@ -155,7 +159,7 @@ def check_stocks():
 
 
 # 交易函数
-def handle_data():
+def handle_data(context, data):
     if g.days % g.refresh_rate == 0:
 
         # 获取持仓列表
@@ -173,7 +177,7 @@ def handle_data():
             Cash = 0
 
         # 选股
-        stock_list = check_stocks()
+        stock_list = check_stocks(context)
 
         # 买入股票
         for stock in stock_list:
@@ -184,6 +188,10 @@ def handle_data():
         g.days = 1
     else:
         g.days += 1
+
+
+if __name__ == '__main__':
+    run_file(__file__, start="2021-08-27", end="2022-03-25")
 
 ```
 
@@ -196,6 +204,8 @@ def handle_data():
 # 海归策略
 # 2012-01-01 到 2016-03-10, ￥1000000, 分钟
 
+# 海龟策略
+
 from qff import *
 import numpy as np
 
@@ -205,7 +215,7 @@ import numpy as np
 
 
 # 总体回测前要做的事情
-def initialize():
+def initialize(context):
     set_params()  # 1设置策参数
     set_variables()  # 2设置中间变量
     set_backtest()  # 3设置回测条件
@@ -214,7 +224,7 @@ def initialize():
 # 1
 # 设置策略参数
 def set_params():
-    g.security = '000063'
+    g.security = '000001'
     # 系统1入市的trailing date
     g.short_in_date = 20
     # 系统2入市的trailing date
@@ -264,20 +274,23 @@ def set_variables():
 def set_backtest():
     # 作为判断策略好坏和一系列风险值计算的基准
     set_benchmark(g.security)
-    log.set_level('error')  # 设置报错等级
+    log.set_level('info')  # 设置报错等级
 
-# ================================================================================
-# 每天开盘前
-# ================================================================================
+
+'''
+================================================================================
+每天开盘前
+================================================================================
+'''
 
 
 # 每天开盘前要做的事情
-def before_trading_start():
-    set_slip_fee()
+def before_trading_start(context):
+    set_slip_fee(context)
 
 
 # 4 根据不同的时间段设置滑点与手续费
-def set_slip_fee():
+def set_slip_fee(context):
     # 将滑点设置为0
     set_slippage(0)
     # 根据不同的时间段设置手续费
@@ -298,8 +311,10 @@ def set_slip_fee():
 
 
 # 按分钟回测
-def handle_data():
+def handle_data(context, data):
     dt = context.current_dt  # 当前日期
+    if dt[:10] == '2020-04-20':
+        log.info(dt)
     data = get_current_data(g.security)
     current_price = data.last_price  # 当前价格N
     if dt[11:15] == '09:30':
@@ -486,7 +501,8 @@ def stop_loss(current_price):
 # ================================================================================
 
 # 每日收盘后要做的事情（本策略中不需要）
-def after_trading_end():
+def after_trading_end(context):
     return
+
 
 ```

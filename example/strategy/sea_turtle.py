@@ -36,7 +36,7 @@ import numpy as np
 
 
 # 总体回测前要做的事情
-def initialize():
+def initialize(context):
     set_params()  # 1设置策参数
     set_variables()  # 2设置中间变量
     set_backtest()  # 3设置回测条件
@@ -106,12 +106,12 @@ def set_backtest():
 
 
 # 每天开盘前要做的事情
-def before_trading_start():
-    set_slip_fee()
+def before_trading_start(context):
+    set_slip_fee(context)
 
 
 # 4 根据不同的时间段设置滑点与手续费
-def set_slip_fee():
+def set_slip_fee(context):
     # 将滑点设置为0
     set_slippage(0)
     # 根据不同的时间段设置手续费
@@ -132,7 +132,7 @@ def set_slip_fee():
 
 
 # 按分钟回测
-def handle_data():
+def handle_data(context, data):
     dt = context.current_dt  # 当前日期
     if dt[:10] == '2020-04-20':
         log.info(dt)
@@ -322,7 +322,7 @@ def stop_loss(current_price):
 # ================================================================================
 
 # 每日收盘后要做的事情（本策略中不需要）
-def after_trading_end():
+def after_trading_end(context):
     return
 
 

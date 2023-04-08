@@ -26,7 +26,7 @@ from qff import *
 
 
 # 初始化函数，设定要操作的股票、基准等等
-def initialize():
+def initialize(context):
     # 定义一个全局变量, 保存要操作的股票
     # 000002(股票:万科A)
     g.security = '000002'
@@ -37,7 +37,7 @@ def initialize():
 
 
 # 交易程序
-def trade():
+def trade(context, data):
     security = g.security
     # 设定均线窗口长度
     n1 = 5

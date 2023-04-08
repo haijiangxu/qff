@@ -24,6 +24,8 @@
 
 import os
 import importlib.util
+import inspect
+from functools import partial
 from datetime import datetime
 from typing import Optional, Callable
 from qff.tools.logs import log
@@ -33,9 +35,13 @@ from qff.frame.portfolio import Portfolio
 from qff.frame.const import RUN_TYPE
 from qff.frame.backtest import back_test_run
 from qff.frame.simtrade import sim_trade_run
+from qff.price.cache import ContextData
 
 __all__ = ['set_benchmark', 'set_order_cost', 'set_slippage', 'run_daily', 'run_file',
            'set_universe', 'pass_today']
+
+
+context_data = ContextData()
 
 
 def _getattr(m, func_name):
@@ -44,6 +50,21 @@ def _getattr(m, func_name):
     except AttributeError:
         func = None
     return func
+
+
+def _wrap_strategy_func(func_obj, include_data=False):
+    if func_obj is not None:
+        spec = inspect.getfullargspec(func_obj).args
+        if include_data:
+            if len(spec) != 2 or spec[0] != 'context' or spec[1] != 'data':
+                raise ValueError(f'策略函数定义的参数不正确！')
+            return partial(func_obj, context, context_data)
+        else:
+            if len(spec) != 1 or spec[0] != 'context':
+                raise ValueError(f'策略函数定义的参数不正确！')
+            return partial(func_obj, context)
+    else:
+        return None
 
 
 def _load_strategy_file(path):
@@ -63,12 +84,13 @@ def _load_strategy_file(path):
         return False
 
     # 2、给strategy策略对象赋函数指针
-    strategy.initialize = _getattr(module, 'initialize')
-    strategy.before_trading_start = _getattr(module, 'before_trading_start')
-    strategy.handle_data = _getattr(module, 'handle_data')
-    strategy.after_trading_end = _getattr(module, 'after_trading_end')
-    strategy.on_strategy_end = _getattr(module, 'on_strategy_end')
-    strategy.process_initialize = _getattr(module, 'process_initialize')
+
+    strategy.initialize = _wrap_strategy_func(_getattr(module, 'initialize'))
+    strategy.before_trading_start = _wrap_strategy_func(_getattr(module, 'before_trading_start'))
+    strategy.handle_data = _wrap_strategy_func(_getattr(module, 'handle_data'), include_data=True)
+    strategy.after_trading_end = _wrap_strategy_func(_getattr(module, 'after_trading_end'))
+    strategy.on_strategy_end = _wrap_strategy_func(_getattr(module, 'on_strategy_end'))
+    strategy.process_initialize = _wrap_strategy_func(_getattr(module, 'process_initialize'))
     if strategy.initialize is None:
         log.error("***策略文件缺少初始化函数initialize！***")
         return False
@@ -82,10 +104,10 @@ def run_daily(func, run_time="every_bar", append=True):
 
     指定每天要运行的函数, 可以在具体交易日的某一分钟执行。
 
-    :param func: 一个自定义的策略函数;例如自定义函数名 :code:`market_open()`。
+    :param func: 一个自定义的函数，此函数必须接受context参数。例如自定义函数名 :code:`market_open(context)`。
     :param run_time: 具体执行时间,一个字符串格式的时间:
 
-        - 交易时间内的任意时间点，上午“09:31-11:30”， 下午“13:01-15:00”，例如"10:00", "14:00"；
+        - 交易时间内的任意时间点，上午“09:30-11:30”， 下午“13:01-15:00”，例如"10:00", "14:00"；
         - **every_bar**，运行时间和您设置的运行频率一致，按天会在交易日的开盘时调用一次，按分钟会在交易时间每分钟运行。执行后将替代handle_data()策略框架函数.
         - **before_open**,设置func在开盘前运行，执行后将替代before_trading_start()策略框架函数.
         - **after_close**,设置func在收盘后运行，执行后将替代after_trading_end()策略框架函数.
@@ -93,16 +115,16 @@ def run_daily(func, run_time="every_bar", append=True):
 
     .. note::
         一个策略中尽量不要同时使用run_daily和handle_data，更不能使用run_daily(handle_data, "xx:xx")
-        建议使用run_daily；
+        run_daily中的函数只能有一个参数context，具体示例如下：
 
     :example:
 
         ::
 
-            def initialize():
+            def initialize(context):
                 run_daily(func, run_time='10:00')
 
-            def func():
+            def func(context):
                 print(context.current_dt)
                 print('-'*50)
 
@@ -124,8 +146,9 @@ def run_daily(func, run_time="every_bar", append=True):
 
     log.debug('调用run_daily' + str(locals()).replace('{', '(').replace('}', ')'))
     if not callable(func):
-        log.error("run_daily函数输入的func参数不是函数对象")
-        return
+        raise ValueError("run_daily函数输入的func参数不是函数对象")
+
+    func = _wrap_strategy_func(func,  run_time == "every_bar")
 
     if run_time == "before_open":
         strategy.before_trading_start = register_strategy_func(strategy.before_trading_start, func, append)

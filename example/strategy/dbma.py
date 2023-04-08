@@ -27,7 +27,7 @@ from math import isnan
 from qff import *
 
 
-def initialize():
+def initialize(context):
 
     # 设置固定滑点
     set_slippage(slippage=0.00246)
@@ -53,12 +53,12 @@ def initialize():
 
 
 # 每天开盘前要做的事情
-def before_trading_start():
+def before_trading_start(context):
     log.info("{} : before_trading_start".format(context.current_dt[0:10]))
 
 
 # 每天开盘时执行
-def market_open():
+def market_open(context):
     # 将总资金等分为g.N份，为每只股票配资
     capital_unit = context.portfolio.total_assets / g.N
     toSell = signal_stock_sell()
@@ -76,7 +76,7 @@ def market_open():
 
 
 # 每日收盘后要做的事情（本策略中不需要）
-def after_trading_end():
+def after_trading_end(context):
     log.info("after_trading_end:{}".format(context.current_dt[0:10]))
 
 

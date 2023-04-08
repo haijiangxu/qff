@@ -20,7 +20,7 @@ $ pip install qff
 QFF依赖于许多其他Python包，使用软件包安装工具像PIP或Conda等将确保安装必要的依赖软件包，您可以使用包管理器命令 `pip show qff` 查看依赖项，
 更多信息可以在其 [PyPI](https://pypi.org/project/qff/) 页面上找到。
 
-P.S. 由于目前版本更新迭代频繁, 请在使用 QFF 前先升级, 命令如下所示:
+P.S. 由于目前版本更新迭代频繁，且国内镜像同步时间不一致，请在使用以下命令进行 QFF 升级:
 
 ```bash
 $ pip install -U qff -i https://pypi.python.org/simple/
@@ -56,7 +56,7 @@ QFF使用的是MongoDB数据库，它是一个高性能、无模式、文档型�
 | [Linux](https://www.runoob.com/mongodb/mongodb-linux-install.html)    |
 | [Mac OS](https://www.runoob.com/mongodb/mongodb-osx-install.html)     |
 
-**我们强烈推荐您直接拉取[Docker镜像](mongoimage)安装使用MongoDB数据库。**
+**我们强烈推荐您直接拉取[Docker镜像](mongoimage)安装使用MongoDB数据库。本人选择4.4.2版本镜像进行安装。**
 
 ### 数据库配置
 

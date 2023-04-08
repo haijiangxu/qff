@@ -391,6 +391,8 @@ def attribute_history(security, count, unit='1d', fields=None, fq='pre'):
 def get_bars(security, count, unit='1d', fields=None, include_now=False, end_dt=None, fq_ref_date=None, market='stock'):
     # type: (list, int, str, Optional[list], bool, Optional[str], Optional[str], str) -> Optional[pd.DataFrame]
     """
+    **函数暂未实现**
+
     获取各种时间周期的 bar 数据， bar 的分割方式与主流股票软件相同， 而且支持返回当前时刻所在 bar 的数据；
     get_bars 开盘时取的bar高开低收都是当天的开盘价，成交量成交额为0；
     get_bars 没有跳过停牌选项，所获取的数据都是不包含停牌的数据，如果bar个数少于count个，则返回实际个数，并不会填充。

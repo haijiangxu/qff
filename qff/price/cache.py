@@ -33,10 +33,10 @@ from typing import Optional
 import pandas as pd
 
 
-unit_data_cache = {}  # UnitData对象缓存
+unit_data_cache = {}  # SecurityUnitData对象缓存
 
 
-class UnitData:
+class SecurityUnitData:
     """
      当前时刻标的数据快照对象
 
@@ -230,7 +230,7 @@ class UnitData:
         return None
 
 
-class BacktestData(UnitData):
+class BacktestData(SecurityUnitData):
 
     def __init__(self, code, market="stock"):
         super().__init__(code, market)
@@ -358,7 +358,7 @@ class BacktestData(UnitData):
             return int(high_limit_count * freq)
 
 
-class RealtimeData(UnitData):
+class RealtimeData(SecurityUnitData):
     def __init__(self, code, market="stock"):
         super().__init__(code, market)
         self._ticks = None
@@ -467,7 +467,7 @@ class RealtimeData(UnitData):
 
 
 def get_current_data(code, market='stock'):
-    # type: (str, str) -> Optional[UnitData]
+    # type: (str, str) -> Optional[SecurityUnitData]
 
     """
     获取当前时刻标的数据
@@ -479,12 +479,12 @@ def get_current_data(code, market='stock'):
     :param code: 股票代码
     :param market: 标的类型，股票还是指数
 
-    :return: 一个 :class:`.UnitData` 对象，代表当前时刻的股票数据
+    :return: 一个 :class:`.SecurityUnitData` 对象，代表当前时刻的股票数据
 
 
     """
     if context.status != RUN_STATUS.RUNNING:
-        print("get_current_data为回测模拟专用API函数，只能在策略运行过程中使用！")
+        log.error("get_current_data为回测模拟专用API函数，只能在策略运行过程中使用！")
         return None
 
     if market not in ['stock', 'index', 'etf']:
@@ -506,3 +506,30 @@ def get_current_data(code, market='stock'):
 
 def clear_current_data():
     unit_data_cache.clear()
+
+
+class ContextData:
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            item = "{:>06d}".format(item)
+
+        if isinstance(item, str):
+            if len(item) == 6:
+                return get_current_data(item)
+            else:
+                code, market = item.split('.')
+                if market == 'stk':
+                    market = 'stock'
+                elif market == 'ind':
+                    market = 'index'
+
+                if market not in ['stock', 'index', 'etf']:
+                    raise ValueError("错误的股票代码格式")
+
+                return get_current_data(code, market)
+        else:
+            raise ValueError("错误的股票代码格式")
+
+
+

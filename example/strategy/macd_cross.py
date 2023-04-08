@@ -3,7 +3,7 @@ import talib as tl
 import numpy as np
 
 
-def initialize():
+def initialize(context):
 
     # 设置指数基准
     set_benchmark(security="000300")
@@ -15,7 +15,7 @@ def initialize():
     log.info("initialize : 初始化运行")
 
 
-def market_open():
+def market_open(context):
     log.info("market_open函数，每天运行一次...")
     # 读取历史数据，前100天的收盘价
     close = history(100, '1d', 'close', g.s1).values

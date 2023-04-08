@@ -73,7 +73,7 @@ def get_fundamentals(filter, projection=None, date=None, report_date=None):
     ::
 
         # 策略在开盘前选择净利润增长率大于30%的股票
-        def before_trading_start():
+        def before_trading_start(context):
             filter = {'f184' : {"$gt": 0.3}}
             df = get_fundamentals(filter=filter, projection={'f184': 1}, date=context.previous_date)
             g.security = df['code'].to_list()
