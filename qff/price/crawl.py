@@ -125,6 +125,17 @@ def crawl_index_stock_cons(symbol: str = "000300") -> pd.DataFrame:
     return temp_df
 
 
+def crawl_industry_stock_cons(symbol: str = "801010") -> pd.DataFrame:
+    """
+    :param symbol: 行业代码, 可以通过 ak.index_component_sw() 函数获取
+    :type symbol: str
+    :return: 最新股票行业的成份股清单
+    :rtype: pandas.DataFrame
+    """
+    component_sw_df = ak.index_component_sw(symbol=symbol)
+    return component_sw_df
+
+
 def crawl_csindex():
     """
     爬取中证指数官网指数列表

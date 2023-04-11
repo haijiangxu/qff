@@ -34,11 +34,11 @@ from qff.tools.mongo import DATABASE
 from qff.tools.date import get_pre_trade_day, is_trade_day, get_real_trade_date, util_date_valid, util_time_valid
 from qff.tools.utils import util_code_tolist
 from qff.tools.logs import log
-from qff.frame.context import context, RUN_TYPE, RUN_STATUS
+from qff.frame.context import context, RUN_STATUS
 
 __all__ = ['get_price', 'get_bars', 'get_stock_list', 'get_stock_name', 'get_index_stocks', 'get_block_stock',
            'get_mtss', 'get_all_securities', 'get_security_info', 'get_st_stock', 'get_paused_stock',
-           'get_stock_block', 'history', 'attribute_history', 'get_index_name']
+           'get_stock_block', 'history', 'attribute_history', 'get_index_name', 'get_industry_stocks']
 
 
 def get_price(security, start=None, end=None, freq='daily', fields=None, skip_paused=False, fq='pre', count=None,
@@ -624,6 +624,68 @@ def get_index_stocks(index, date=None):
         return None
 
     coll = DATABASE.index_stock
+    cursor = coll.find(filter, {"_id": 0, "code": 1})
+    return [item["code"] for item in cursor]
+
+
+def get_industry_stocks(industry, date=None):
+    """
+    获取申万一级行业给定日期的成分股列表.目前仅支持(申万I级)：
+
+    * '801010' ：农林牧渔
+    * '801030' ：基础化工
+    * '801040' ：钢铁
+    * '801050' ：有色金属
+    * '801080' ：电子
+    * '801110' ：家用电器
+    * '801120' ：食品饮料
+    * '801130' ：纺织服饰
+    * '801140' ：轻工制造
+    * '801150' ：医药生物
+    * '801160' ：公用事业
+    * '801170' ：交通运输
+    * '801180' ：房地产
+    * '801200' ：商贸零售
+    * '801210' ：社会服务
+    * '801230' ：综合
+    * '801710' ：建筑材料
+    * '801720' ：建筑装饰
+    * '801730' ：电力设备
+    * '801740' ：国防军工
+    * '801750' ：计算机
+    * '801760' ：传媒
+    * '801770' ：通信
+    * '801780' ：银行
+    * '801790' ：非银金融
+    * '801880' ：汽车
+    * '801890' ：机械设备
+    * '801950' ：煤炭
+    * '801960' ：石油石化
+    * '801970' ：环保
+    * '801980' ：美容护理
+
+    :param industry: 字符串，一个指数代码，如‘801010’
+    :param date: 字符串，查询日期, 如'2015-10-15'.
+                默认为None,指当前日期
+    :return: 返回股票代码的list
+    """
+    if industry not in ['801010', '801030', '801040', '801050', '801080', '801110', '801120', '801130',
+                        '801140', '801150', '801160', '801170', '801180', '801200', '801210', '801230',
+                        '801710', '801720', '801730', '801740', '801750', '801760', '801770', '801780',
+                        '801790', '801880', '801890', '801950', '801960', '801970', '801980']:
+        log.error("get_industry_stocks: 参数industry仅支持(申万I级)")
+        return None
+    filter: Dict[str, any] = {"index": industry}
+    if date is None:
+        filter["end"] = '2200-01-01'
+    elif util_date_valid(date):
+        filter['end'] = {"$gt": date}
+        filter['start'] = {"$lte": date}
+    else:
+        log.error('get_industry_stocks：参数错误！date参数不合法！')
+        return None
+
+    coll = DATABASE.industry_stock
     cursor = coll.find(filter, {"_id": 0, "code": 1})
     return [item["code"] for item in cursor]
 

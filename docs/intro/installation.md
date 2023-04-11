@@ -110,7 +110,8 @@ $ qff save all
         qff save report              保存/更新股票财务报表                                 
         qff save valuation           保存/更新股票市值数据                                 
         qff save mtss                保存/更新融资融券数据                                 
-        qff save index_stock         保存/更新指数成分股信息                                
+        qff save index_stock         保存/更新指数成分股信息      
+        qff save industry_stock      保存/更新行业成分股信息                                  
         qff save init_info           初始化股票列表、指数列表、ETF列表                          
         qff save init_name           初始化股票历史更名数据                                 
         qff save save_delist         保存退市股票的日数据和分钟数据                             

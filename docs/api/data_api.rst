@@ -113,6 +113,11 @@ get_index_stocks- 获取一个指数给定日期的成分股列表
 .. autofunction:: get_index_stocks
 
 
+get_industry_stocks- 获取申万一级行业给定日期的成分股列表
+--------------------------------------------------------------
+
+.. autofunction:: get_industry_stocks
+
 .. _api_finance:
 
 财务

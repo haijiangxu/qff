@@ -29,6 +29,8 @@
 2、init_stock_name_hist()
 3、运行save_index_list()
 4、运行save_etf_list()
+5、运行save_industry_list()
+
 
 每日运行：
 1、save_stock_list()
@@ -38,7 +40,8 @@
 
 import os
 import time
-from qff.price.crawl import crawl_index_list, crawl_stock_list, crawl_delist_stock, crawl_index_stock_cons
+from qff.price.crawl import crawl_index_list, crawl_stock_list, crawl_delist_stock, \
+    crawl_index_stock_cons, crawl_industry_stock_cons
 from qff.price.fetch import fetch_stock_list
 from qff.tools.mongo import DATABASE
 from qff.tools.local import cache_path
@@ -47,6 +50,8 @@ from qff.tools.utils import util_to_json_from_pandas
 from datetime import datetime
 import pandas as pd
 import akshare as ak
+import requests
+import json
 
 
 def save_stock_list():
@@ -309,6 +314,121 @@ def _init_index_stock(symbol):
     coll.create_index('code')
     coll.delete_many({'index': symbol})
     coll.insert_many(util_to_json_from_pandas(df))
+
+
+def save_industry_stock():
+    """
+    最新股票行业的成份股目录
+    'https://www.swsresearch.com/institute-sw/api/index_publish/current/?page=1&page_size=50&indextype=%E4%B8%80%E7%BA%A7%E8%A1%8C%E4%B8%9A'
+    保存指数对应的成分股股票代码
+    :return: None
+    """
+    url = 'https://www.swsresearch.com/institute-sw/api/index_publish/current/?page=1&page_size=50&indextype=%E4%B8%80%E7%BA%A7%E8%A1%8C%E4%B8%9A'
+    response = requests.get(url)
+    code_table = json.loads(response.text)
+    code_dict = code_table['data']['results']
+    dm = pd.DataFrame.from_dict(code_dict)
+    dm.columns = ['swcode', 'swname', 'pre_close', 'open', 'amount', 'high', 'low', 'last_price', 'volume']
+    industry_list = dm.swcode.tolist()
+
+    # industry_list = ['801010', '801030', '801040', '801050', '801080', '801110', '801120', '801130',
+    #                 '801140', '801150', '801160', '801170', '801180', '801200', '801210', '801230',
+    #                 '801710', '801720', '801730', '801740', '801750', '801760', '801770', '801780',
+    #                 '801790', '801880', '801890', '801950', '801960', '801970', '801980']
+
+    print('====  开始更新行业成分股列表 ====')
+    start = time.perf_counter()
+    total = len(industry_list)
+    for item in range(total):
+        finsh = "▓" * int(item * 100 / total)
+        need_do = "-" * int((total - item) * 100 / total)
+        progress = (item / total) * 100
+        dur = time.perf_counter() - start
+        tt = dur / (item + 1) * total
+        code = industry_list[item]
+        print("\r{:^3.0f}%[{}->{}]{:.2f}s|{:.2f}s ({})".format(progress, finsh, need_do, dur, tt, code), end="")
+        _save_one_industry_stock(code)
+    print('\n====  更新行业成分股列表完成 ====')
+
+
+def _save_one_industry_stock(symbol):
+    """
+    自动更新指数对应的成分股
+    1、查询数据库该指数对应的成分股列表， 如果返回空，则初始化该指数历史成分数据
+    2、调用crawl_industry_stock_cons(symbol="801010")返回当日成分数据
+    3、对比成分股票代码，处理新入和退出规则
+
+    """
+    try:
+        coll = DATABASE.get_collection('industry_stock')
+        cursor = coll.find({'industry': symbol, 'end': '2200-01-01'}, {'_id': 0, 'industry': 0})
+        df_db = pd.DataFrame([item for item in cursor])
+        if len(df_db) < 1:
+            _init_industry_stock(symbol)
+            return
+        df_db.set_index('code', inplace=True)
+
+        df_crawl = crawl_industry_stock_cons(symbol=symbol)
+        if df_crawl is None or len(df_crawl) < 1:
+            print(f"save_industry_stock: 行业代码{symbol}获取最新成分数据为空！")
+            return
+        df_crawl = df_crawl.drop('序号', axis=1)
+        df_crawl.columns = pd.Index(['code', 'name', 'weight', 'date'])
+        df_crawl.set_index('code', inplace=True)
+
+        s1 = df_crawl.index.tolist()
+        s2 = df_db.index.tolist()
+        a = [x for x in s1 if x not in s2]  # 新增加的股票代码
+        if len(a) > 0:
+            start_date = df_crawl.loc[a, 'date'].tolist()
+            new = pd.DataFrame({
+                'code': a,
+                'start': start_date,
+                'end': '2200-01-01',
+                'industry': symbol
+            })
+            coll.insert_many(util_to_json_from_pandas(new))
+
+            b = [x for x in s2 if x not in s1]  # 取消掉的股票代码,按道理a和b的数量相等
+            df_del = df_db.loc[b].copy()
+
+            df_del.assign(end=start_date)
+            for d in util_to_json_from_pandas(df_del):
+                coll.update_one({
+                    'code': d['code'],
+                    'industry': symbol,
+                    'end': '2200-01-01'
+                }, {'$set': d}, upsert=True)
+
+    except Exception as error0:
+        print(error0)
+        print(f"save_industry_stock: 行业代码{symbol}保存最新成分数据错误！")
+
+
+def _init_industry_stock(symbol):
+    if symbol[:1] == '8':
+        symbol = symbol
+    else:
+        print(f"init_industry_list:指数{symbol}代码错误！")
+        return
+
+    df_new = crawl_industry_stock_cons(symbol)
+    if df_new is None or len(df_new) == 0:
+        print(f"init_industry_list:行业代码{symbol}获取当前成分失败！")
+        return
+    df_new = df_new.drop('序号', axis=1)
+    df_new.columns = pd.Index(['code', 'name', 'weight', 'date'])
+    # temp_df.set_index('code', inplace=True)
+    df_new = df_new.assign(end='2200-01-01')
+
+    # df = pd.concat([df_new, df_hist])
+    df_new = df_new.assign(industry=symbol).drop_duplicates()
+
+    coll = DATABASE.get_collection('industry_stock')
+    coll.create_index([('industry', 1), ('end', 1), ('code', 1)], unique=True)
+    coll.create_index('code')
+    coll.delete_many({'industry': symbol})
+    coll.insert_many(util_to_json_from_pandas(df_new))
 
 
 def init_stock_list():

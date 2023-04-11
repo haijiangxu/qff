@@ -29,7 +29,7 @@
 """
 
 from qff.store.save_info import save_stock_list, init_index_list, init_etf_list, \
-    init_stock_list, save_index_stock, init_stock_name
+    init_stock_list, save_index_stock, save_industry_stock, init_stock_name
 from qff.store.save_price import save_security_day, save_security_min, save_stock_xdxr, \
     save_security_block
 from qff.store.save_report import save_report
@@ -68,6 +68,7 @@ def update_all(date=None):
     save_valuation_data()
     save_mtss_data()
     save_index_stock()
+    save_industry_stock()
     save_security_block()
 
     log.info('==== 更新数据完成 ==========')
@@ -180,6 +181,9 @@ def qff_save(*args):
 
     elif args[0] == 'index_stock':
         save_index_stock()
+
+    elif args[0] == 'industry_stock':
+        save_industry_stock()
 
     elif args[0] == 'init_info':
         init_stock_list()
