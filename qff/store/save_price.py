@@ -95,7 +95,12 @@ def save_security_day(market='stock', security=None):
                     else:
 
                         data = data.loc[:end_date]
+                        if start_date == '1990-01-01':
+                            start_date = data.index[0]   # fix bug like :updating 603125 data error!
+                                                         # Exception:'1990-01-01'
+
                         dl = get_trade_days(start_date, end_date)
+
                         if len(dl) > len(data):
                             # 存在停牌日数据
                             dl_df = pd.DataFrame(index=pd.Index(dl, name='date'))
