@@ -22,7 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__version__ = "0.5.13"
+__version__ = "0.5.14"
 
 import sys
 
@@ -71,6 +71,7 @@ from qff.price.query import (
     get_block_stock,
     get_index_stocks,
     get_index_name,
+    get_industry_stocks,
     get_mtss,
     get_all_securities,
     get_security_info
