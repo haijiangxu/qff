@@ -36,8 +36,8 @@ class Portfolio:
         属性               类型                说明
     ==================  ==============  ==============================================================
     starting_cash        float              初始资金
-    available_cash       float              当可用资金, 可用来购买证券的资金
-    locked_cash          float              挂单锁住资金
+    available_cash       float              可用资金, 可用来购买证券的资金
+    locked_cash          float              冻结资金, 挂单锁住资金
     total_assets         float              账户总资产, 包括现金, 仓位(股票)的总价值, 可用来计算收益
     positions_assets     float              持仓资产价值
     benchmark_assets     float              基准市值
