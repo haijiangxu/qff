@@ -27,7 +27,9 @@
  同花顺交易接口: 封装同花顺下单软件客户端操作API，进行自动化的程序化股票交易，以支持实盘交易功能
 """
 import pywinauto
-from pywinauto import clipboard
+from pywinauto import clipboard, Application, ElementNotFoundError
+from pywinauto.application import AppStartError
+
 import os
 import time
 import functools
@@ -35,6 +37,7 @@ import io
 import pandas as pd
 from qff.tools.logs import log
 from qff.tools.local import temp_path
+from qff.tools.config import get_config
 from qff.trader.captcha import captcha_recognize
 from qff.tools.tdx import select_market_code
 
@@ -43,7 +46,7 @@ class THS_CONST:
     """
 
     """
-    DEFAULT_EXE_PATH: str = ""
+    DEFAULT_EXE_PATH: str = "C:\\同花顺\\xiadan.exe"
     TITLE = "网上股票交易系统5.0"
 
     COMMON_GRID_CONTROL_ID = 1047
@@ -93,22 +96,44 @@ class Trader:
     def exit(self):
         self._app.kill()
 
-    def connect(self, exe_path=None):
+    def connect(self):
         """
         直接连接登陆后的客户端
-        :param exe_path: 客户端路径类似 r'C:\\htzqzyb2\\xiadan.exe', 默认 r'C:\\htzqzyb2\\xiadan.exe'
-        :return:
         """
-        connect_path = exe_path or THS_CONST.DEFAULT_EXE_PATH
-        if connect_path is None:
-            raise ValueError(
-                "参数 exe_path 未设置，请设置客户端对应的 exe 地址,类似 C:\\客户端安装目录\\xiadan.exe"
-            )
+        try:
+            self._app = pywinauto.Application("uia").connect(title=THS_CONST.TITLE)
+        except pywinauto.ElementNotFoundError:
+            try:
+                log.info("同花顺交易接口: 下单程序未启动，正在自动加载...")
+                xiadan_path = get_config('THS', 'path', THS_CONST.DEFAULT_EXE_PATH)
+                self._app = pywinauto.Application("uia").start(cmd_line=xiadan_path)
+                self._app.Pane2.child_window(title="登录", control_type="Button").click()
+                # self.wait(1)
+                # self._app = Application("uia").connect(title='网上股票交易系统5.0')
+                # self._app.top_window().wait_not("exists visible", 10)
+                count = 10
+                while count > 0:
+                    if self._app.top_window().window_text() == THS_CONST.TITLE:
+                        self._main = self._app.top_window()
+                        break
+                    else:
+                        self.wait(0.5)
+                        count -= 1
 
-        self._app = pywinauto.Application("uia").connect(path=connect_path, timeout=10)
-        self._close_prompt_windows()
-        self._main = self._app.top_window()
-        self._toolbar = self._main.child_window(class_name="ToolbarWindow32")
+                if count == 0:
+                    log.error("同花顺交易接口: 下单程序登录密码未自动保存或保存错误！ ")
+                    return
+            except AppStartError:
+                log.error("同花顺交易接口: 同花顺下单程序路径错误! ")
+                return
+
+        # self._close_prompt_windows()
+        while True:
+            if self._app.top_window().window_text() == THS_CONST.TITLE:
+                self._main = self._app.top_window()
+                break
+
+        # self._toolbar = self._main.child_window(class_name="ToolbarWindow32")
         log.info("同花顺交易接口: 连接下单程序成功! ")
 
     @property
@@ -283,7 +308,7 @@ class Trader:
 
     def _cancel_entrust_by_double_click(self, row):
         x = 100
-        y = (50 + 20 * row)
+        y = (40 + 20 * row)
         grid = self._app.top_window().child_window(
             control_id=THS_CONST.COMMON_GRID_CONTROL_ID,
             class_name="CVirtualGridCtrl",
@@ -330,6 +355,9 @@ class Trader:
     def _type_edit_control_keys(self, control_id, text):
         editor = self._main.child_window(control_id=control_id, class_name="Edit")
         editor.set_focus()
+        n = editor.line_length(0)
+        if n > 0:
+            editor.type_keys('{BS}'*8)
         editor.type_keys(text)
 
     def _set_trade_params(self, security, price, amount):
@@ -340,17 +368,17 @@ class Trader:
         self.wait(0.1)
 
         # 设置交易所
-        market = select_market_code(code)
-        if market == 1:  # sh
-            item_text = "上海A股"
-        elif market == 0:  # sz
-            item_text = "深圳A股"
-        else:
-            log.error(f"同花顺交易接口: _set_trade_params 股票代码错误！{code}")
-            return
-        selects = self._main.child_window(control_id=1003, class_name="ComboBox")
-        if selects.selected_text() != item_text:
-            selects.select("上海A股")
+        # market = select_market_code(code)
+        # if market == 1:  # sh
+        #     item_text = "上海A股"
+        # elif market == 0:  # sz
+        #     item_text = "深圳A股"
+        # else:
+        #     log.error(f"同花顺交易接口: _set_trade_params 股票代码错误！{code}")
+        #     return
+        # selects = self._main.child_window(control_id=1003, class_name="ComboBox")
+        # if selects.selected_text() != item_text:
+        #     selects.select(item_text)
 
         # self.wait(0.1)
 
