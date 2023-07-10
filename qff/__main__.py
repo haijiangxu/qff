@@ -34,7 +34,8 @@ import argparse
 import textwrap
 from typing import Dict, Optional
 from qff import __version__
-from qff.frame.cli import *
+from qff.frame.cli import Command, RunCommand, SimTradeCommand, ConfigCommand, CreateCommand, SaveCommand, \
+    ResumeCommand, DropCommand, DbinfoCommand, KshowCommand
 
 
 desc = """
@@ -80,8 +81,11 @@ def main(args: Optional[List[str]] = None) -> int:
         'drop': DropCommand(sub_parser),
         'dbinfo': DbinfoCommand(sub_parser),
         'kshow': KshowCommand(sub_parser),
-        'trader': TraderCommand(sub_parser)
     }
+
+    if sys.platform == 'win32':
+        from qff.frame.cli import TraderCommand
+        cmd_dict['trader'] = TraderCommand(sub_parser)
 
     args = parser.parse_args(args)
     # print(args)
@@ -100,4 +104,3 @@ def get_qff_version() -> str:
 
 if __name__ == '__main__':
     main()
-
