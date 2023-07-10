@@ -27,6 +27,8 @@
  同花顺交易接口: 封装同花顺下单软件客户端操作API，进行自动化的程序化股票交易，以支持实盘交易功能
 """
 import sys
+import pandas as pd
+from typing import Optional
 
 if sys.platform == 'win32':
 
@@ -39,8 +41,7 @@ if sys.platform == 'win32':
     import time
     import functools
     import io
-    import pandas as pd
-    from typing import Optional
+
     from qff.tools.logs import log
     from qff.tools.local import temp_path
     from qff.tools.config import get_config
