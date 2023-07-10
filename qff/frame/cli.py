@@ -34,11 +34,12 @@ from qff.tools.local import cache_path
 from qff.tools.config import *
 from qff.price.query import get_price
 from qff.tools.kshow import kshow
+from qff.trader.ths import *
+from qff.frame.trace import print_df, print_dict
 
-# subprocess.Popen
 
 __all__ = ['Command', 'RunCommand', 'SimTradeCommand', 'ResumeCommand', 'CreateCommand',
-           'ConfigCommand', 'SaveCommand', 'DropCommand', 'DbinfoCommand', 'KshowCommand']
+           'ConfigCommand', 'SaveCommand', 'DropCommand', 'DbinfoCommand', 'KshowCommand', 'TraderCommand']
 
 
 class Command:
@@ -379,7 +380,7 @@ class DropCommand(Command):
 class DbinfoCommand(Command):
     """
     显示qff数据库的当前信息
-    1.数据库qff有多少个数据集，且每个数据集的记录数量和字段xinx
+    1.数据库qff有多少个数据集，且每个数据集的记录数量和字段信息
     2.数据库最后一次数据更新时间
     """
     usage = f"\nqff dbinfo"
@@ -427,3 +428,79 @@ class KshowCommand(Command):
 
         df = get_price(args.security, start=args.start, end=args.end, count=args.count, market=market)
         kshow(df, args.security, index=args.index)
+
+
+class TraderCommand(Command):
+    """
+    操作同花顺下单软件客户端，用于策略实盘运行前，测试能否正确对交易软件进行操作。
+
+    子命令：
+    - connect:                      连接交易软件客户端
+    - balance：                     获取账户资金股票信息
+    - position：                    获取账户持仓股票列表
+    - entrust:                      获取当日委托订单列表
+    - deal:                         获取当日成交订单列表
+    - buy stock price amount:       买入指定股票, eg: qff trader buy 000001 10.5 100
+    - sell stock price amount:      卖出指定股票. eg: qff trader sell 000001 10.5 100
+    - cancel entrust_no:            撤销委托订单, entrust_no为委托订单编号，如果不输入，则撤销所有委托订单
+
+    """
+
+    usage = """
+    qff trader <subcommand> [options]
+    eg:
+    qff trader connect
+    qff trader balance
+    qff trader position
+    qff trader entrust
+    qff trader deal
+    qff trader buy stock_code price amount
+    qff trader sell stock_code price amount
+    qff trader cancel entrust_no
+    """
+    summary = "操作同花顺下单软件客户端"
+
+    def __init__(self, sub_parser):
+        super().__init__('trader', sub_parser)
+
+    def add_options(self) -> None:
+        self.parser.add_argument("subcommand", help="实盘操作子命令", nargs='?')
+
+        self.parser.add_argument("options", help="子命令所需参数", nargs='*')
+
+    def main(self, args):
+        try:
+            if args.subcommand == 'connect':
+                trader_connect()
+            elif args.subcommand == 'balance':
+                print_dict(trader_balance(), '账户资金股票')
+            elif args.subcommand == 'position':
+                df = trader_position()
+                df = df.reset_index()
+                print_df(df, '账户持仓股票')
+            elif args.subcommand == 'entrust':
+                df = trader_entrusts().reset_index()
+                print_df(df, '当日委托订单')
+            elif args.subcommand == 'deal':
+                df = trader_deal().reset_index()
+                print_df(df, '当日成交订单')
+            elif args.subcommand == 'cancel':
+                if len(args.options) == 0:
+                    trader_cancel()
+                elif len(args.options) == 1:
+                    trader_cancel(int(args.options[0]))
+                else:
+                    raise ValueError
+
+            else:
+                if len(args.options) != 3:
+                    raise ValueError
+                if args.subcommand == 'buy':
+                    trader_buy(args.options[0], float(args.options[1]), int(args.options[2]))
+                elif args.subcommand == 'sell':
+                    trader_sell(args.options[0], float(args.options[1]), int(args.options[2]))
+                else:
+                    raise ValueError()
+        except:
+            print('Error:qff trader命令参数错误！\n')
+            self.parser.print_help()

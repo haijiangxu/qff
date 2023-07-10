@@ -268,6 +268,55 @@ get_open_orders -  获得当天的所有未完成的订单
 .. autofunction:: get_open_orders
 
 
+实盘操作函数
+==================
+
+..  module:: qff.trader.ths
+
+trader_connect -  连接交易软件客户端
+--------------------------------------
+
+.. autofunction:: trader_connect
+
+trader_balance -  获取当前账户资金股票信息
+--------------------------------------------
+
+.. autofunction:: trader_balance
+
+trader_position -  获取当前账户股票持仓信息
+--------------------------------------------
+
+.. autofunction:: trader_position
+
+trader_entrusts -  获取当日委托记录
+----------------------------------------
+
+.. autofunction:: trader_entrusts
+
+trader_deal -  获取当日成交记录
+--------------------------------------
+
+.. autofunction:: trader_deal
+
+trader_buy -  实盘买入股票
+--------------------------------------
+
+.. autofunction:: trader_buy
+
+trader_sell -  实盘卖出股票
+--------------------------------------
+
+.. autofunction:: trader_sell
+
+trader_cancel -  撤销当日委托
+--------------------------------------
+
+.. autofunction:: trader_cancel
+
+
+
+
+
 策略分析函数
 =====================================================
 

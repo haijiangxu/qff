@@ -79,7 +79,8 @@ def main(args: Optional[List[str]] = None) -> int:
         'save': SaveCommand(sub_parser),
         'drop': DropCommand(sub_parser),
         'dbinfo': DbinfoCommand(sub_parser),
-        'kshow': KshowCommand(sub_parser)
+        'kshow': KshowCommand(sub_parser),
+        'trader': TraderCommand(sub_parser)
     }
 
     args = parser.parse_args(args)
