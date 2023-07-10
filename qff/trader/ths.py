@@ -671,3 +671,122 @@ if sys.platform == 'win32':
             return result['success']
         else:
             return False
+
+else:
+    """ 用于生成帮助文档 """
+    def trader_connect():
+        # type: () -> bool
+        """
+            连接交易软件客户端
+
+            调用本函数连接已启动的交易软件客户端，本函数需在其他实盘操作函数前运行。为使qff成功连接交易软件，需要提前启动并登录交易软件，
+            对于通用版同花顺下单程序，需要先手动登录一次：添加券商，填入账户号、密码、验证码，勾选“保存密码”，并在config文件中配置下单
+            程序的完整路径。
+
+            :return:  成功返回True，失败返回False
+
+        """
+        return False
+
+
+    def trader_balance():
+        # type: () -> Optional[dict]
+        """
+            返回当前账户资金股票信息
+
+            通过操作交易软件客户端，获取当前账户的资金股票信息。
+
+            :return:  返回字典类型，包括'资金余额', '冻结金额', '可用金额', '可取金额', '股票是在', '总资产', '持仓盈亏'等信息。
+
+        """
+        return None
+
+
+    def trader_position():
+        # type: () -> Optional[pd.DataFrame]
+        """
+            返回当前账户股票持仓信息
+
+            通过操作交易软件客户端，获取当前账户的股票持仓信息。
+
+            :return:  返回DataFrame类型，字段包括：'证券代码', '证券名称', '股票余额', '可用余额', '冻结数量', '成本价', '市价', '盈亏',
+             '盈亏比例(%)', '市值', '当日买入', '当日卖出', '交易市场', '持股天数'等信息。
+
+        """
+        return None
+
+
+    def trader_buy(security, price, amount):
+        # type: (str, float, int) -> Optional[int]
+        """
+            买入股票
+
+            通过操作交易软件客户端，买入指定的股票。
+
+            :param security: 股票代码
+            :param price: 买入价格
+            :param amount: 买入数量
+
+            :return:  成功委托返回合同编号，失败则返回None
+
+        """
+        return None
+
+
+    def trader_sell(security, price, amount):
+        # type: (str, float, int) -> Optional[int]
+        """
+            卖出股票
+
+            通过操作交易软件客户端，卖出指定的股票。
+
+            :param security: 股票代码
+            :param price: 卖出价格
+            :param amount: 卖出数量
+
+            :return:  成功委托返回合同编号，失败则返回None
+
+        """
+        return None
+
+
+    def trader_entrusts():
+        # type: () -> Optional[pd.DataFrame]
+        """
+            返回当日委托记录
+
+            通过操作交易软件客户端，获取当前账户的当日委托记录信息。
+
+            :return:  成功返回委托记录，字段包括： '委托时间','证券代码', '证券名称', '操作', '备注', '委托数量', '成交数量', '委托价格','成交均价', '撤单数量', '合同编号', '交易市场'等信息。
+
+        """
+        return None
+
+
+    def trader_deal():
+        # type: () -> Optional[pd.DataFrame]
+        """
+            返回当日成交记录
+
+            通过操作交易软件客户端，获取当前账户的当日成交记录信息。
+
+            :return:  成功返回委托记录，字段包括：'成交时间','证券代码','证券名称','操作','成交数量','成交均价','成交金额','合同编号','成交编号'等信息.
+
+        """
+        return None
+
+
+    def trader_cancel(entrust_no=None):
+        # type: (Optional[int]) -> bool
+        """
+            撤销当日委托
+
+            通过操作交易软件客户端，撤销当日提交的委托订单。
+
+            :param entrust_no: 委托合同编号，如果参数为None,则撤销当前所有委托
+
+            :return:  成功返回True，失败返回False
+
+        """
+        return False
+
