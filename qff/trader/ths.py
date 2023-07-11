@@ -46,7 +46,6 @@ if sys.platform == 'win32':
     from qff.tools.local import temp_path
     from qff.tools.config import get_config
     from qff.trader.captcha import captcha_recognize
-    from qff.tools.tdx import select_market_code
 
     __all__ = ['trader_connect', 'trader_balance', 'trader_position', 'trader_entrusts', 'trader_deal', 'trader_buy',
                'trader_sell', 'trader_cancel']
@@ -202,13 +201,21 @@ if sys.platform == 'win32':
         def exit(self):
             self._app.kill()
 
+        def minimize(self):
+            # self._app.top_window().type_keys('%{tab}')
+            # self._app.top_window().type_keys('{VK_MENU} down'
+            #                                  '{TAB}'
+            #                                  '{VK_MENU} up')
+            self._app.top_window().minimize()
+            # self.wait(0.2)
+
         def connect(self):
             """
             直接连接登陆后的客户端
             """
             try:
                 self._app = pywinauto.Application("uia").connect(title=THS_CONST.TITLE)
-            except pywinauto.ElementNotFoundError:
+            except ElementNotFoundError:
                 try:
                     log.info("同花顺交易接口: 下单程序未启动，正在自动加载...")
                     xiadan_path = get_config('THS', 'path', THS_CONST.DEFAULT_EXE_PATH)
@@ -255,25 +262,29 @@ if sys.platform == 'win32':
                         control_id=control_id, class_name="Static"
                     ).window_text()
                 )
+            self.minimize()
             return result
 
         @property
         def position(self):
             self._switch_left_menus(["查询[F4]", "资金股票"])
-
-            return self._get_grid_data(THS_CONST.COMMON_GRID_CONTROL_ID, THS_CONST.POSITION_DTYPE)
+            rst = self._get_grid_data(THS_CONST.COMMON_GRID_CONTROL_ID, THS_CONST.POSITION_DTYPE)
+            self.minimize()
+            return rst
 
         @property
         def today_entrusts(self):
             self._switch_left_menus(["查询[F4]", "当日委托"])
-
-            return self._get_grid_data(THS_CONST.COMMON_GRID_CONTROL_ID, THS_CONST.ENTRUSTS_DTYPE)
+            rst = self._get_grid_data(THS_CONST.COMMON_GRID_CONTROL_ID, THS_CONST.ENTRUSTS_DTYPE)
+            self.minimize()
+            return rst
 
         @property
         def today_trades(self):
             self._switch_left_menus(["查询[F4]", "当日成交"])
-
-            return self._get_grid_data(THS_CONST.COMMON_GRID_CONTROL_ID, THS_CONST.DEAL_DTYPE)
+            rst = self._get_grid_data(THS_CONST.COMMON_GRID_CONTROL_ID, THS_CONST.DEAL_DTYPE)
+            self.minimize()
+            return rst
 
         @property
         def cancel_entrusts(self):
@@ -295,6 +306,7 @@ if sys.platform == 'win32':
                     break
 
             log.info(f"同花顺交易接口: 撤销委托订单{entrust_no}, 返回值:{result} ")
+            self.minimize()
             return result
 
         def cancel_all_entrusts(self):
@@ -308,18 +320,21 @@ if sys.platform == 'win32':
             self.wait(0.2)
             result = self._handle_pop_dialogs()
             log.info(f"同花顺交易接口: 撤销所有委托订单, 返回值:{result} ")
+            self.minimize()
             return result
 
         def buy(self, security, price, amount):
             self._switch_left_menus(["买入[F1]"])
             result = self.trade(security, price, amount)
             log.info(f"同花顺交易接口: 买入股票{security}, 返回值:{result} ")
+            self.minimize()
             return result
 
         def sell(self, security, price, amount):
             self._switch_left_menus(["卖出[F2]"])
             result = self.trade(security, price, amount)
             log.info(f"同花顺交易接口: 卖出股票{security}, 返回值:{result} ")
+            self.minimize()
             return result
 
         def trade(self, security, price, amount):
@@ -517,71 +532,76 @@ if sys.platform == 'win32':
     client: Trader = ThsTrader()
 
 
-    def trader_connect():
-        # type: () -> bool
-        """
-            连接交易软件客户端
+def trader_connect():
+    # type: () -> bool
+    """
+        连接交易软件客户端
 
-            调用本函数连接已启动的交易软件客户端，本函数需在其他实盘操作函数前运行。为使qff成功连接交易软件，需要提前启动并登录交易软件，
-            对于通用版同花顺下单程序，需要先手动登录一次：添加券商，填入账户号、密码、验证码，勾选“保存密码”，并在config文件中配置下单
-            程序的完整路径。
+        调用本函数连接已启动的交易软件客户端，本函数需在其他实盘操作函数前运行。为使qff成功连接交易软件，需要提前启动并登录交易软件，
+        对于通用版同花顺下单程序，需要先手动登录一次：添加券商，填入账户号、密码、验证码，勾选“保存密码”，并在config文件中配置下单
+        程序的完整路径。
 
-            :return:  成功返回True，失败返回False
+        :return:  成功返回True，失败返回False
 
-        """
+    """
+    if sys.platform == 'win32':
         if client.main is None:
             return client.connect()
         else:
             return True
+    else:
+        return False
 
 
-    def trader_balance():
-        # type: () -> Optional[dict]
-        """
-            返回当前账户资金股票信息
+def trader_balance():
+    # type: () -> Optional[dict]
+    """
+        返回当前账户资金股票信息
 
-            通过操作交易软件客户端，获取当前账户的资金股票信息。
+        通过操作交易软件客户端，获取当前账户的资金股票信息。
 
-            :return:  返回字典类型，包括'资金余额', '冻结金额', '可用金额', '可取金额', '股票是在', '总资产', '持仓盈亏'等信息。
+        :return:  返回字典类型，包括'资金余额', '冻结金额', '可用金额', '可取金额', '股票是在', '总资产', '持仓盈亏'等信息。
 
-        """
+    """
+    if sys.platform == 'win32':
         if trader_connect():
             return client.balance
-        else:
-            return None
+    return None
 
 
-    def trader_position():
-        # type: () -> Optional[pd.DataFrame]
-        """
-            返回当前账户股票持仓信息
+def trader_position():
+    # type: () -> Optional[pd.DataFrame]
+    """
+        返回当前账户股票持仓信息
 
-            通过操作交易软件客户端，获取当前账户的股票持仓信息。
+        通过操作交易软件客户端，获取当前账户的股票持仓信息。
 
-            :return:  返回DataFrame类型，字段包括：'证券代码', '证券名称', '股票余额', '可用余额', '冻结数量', '成本价', '市价', '盈亏',
-             '盈亏比例(%)', '市值', '当日买入', '当日卖出', '交易市场', '持股天数'等信息。
+        :return:  返回DataFrame类型，字段包括：'证券代码', '证券名称', '股票余额', '可用余额', '冻结数量', '成本价', '市价', '盈亏',
+         '盈亏比例(%)', '市值', '当日买入', '当日卖出', '交易市场', '持股天数'等信息。
 
-        """
+    """
+    if sys.platform == 'win32':
         if trader_connect():
             return client.position
-        else:
-            return None
+
+    return None
 
 
-    def trader_buy(security, price, amount):
-        # type: (str, float, int) -> Optional[int]
-        """
-            买入股票
+def trader_buy(security, price, amount):
+    # type: (str, float, int) -> Optional[int]
+    """
+        买入股票
 
-            通过操作交易软件客户端，买入指定的股票。
+        通过操作交易软件客户端，买入指定的股票。
 
-            :param security: 股票代码
-            :param price: 买入价格
-            :param amount: 买入数量
+        :param security: 股票代码
+        :param price: 买入价格
+        :param amount: 买入数量
 
-            :return:  成功委托返回合同编号，失败则返回None
+        :return:  成功委托返回合同编号，失败则返回None
 
-        """
+    """
+    if sys.platform == 'win32':
         if trader_connect():
             if isinstance(security, str) and isinstance(price, float) and isinstance(amount, int):
                 result = client.buy(security, price, amount)
@@ -590,23 +610,24 @@ if sys.platform == 'win32':
             else:
                 log.error("trader_buy: 输入参数类型错误！")
 
-        return None
+    return None
 
 
-    def trader_sell(security, price, amount):
-        # type: (str, float, int) -> Optional[int]
-        """
-            卖出股票
+def trader_sell(security, price, amount):
+    # type: (str, float, int) -> Optional[int]
+    """
+        卖出股票
 
-            通过操作交易软件客户端，卖出指定的股票。
+        通过操作交易软件客户端，卖出指定的股票。
 
-            :param security: 股票代码
-            :param price: 卖出价格
-            :param amount: 卖出数量
+        :param security: 股票代码
+        :param price: 卖出价格
+        :param amount: 卖出数量
 
-            :return:  成功委托返回合同编号，失败则返回None
+        :return:  成功委托返回合同编号，失败则返回None
 
-        """
+    """
+    if sys.platform == 'win32':
         if trader_connect():
             if isinstance(security, str) and isinstance(price, float) and isinstance(amount, int):
                 result = client.sell(security, price, amount)
@@ -615,179 +636,61 @@ if sys.platform == 'win32':
             else:
                 log.error("trader_sell: 输入参数类型错误！")
 
-        return None
+    return None
 
 
-    def trader_entrusts():
-        # type: () -> Optional[pd.DataFrame]
-        """
-            返回当日委托记录
+def trader_entrusts():
+    # type: () -> Optional[pd.DataFrame]
+    """
+        返回当日委托记录
 
-            通过操作交易软件客户端，获取当前账户的当日委托记录信息。
+        通过操作交易软件客户端，获取当前账户的当日委托记录信息。
 
-            :return:  成功返回委托记录，字段包括： '委托时间','证券代码', '证券名称', '操作', '备注', '委托数量', '成交数量', '委托价格','成交均价', '撤单数量', '合同编号', '交易市场'等信息。
+        :return:  成功返回委托记录，字段包括： '委托时间','证券代码', '证券名称', '操作', '备注', '委托数量', '成交数量', '委托价格','成交均价', '撤单数量', '合同编号', '交易市场'等信息。
 
-        """
+    """
+    if sys.platform == 'win32':
         if trader_connect():
             return client.today_entrusts
-        else:
-            return None
+    return None
 
 
-    def trader_deal():
-        # type: () -> Optional[pd.DataFrame]
-        """
-            返回当日成交记录
+def trader_deal():
+    # type: () -> Optional[pd.DataFrame]
+    """
+        返回当日成交记录
 
-            通过操作交易软件客户端，获取当前账户的当日成交记录信息。
+        通过操作交易软件客户端，获取当前账户的当日成交记录信息。
 
-            :return:  成功返回委托记录，字段包括：'成交时间','证券代码','证券名称','操作','成交数量','成交均价','成交金额','合同编号','成交编号'等信息.
+        :return:  成功返回委托记录，字段包括：'成交时间','证券代码','证券名称','操作','成交数量','成交均价','成交金额','合同编号','成交编号'等信息.
 
-        """
+    """
+    if sys.platform == 'win32':
         if trader_connect():
             return client.today_trades
-        else:
-            return None
+    return None
 
 
-    def trader_cancel(entrust_no=None):
-        # type: (Optional[int]) -> bool
-        """
-            撤销当日委托
+def trader_cancel(entrust_no=None):
+    # type: (Optional[int]) -> bool
+    """
+        撤销当日委托
 
-            通过操作交易软件客户端，撤销当日提交的委托订单。
+        通过操作交易软件客户端，撤销当日提交的委托订单。
 
-            :param entrust_no: 委托合同编号，如果参数为None,则撤销当前所有委托
+        :param entrust_no: 委托合同编号，如果参数为None,则撤销当前所有委托
 
-            :return:  成功返回True，失败返回False
+        :return:  成功返回True，失败返回False
 
-        """
-        # log.info(f"trader_cancel调用，参数entrust_no={entrust_no}")
+    """
+    # log.info(f"trader_cancel调用，参数entrust_no={entrust_no}")
+    if sys.platform == 'win32':
         if trader_connect():
             if entrust_no:
                 result = client.cancel_entrust(entrust_no)
             else:
                 result = client.cancel_all_entrusts()
-
             return result['success']
-        else:
-            return False
 
-else:
-    """ 用于生成帮助文档 """
-    def trader_connect():
-        # type: () -> bool
-        """
-            连接交易软件客户端
-
-            调用本函数连接已启动的交易软件客户端，本函数需在其他实盘操作函数前运行。为使qff成功连接交易软件，需要提前启动并登录交易软件，
-            对于通用版同花顺下单程序，需要先手动登录一次：添加券商，填入账户号、密码、验证码，勾选“保存密码”，并在config文件中配置下单
-            程序的完整路径。
-
-            :return:  成功返回True，失败返回False
-
-        """
-        return False
-
-
-    def trader_balance():
-        # type: () -> Optional[dict]
-        """
-            返回当前账户资金股票信息
-
-            通过操作交易软件客户端，获取当前账户的资金股票信息。
-
-            :return:  返回字典类型，包括'资金余额', '冻结金额', '可用金额', '可取金额', '股票是在', '总资产', '持仓盈亏'等信息。
-
-        """
-        return None
-
-
-    def trader_position():
-        # type: () -> Optional[pd.DataFrame]
-        """
-            返回当前账户股票持仓信息
-
-            通过操作交易软件客户端，获取当前账户的股票持仓信息。
-
-            :return:  返回DataFrame类型，字段包括：'证券代码', '证券名称', '股票余额', '可用余额', '冻结数量', '成本价', '市价', '盈亏',
-             '盈亏比例(%)', '市值', '当日买入', '当日卖出', '交易市场', '持股天数'等信息。
-
-        """
-        return None
-
-
-    def trader_buy(security, price, amount):
-        # type: (str, float, int) -> Optional[int]
-        """
-            买入股票
-
-            通过操作交易软件客户端，买入指定的股票。
-
-            :param security: 股票代码
-            :param price: 买入价格
-            :param amount: 买入数量
-
-            :return:  成功委托返回合同编号，失败则返回None
-
-        """
-        return None
-
-
-    def trader_sell(security, price, amount):
-        # type: (str, float, int) -> Optional[int]
-        """
-            卖出股票
-
-            通过操作交易软件客户端，卖出指定的股票。
-
-            :param security: 股票代码
-            :param price: 卖出价格
-            :param amount: 卖出数量
-
-            :return:  成功委托返回合同编号，失败则返回None
-
-        """
-        return None
-
-
-    def trader_entrusts():
-        # type: () -> Optional[pd.DataFrame]
-        """
-            返回当日委托记录
-
-            通过操作交易软件客户端，获取当前账户的当日委托记录信息。
-
-            :return:  成功返回委托记录，字段包括： '委托时间','证券代码', '证券名称', '操作', '备注', '委托数量', '成交数量', '委托价格','成交均价', '撤单数量', '合同编号', '交易市场'等信息。
-
-        """
-        return None
-
-
-    def trader_deal():
-        # type: () -> Optional[pd.DataFrame]
-        """
-            返回当日成交记录
-
-            通过操作交易软件客户端，获取当前账户的当日成交记录信息。
-
-            :return:  成功返回委托记录，字段包括：'成交时间','证券代码','证券名称','操作','成交数量','成交均价','成交金额','合同编号','成交编号'等信息.
-
-        """
-        return None
-
-
-    def trader_cancel(entrust_no=None):
-        # type: (Optional[int]) -> bool
-        """
-            撤销当日委托
-
-            通过操作交易软件客户端，撤销当日提交的委托订单。
-
-            :param entrust_no: 委托合同编号，如果参数为None,则撤销当前所有委托
-
-            :return:  成功返回True，失败返回False
-
-        """
-        return False
+    return False
 
