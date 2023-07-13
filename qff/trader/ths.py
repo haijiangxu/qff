@@ -41,11 +41,12 @@ if sys.platform == 'win32':
     import time
     import functools
     import io
+    import re
+    import ddddocr
 
     from qff.tools.logs import log
     from qff.tools.local import temp_path
     from qff.tools.config import get_config
-    from qff.trader.captcha import captcha_recognize
 
     __all__ = ['trader_connect', 'trader_balance', 'trader_position', 'trader_entrusts', 'trader_deal', 'trader_buy',
                'trader_sell', 'trader_cancel']
@@ -111,7 +112,7 @@ if sys.platform == 'win32':
             '当日买入': int,
             '当日卖出': int,
             '交易市场': str,
-            '持股天数': str
+            # '持股天数': str
         }
 
 
@@ -184,6 +185,7 @@ if sys.platform == 'win32':
             self._app = None
             self._main = None
             self._toolbar = None
+            self._ocr = None
 
         @property
         def app(self):
@@ -402,6 +404,15 @@ if sys.platform == 'win32':
                 log.error(f"同花顺交易接口: _get_grid_data: {ex}")
                 return None
 
+        def _captcha_recognize(self, file_path):
+            if self._ocr is None:
+                self._ocr = ddddocr.DdddOcr(show_ad=False)
+            with open(file_path, 'rb') as f:
+                img_byte = f.read()
+            res = self._ocr.classification(img_byte)
+            valid_chars = re.findall("[0-9a-z]", res, re.IGNORECASE)
+            return "".join(valid_chars)
+
         def _get_clipboard_data(self) -> str:
             if self.app.top_window().window(class_name="Static", title_re=".*验证码.*").exists(timeout=1):
                 file_path = '{}{}{}'.format(temp_path, os.sep, 'tmp.png')
@@ -411,7 +422,8 @@ if sys.platform == 'win32':
                     self.app.top_window().window(control_id=2405, class_name="Static").capture_as_image(). \
                         save(file_path)  # 保存验证码
 
-                    captcha_num = captcha_recognize(file_path).strip()  # 识别验证码
+                    # captcha_num = captcha_recognize(file_path).strip()  # 识别验证码
+                    captcha_num = self._captcha_recognize(file_path).strip()  # 识别验证码
                     captcha_num = "".join(captcha_num.split())
                     log.info("同花顺交易接口: 验证码识别输出 " + captcha_num)
                     if len(captcha_num) == 4:
