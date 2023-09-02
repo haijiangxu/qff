@@ -480,10 +480,10 @@ class Trace(Cmd):
                     df = df.reset_index()
                     print_df(df, '账户持仓股票')
                 elif arg[0] == 'entrust':
-                    df = trader_entrusts().reset_index()
+                    df = trader_today_entrusts().reset_index()
                     print_df(df, '当日委托订单')
                 elif arg[0] == 'deal':
-                    df = trader_deal().reset_index()
+                    df = trader_today_deal().reset_index()
                     print_df(df, '当日成交订单')
                 elif arg[0] == 'cancel':
                     if len(arg) == 1:
@@ -494,14 +494,22 @@ class Trace(Cmd):
                         raise ValueError
 
                 else:
-                    if len(arg) != 4:
+
+                    if len(arg) < 3:
                         raise ValueError
                     if arg[0] == 'buy':
-                        trader_buy(arg[1], float(arg[2]), int(arg[3]))
+                        if len(arg) == 4:
+                            trader_order(arg[1], int(arg[2]), float(arg[3]))
+                        elif len(arg) == 3:
+                            trader_order(arg[1], int(arg[2]))
                     elif arg[0] == 'sell':
-                        trader_sell(arg[1], float(arg[2]), int(arg[3]))
+                        if len(arg) == 4:
+                            trader_order(arg[1], -int(arg[2]), float(arg[3]))
+                        elif len(arg) == 3:
+                            trader_order(arg[1], -int(arg[2]))
                     else:
                         raise ValueError()
+
             except:
                 print('Error: trader命令参数错误！\n')
                 self.print_trader_usage()
@@ -517,8 +525,10 @@ class Trace(Cmd):
             ⌨️命令格式： trader position                :  获取账户持仓股票列表                                         \n\
             ⌨️命令格式： trader entrust                 :  获取当日委托订单列表                                         \n\
             ⌨️命令格式： trader deal                    :  获取当日成交订单列表                                         \n\
-            ⌨️命令格式： trader buy stock price amount  :  买入指定股票, eg: qff trader buy 000001 10.5 100           \n\
-            ⌨️命令格式： trader sell stock price amount :  卖出指定股票. eg: qff trader sell 000001 10.5 100          \n\
+            ⌨️命令格式： trader buy stock  amount price :  买入指定股票, eg: qff trader buy 000001 100 10.5           \n\
+            ⌨️命令格式： trader sell stock amount price :  卖出指定股票. eg: qff trader sell 000001 100 10.9          \n\
+            ⌨️命令格式： trader buy stock  amount       :  市价买入指定股票, eg: qff trader buy 000001 100           \n\
+            ⌨️命令格式： trader sell stock amount       :  市价卖出指定股票. eg: qff trader sell 000001 100          \n\
             ⌨️命令格式： trader cancel entrust_no       :  撤销委托订单, entrust_no为委托订单编号，如果不输入，则撤销所有委托订单  \n\
             -----------------------------------------------------------------------------------------------------------------------\n\
             "

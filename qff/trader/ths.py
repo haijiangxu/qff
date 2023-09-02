@@ -48,8 +48,8 @@ if sys.platform == 'win32':
     from qff.tools.local import temp_path
     from qff.tools.config import get_config
 
-    __all__ = ['trader_connect', 'trader_balance', 'trader_position', 'trader_entrusts', 'trader_deal', 'trader_buy',
-               'trader_sell', 'trader_cancel']
+    __all__ = ['trader_connect', 'trader_balance', 'trader_position', 'trader_today_entrusts', 'trader_today_deal',
+               'trader_order', 'trader_cancel']
 
 
     class THS_CONST:
@@ -115,72 +115,7 @@ if sys.platform == 'win32':
             # '持股天数': str
         }
 
-
-    class Trader(abc.ABC):
-
-        @property
-        @abc.abstractmethod
-        def app(self):
-            """Return current app instance"""
-            pass
-
-        @property
-        @abc.abstractmethod
-        def main(self):
-            """Return current main window instance"""
-            pass
-
-        @abc.abstractmethod
-        def connect(self):
-            """连接交易软件客户端"""
-            pass
-
-        @property
-        @abc.abstractmethod
-        def balance(self):
-            """ 返回当前股票账户结算金额 """
-            pass
-
-        @property
-        @abc.abstractmethod
-        def position(self):
-            """ 返回当前账户股票列表 """
-            pass
-
-        @abc.abstractmethod
-        def buy(self, security, price, amount):
-            """ 买入股票 """
-            pass
-
-        @abc.abstractmethod
-        def sell(self, security, price, amount):
-            """ 卖出股票 """
-            pass
-
-        @property
-        @abc.abstractmethod
-        def today_entrusts(self):
-            """ 返回当前委托记录 """
-            pass
-
-        @property
-        @abc.abstractmethod
-        def today_trades(self):
-            """ 返回今日成交记录 """
-            pass
-
-        @abc.abstractmethod
-        def cancel_entrust(self, entrust_no):
-            """ 撤销指定委托订单 """
-            pass
-
-        @abc.abstractmethod
-        def cancel_all_entrusts(self):
-            """ 撤销当前所有委托 """
-            pass
-
-
-    class ThsTrader(Trader):
+    class ThsTrader:
         def __init__(self):
             self._app = None
             self._main = None
@@ -204,10 +139,6 @@ if sys.platform == 'win32':
             self._app.kill()
 
         def minimize(self):
-            # self._app.top_window().type_keys('%{tab}')
-            # self._app.top_window().type_keys('{VK_MENU} down'
-            #                                  '{TAB}'
-            #                                  '{VK_MENU} up')
             self._app.top_window().minimize()
             # self.wait(0.2)
 
@@ -341,6 +272,87 @@ if sys.platform == 'win32':
 
         def trade(self, security, price, amount):
             self._set_trade_params(security, price, amount)
+
+            self._main.child_window(control_id=1006, class_name="Button").click()
+
+            return self._handle_pop_dialogs()
+
+        def market_buy(self, security, amount, ttype=None, limit_price=None, **kwargs):
+            """
+            市价买入
+            :param security: 六位证券代码
+            :param amount: 交易数量
+            :param ttype: 市价委托类型，默认客户端默认选择，
+                         深市可选 ['对手方最优价格', '本方最优价格', '即时成交剩余撤销', '最优五档即时成交剩余 '全额成交或撤销']
+                         沪市可选 ['最优五档成交剩余撤销', '最优五档成交剩余转限价']
+            :param limit_price: 科创板 限价
+
+            :return: {'entrust_no': '委托单号'}
+            """
+            self._switch_left_menus(["市价委托", "买入"])
+
+            result = self.market_trade(security, amount, ttype, limit_price=limit_price)
+            log.info(f"同花顺交易接口: 市价买入股票{security}, 返回值:{result} ")
+            self.minimize()
+            return result
+
+        def market_sell(self, security, amount, ttype=None, limit_price=None, **kwargs):
+            """
+            市价卖出
+            :param security: 六位证券代码
+            :param amount: 交易数量
+            :param ttype: 市价委托类型，默认客户端默认选择，
+                         深市可选 ['对手方最优价格', '本方最优价格', '即时成交剩余撤销', '最优五档即时成交剩余 '全额成交或撤销']
+                         沪市可选 ['最优五档成交剩余撤销', '最优五档成交剩余转限价']
+            :param limit_price: 科创板 限价
+            :return: {'entrust_no': '委托单号'}
+            """
+            self._switch_left_menus(["市价委托", "卖出"])
+
+            result = self.market_trade(security, amount, ttype, limit_price=limit_price)
+            log.info(f"同花顺交易接口: 市价买入股票{security}, 返回值:{result} ")
+            self.minimize()
+            return result
+
+        def market_trade(self, security, amount, ttype=None, limit_price=None, **kwargs):
+            """
+            市价交易
+            :param security: 六位证券代码
+            :param amount: 交易数量
+            :param ttype: 市价委托类型，默认客户端默认选择，
+                         深市可选 ['对手方最优价格', '本方最优价格', '即时成交剩余撤销', '最优五档即时成交剩余 '全额成交或撤销']
+                         沪市可选 ['最优五档成交剩余撤销', '最优五档成交剩余转限价']
+            :param limit_price: 保护限价，科创板股票有效
+
+            :return: {'entrust_no': '委托单号'}
+            """
+            code = security[-6:]
+            self._type_edit_control_keys(1032, code)
+            if ttype is not None:
+                retry = 0
+                retry_max = 10
+                while retry < retry_max:
+                    try:
+                        self._set_market_trade_type(ttype)
+                        break
+                    except:
+                        retry += 1
+                        self.wait(0.1)
+
+            self._type_edit_control_keys(1034, str(int(amount)))
+            self.wait(0.1)
+
+            if limit_price is not None:
+                price_control = None
+                if str(security).startswith("68"):  # 科创板存在限价
+                    try:
+                        price_control = self._main.child_window(control_id=1033, class_name="Edit")
+                    except:
+                        pass
+                if price_control is not None:
+                    price_control.set_edit_text(limit_price)
+
+            self.wait(0.1)
 
             self._main.child_window(control_id=1006, class_name="Button").click()
 
@@ -540,8 +552,22 @@ if sys.platform == 'win32':
             self._type_edit_control_keys(1034, str(int(amount)))
             self.wait(0.1)
 
+        def _set_market_trade_type(self, ttype):
+            """根据选择的市价交易类型选择对应的下拉选项"""
+            selects = self._main.child_window(control_id=1541, class_name="ComboBox")
+            for i, text in enumerate(selects.texts()):
+                # skip 0 index, because 0 index is current select index
+                if i == 0:
+                    if re.search(ttype, text):  # 当前已经选中
+                        return
+                    else:
+                        continue
+                if re.search(ttype, text):
+                    selects.select(i - 1)
+                    return
+            raise TypeError("不支持对应的市价类型: {}".format(ttype))
 
-    client: Trader = ThsTrader()
+    client = ThsTrader()
 
 
 def trader_connect():
@@ -568,7 +594,7 @@ def trader_connect():
 def trader_balance():
     # type: () -> Optional[dict]
     """
-        返回当前账户资金股票信息
+        查询当前账户资金股票信息
 
         通过操作交易软件客户端，获取当前账户的资金股票信息。
 
@@ -584,7 +610,7 @@ def trader_balance():
 def trader_position():
     # type: () -> Optional[pd.DataFrame]
     """
-        返回当前账户股票持仓信息
+        查询当前账户股票持仓信息
 
         通过操作交易软件客户端，获取当前账户的股票持仓信息。
 
@@ -599,62 +625,10 @@ def trader_position():
     return None
 
 
-def trader_buy(security, price, amount):
-    # type: (str, float, int) -> Optional[int]
-    """
-        买入股票
-
-        通过操作交易软件客户端，买入指定的股票。
-
-        :param security: 股票代码
-        :param price: 买入价格
-        :param amount: 买入数量
-
-        :return:  成功委托返回合同编号，失败则返回None
-
-    """
-    if sys.platform == 'win32':
-        if trader_connect():
-            if isinstance(security, str) and isinstance(price, float) and isinstance(amount, int):
-                result = client.buy(security, price, amount)
-                if result['success'] and 'entrust_no' in result.keys():
-                    return result['entrust_no']
-            else:
-                log.error("trader_buy: 输入参数类型错误！")
-
-    return None
-
-
-def trader_sell(security, price, amount):
-    # type: (str, float, int) -> Optional[int]
-    """
-        卖出股票
-
-        通过操作交易软件客户端，卖出指定的股票。
-
-        :param security: 股票代码
-        :param price: 卖出价格
-        :param amount: 卖出数量
-
-        :return:  成功委托返回合同编号，失败则返回None
-
-    """
-    if sys.platform == 'win32':
-        if trader_connect():
-            if isinstance(security, str) and isinstance(price, float) and isinstance(amount, int):
-                result = client.sell(security, price, amount)
-                if result['success'] and 'entrust_no' in result.keys():
-                    return result['entrust_no']
-            else:
-                log.error("trader_sell: 输入参数类型错误！")
-
-    return None
-
-
-def trader_entrusts():
+def trader_today_entrusts():
     # type: () -> Optional[pd.DataFrame]
     """
-        返回当日委托记录
+        查询当日下单委托记录
 
         通过操作交易软件客户端，获取当前账户的当日委托记录信息。
 
@@ -667,10 +641,10 @@ def trader_entrusts():
     return None
 
 
-def trader_deal():
+def trader_today_deal():
     # type: () -> Optional[pd.DataFrame]
     """
-        返回当日成交记录
+        查询当日成交记录
 
         通过操作交易软件客户端，获取当前账户的当日成交记录信息。
 
@@ -705,4 +679,39 @@ def trader_cancel(entrust_no=None):
             return result['success']
 
     return False
+
+
+def trader_order(security, amount, price=None):
+    # type: (str, int, Optional[float]) -> Optional[int]
+    """
+        实盘下单交易股票
+
+        通过操作同花顺下单软件客户端，买入或卖出指定的股票。
+
+        :param security:  六位股票代码
+        :param amount: 交易数量, 正数表示买入, 负数表示卖出
+        :param price: 下单价格，下单价格为空，则按市价买入或卖出，市价委托类型，默认客户端默认选择；否则认为是限价单。
+
+        :return:  成功委托返回合同编号，失败则返回None
+    """
+    if sys.platform == 'win32':
+        if trader_connect():
+            if isinstance(security, str) and isinstance(amount, int) and amount != 0:
+                if amount > 0:
+                    if price is None:
+                        result = client.market_buy(security, amount)
+                    else:
+                        result = client.buy(security, price, amount)
+                else:
+                    if price is None:
+                        result = client.market_sell(security, -amount)
+                    else:
+                        result = client.buy(security, price, -amount)
+
+                if result['success'] and 'entrust_no' in result.keys():
+                    return result['entrust_no']
+            else:
+                log.error("trader_buy: 输入参数类型错误！")
+
+    return None
 

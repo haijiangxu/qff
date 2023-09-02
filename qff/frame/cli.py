@@ -445,8 +445,10 @@ if sys.platform == 'win32':
         - position：                    获取账户持仓股票列表
         - entrust:                      获取当日委托订单列表
         - deal:                         获取当日成交订单列表
-        - buy stock price amount:       买入指定股票, eg: qff trader buy 000001 10.5 100
-        - sell stock price amount:      卖出指定股票. eg: qff trader sell 000001 10.5 100
+        - buy stock amount price:       买入指定股票, eg: qff trader buy 000001 100 10.5
+        - sell stock amount price:      卖出指定股票. eg: qff trader sell 000001 100 10.9
+        - buy stock amount:             市价买入指定股票, eg: qff trader buy 000001 100
+        - sell stock amount:            市价卖出指定股票. eg: qff trader sell 000001 100
         - cancel entrust_no:            撤销委托订单, entrust_no为委托订单编号，如果不输入，则撤销所有委托订单
 
         """
@@ -459,8 +461,10 @@ if sys.platform == 'win32':
         qff trader position
         qff trader entrust
         qff trader deal
-        qff trader buy stock_code price amount
-        qff trader sell stock_code price amount
+        qff trader buy stock_code  amount price
+        qff trader sell stock_code amount price
+        qff trader buy stock_code  amount
+        qff trader sell stock_code amount
         qff trader cancel entrust_no
         """
         summary = "操作同花顺下单软件客户端"
@@ -484,10 +488,10 @@ if sys.platform == 'win32':
                     df = df.reset_index()
                     print_df(df, '账户持仓股票')
                 elif args.subcommand == 'entrust':
-                    df = trader_entrusts().reset_index()
+                    df = trader_today_entrusts().reset_index()
                     print_df(df, '当日委托订单')
                 elif args.subcommand == 'deal':
-                    df = trader_deal().reset_index()
+                    df = trader_today_deal().reset_index()
                     print_df(df, '当日成交订单')
                 elif args.subcommand == 'cancel':
                     if len(args.options) == 0:
@@ -498,12 +502,18 @@ if sys.platform == 'win32':
                         raise ValueError
 
                 else:
-                    if len(args.options) != 3:
+                    if len(args.options) < 2:
                         raise ValueError
                     if args.subcommand == 'buy':
-                        trader_buy(args.options[0], float(args.options[1]), int(args.options[2]))
+                        if len(args.options) == 3:
+                            trader_order(args.options[0], int(args.options[1]), float(args.options[2]))
+                        elif len(args.options) == 2:
+                            trader_order(args.options[0], int(args.options[1]))
                     elif args.subcommand == 'sell':
-                        trader_sell(args.options[0], float(args.options[1]), int(args.options[2]))
+                        if len(args.options) == 3:
+                            trader_order(args.options[0], -int(args.options[1]), float(args.options[2]))
+                        elif len(args.options) == 2:
+                            trader_order(args.options[0], -int(args.options[1]))
                     else:
                         raise ValueError()
             except:
