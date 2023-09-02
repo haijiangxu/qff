@@ -49,6 +49,9 @@ from qff.tools.local import temp_path
 from qff.tools.date import get_next_trade_day, get_date_gap, util_date_valid
 from qff.tools.logs import log
 
+if sys.platform == 'win32':
+    from qff.trader.ths import *
+
 
 def print_df(df: pd.DataFrame, title=None):
     tb = pt.PrettyTable()
@@ -449,6 +452,7 @@ class Trace(Cmd):
             print("ks   ---- 查询交易股票的K线图")
             print("kg   ---- 显示全局对象g中name属性对应的数据和K线图")
             print("kshow --- 查询股票K线图")
+            print("trader ---操作同花顺下单软件客户端")
             print("time ---- 查询策略时间")
             print("fn ------ 运行自定义语句")
             print("shell --- 运行外部程序")
@@ -459,6 +463,66 @@ class Trace(Cmd):
             print("quit ---- 退出交互环境，回测仍在运行")
             print("exit ---- 程序完全退出")
             print("ls -- 列出当前路径 ")
+
+    def do_trader(self, arg):
+        if arg == "" or sys.platform != 'win32':
+            self.print_trader_usage()
+        else:
+            arg = arg.split(" ")
+
+            try:
+                if arg[0] == 'connect':
+                    trader_connect()
+                elif arg[0] == 'balance':
+                    print_dict(trader_balance(), '账户资金股票')
+                elif arg[0] == 'position':
+                    df = trader_position()
+                    df = df.reset_index()
+                    print_df(df, '账户持仓股票')
+                elif arg[0] == 'entrust':
+                    df = trader_entrusts().reset_index()
+                    print_df(df, '当日委托订单')
+                elif arg[0] == 'deal':
+                    df = trader_deal().reset_index()
+                    print_df(df, '当日成交订单')
+                elif arg[0] == 'cancel':
+                    if len(arg) == 1:
+                        trader_cancel()
+                    elif len(arg) == 2:
+                        trader_cancel(int(arg[1]))
+                    else:
+                        raise ValueError
+
+                else:
+                    if len(arg) != 4:
+                        raise ValueError
+                    if arg[0] == 'buy':
+                        trader_buy(arg[1], float(arg[2]), int(arg[3]))
+                    elif arg[0] == 'sell':
+                        trader_sell(arg[1], float(arg[2]), int(arg[3]))
+                    else:
+                        raise ValueError()
+            except:
+                print('Error: trader命令参数错误！\n')
+                self.print_trader_usage()
+
+    @staticmethod
+    def print_trader_usage():
+        print(
+            "Usage: \n\
+             以下命令仅支持windows系统下运行                                                                          \n\
+            ----------------------------------------------------------------------------------------------------------------------\n\
+            ⌨️命令格式： trader connect                 :  连接交易软件客户端                                          \n\
+            ⌨️命令格式： trader balance                 :  获取账户资金股票信息                                         \n\
+            ⌨️命令格式： trader position                :  获取账户持仓股票列表                                         \n\
+            ⌨️命令格式： trader entrust                 :  获取当日委托订单列表                                         \n\
+            ⌨️命令格式： trader deal                    :  获取当日成交订单列表                                         \n\
+            ⌨️命令格式： trader buy stock price amount  :  买入指定股票, eg: qff trader buy 000001 10.5 100           \n\
+            ⌨️命令格式： trader sell stock price amount :  卖出指定股票. eg: qff trader sell 000001 10.5 100          \n\
+            ⌨️命令格式： trader cancel entrust_no       :  撤销委托订单, entrust_no为委托订单编号，如果不输入，则撤销所有委托订单  \n\
+            -----------------------------------------------------------------------------------------------------------------------\n\
+            "
+        )
 
 
 if __name__ == '__main__':
