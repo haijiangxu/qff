@@ -67,8 +67,8 @@ def update_all(date=None):
     save_report()
     save_valuation_data()
     save_mtss_data()
-    save_index_stock()
-    save_industry_stock()
+    # save_index_stock()
+    # save_industry_stock()
     save_security_block()
 
     log.info('==== 更新数据完成 ==========')
