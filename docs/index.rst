@@ -187,6 +187,7 @@ QFF是基于Python语言开发的一个量化金融框架库，提供数据获�
     guide/writing
     guide/running
     guide/evaluation
+    guide/trader
     guide/example
     guide/datadict
 
