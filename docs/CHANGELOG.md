@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.5.16
+
+### Features
+
+* 增加2024年节假日数据
+
 ## 0.5.15
 
 ### Features
