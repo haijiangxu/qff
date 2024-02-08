@@ -10,4 +10,4 @@
 /example/strategy_eval/高倍量低换手.py
 /example/strategy/lbfq.py
 /migrate/
-/qff/__pycache__/
+*.pyc
