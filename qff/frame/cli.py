@@ -437,19 +437,19 @@ if sys.platform == 'win32':
 
     class TraderCommand(Command):
         """
-        操作同花顺下单软件客户端，用于策略实盘运行前，测试能否正确对交易软件进行操作。
+        操作同花顺下单软件客户端,用于策略实盘运行前,测试能否正确对交易软件进行操作.
 
-        子命令：
+        子命令:
         - connect:                      连接交易软件客户端
-        - balance：                     获取账户资金股票信息
-        - position：                    获取账户持仓股票列表
+        - balance:                      获取账户资金股票信息
+        - position:                     获取账户持仓股票列表
         - entrust:                      获取当日委托订单列表
         - deal:                         获取当日成交订单列表
         - buy stock amount price:       买入指定股票, eg: qff trader buy 000001 100 10.5
         - sell stock amount price:      卖出指定股票. eg: qff trader sell 000001 100 10.9
         - buy stock amount:             市价买入指定股票, eg: qff trader buy 000001 100
         - sell stock amount:            市价卖出指定股票. eg: qff trader sell 000001 100
-        - cancel entrust_no:            撤销委托订单, entrust_no为委托订单编号，如果不输入，则撤销所有委托订单
+        - cancel entrust_no:            撤销委托订单, entrust_no为委托订单编号,如果不输入,则撤销所有委托订单
 
         """
 
