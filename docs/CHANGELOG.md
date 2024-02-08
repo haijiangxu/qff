@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.5.17
+
+### Bug Fixes
+
+* 增加2024年除夕日不开盘
+
 ## 0.5.16
 
 ### Features
