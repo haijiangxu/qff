@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.5.18
+
+### Features
+
+* 增加2025年节假日数据
+
 ## 0.5.17
 
 ### Bug Fixes
