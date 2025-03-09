@@ -1,6 +1,8 @@
 # 安装说明
 
+```{only} html
 ![Python](https://img.shields.io/pypi/pyversions/qff.svg)
+```
 
 ```{admonition} 注解
 - 如果执行 `pip install`安装依赖库网络速度比较慢的话，推荐使用 

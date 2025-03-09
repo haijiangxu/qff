@@ -20,7 +20,7 @@ QFF实盘操作基于通用同花顺下单软件，通过pywinauto库自动化�
     $ qff config set THS.path c:\ths\xiadan.exe
     ```
 * 需要先手动登录一次下单软件。添加券商，填入账户号、密码、验证码，勾选“保存密码”。第一次登录后，上述信息被缓存。
-  ```{image} ../_static/ths_login.webp
+  ```{image} ../_static/ths_login.png
     :class: bg-primary
     :width: 500px
     :align: center
@@ -28,7 +28,7 @@ QFF实盘操作基于通用同花顺下单软件，通过pywinauto库自动化�
 
 
 * 需要对客户端按以下设置，不然会导致客户端超时锁定。 系统设置 > 界面设置: 界面不操作超时时间设为 0。
-    ```{image} ../_static/ths_config.webp
+    ```{image} ../_static/ths_config.png
     :class: bg-primary
     :width: 400px
     :align: center

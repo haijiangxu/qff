@@ -30,7 +30,7 @@ QFF框架正确载入策略文件后，会自动在相应的时间调用这些�
 ```
 ### 框架流程图
 
-![qff_frame](../_static/qff_frame.webp)
+![qff_frame](../_static/qff_frame.png)
 
 
 ### 运行时间

@@ -85,7 +85,8 @@ docker run -d -p 8765:8765 -v /root/work:/root/work -e MONGODB_URI="mongodb://ad
   
 - QFF镜像还安装了JupyterLab，方便用户直接在浏览器使用。打开本地浏览器输入地址：```http://服务器地址:8765 ```,
 显示密码框提示，输入密码:`qff`后，将进入[JupyterLab](https://jupyter.org/try) 界面。
-![jupyter-lab](https://jupyter.org/assets/homepage/labpreview.webp)
+![jupyter-lab](../_static/labpreview.png)
+
 
 ```{important}
 由于QFF目前还处于开发阶段，版本不稳定，在使用docker镜像时，可以在JupyterLab的终端中运行 `pip install -U qff` 升级QFF库版本。 

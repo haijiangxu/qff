@@ -94,38 +94,74 @@ html_show_copyright = True
 htmlhelp_basename = 'qffdoc'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
-#
-# # -- Options for LaTeX output ---------------------------------------------
-#
-# # 设置LaTeX编译引擎为xelatex
-# latex_engine = 'xelatex'
-#
-# # 设置中文字体，需要安装对应的字体文件
-# latex_elements = {
-#     'fontpkg': r'\usepackage{xeCJK}',
-#     'fontenc': r'\usepackage[T1]{fontenc}',
-#     'papersize': 'a4paper',
-#     'pointsize': '12pt',
-#     'fncychap': r'\usepackage[Bjornstrup]{fncychap}',
-#     'preamble': r'''
-#                     \usepackage{graphicx}
-#                     \usepackage{ctex}
-#                     \usepackage{adjustbox}
-#                     \usepackage{grffile}
-#                     \graphicspath{{{_static/}}}
-#                 ''',
-#     'sphinxsetup': r'verbatimwithframe=false, VerbatimColor={rgb}{0.95,0.95,0.95}, verbatimborder=none, VerbatimFontSize=\footnotesize, VerbatimHighlightColor={rgb}{1,1,1}, VerbatimBorderColor={rgb}{0.95,0.95,0.95}, verboptions={frame=single,fontsize=\small}',
-# }
-#
-# # 设置LaTeX的输出编码为utf-8
-# latex_elements['inputenc'] = r'\inputencoding{utf8}'
-# # 设置LaTeX编译选项，以支持网络图片的加载
-# latex_elements['makeindex'] = ''
-# latex_elements['tableofcontents'] = ''
-# latex_elements['printindex'] = ''
-#
-# # 禁用LaTeX中的hyperref宏包，以避免生成的PDF文件中链接失效
-# latex_elements['preamble'] += r'\hypersetup{unicode=true}'
-#
-# # 设置生成的PDF文件名
-# latex_output = 'qff.pdf'
+
+# -- Options for LaTeX output ---------------------------------------------
+
+# 设置LaTeX编译引擎为xelatex
+latex_engine = 'xelatex'
+
+# 设置中文字体，需要安装对应的字体文件
+latex_elements = {
+    'fontpkg': r'''
+                \usepackage{fontspec}
+                \usepackage{xeCJK}
+                \setmainfont{DejaVu Serif} 
+                \setCJKmainfont{SimSun}  
+                ''',
+    'papersize': 'a4paper',
+    'pointsize': '12pt',
+    'fncychap': r'\usepackage[Bjornstrup]{fncychap}',
+    'preamble': r'''
+                    \usepackage{hyperref}
+                    \usepackage{geometry}
+                    \usepackage{graphicx}
+                    \usepackage{ctex}
+                    \usepackage{adjustbox}
+                    \usepackage{grffile}
+                    \usepackage{hyperref}   
+                    \usepackage{amsmath} 
+                    \usepackage{titling}
+                    \geometry{a4paper,left=2cm,right=2cm,top=2cm,bottom=2cm}
+                    \graphicspath{{../../_static/}}
+                    \usepackage{tocloft}
+                    \addtolength{\cftsecnumwidth}{2em}
+                    \addtolength{\cftsubsecnumwidth}{2em} 
+                    \def\captionsenglish{\def\contentsname{目\quad 录}} % ***
+                ''',
+    'tableofcontents': r'''
+                    \begingroup
+                    \pagenumbering{roman}
+                    \centering
+                    \setcounter{tocdepth}{2}
+                    \tableofcontents
+                    \newpage
+                    \pagenumbering{arabic}
+                    \setcounter{page}{1}
+                    \endgroup
+                ''',
+    'makeindex': '\\makeindex',
+    'printindex': '\\printindex',
+    'sphinxsetup': r'''
+                    verbatimwithframe=false,
+                    VerbatimColor={rgb}{0.95,0.95,0.95},
+                    VerbatimHighlightColor={rgb}{1,1,1},
+                    VerbatimBorderColor={rgb}{0.95,0.95,0.95},
+                ''',
+    'maketitle': r'''
+                \begin{titlepage}
+                \centering
+                \vspace*{3cm}
+                {\Huge \textbf{QFF使用手册}} \\
+                \vspace{1cm}
+                {\Large 版本: %s} \\
+                \vspace{2cm}
+                \includegraphics[width=1\textwidth]{qff_cover.png} \\
+                \vspace{2cm}
+                {\Large 作者: 徐海江} \\
+                 \vspace{1cm}
+                {\large \today} \\
+        \end{titlepage}
+    ''' % version,
+}
+
+

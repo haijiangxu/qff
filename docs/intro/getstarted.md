@@ -130,7 +130,7 @@ if __name__ == '__main__':
 1. 一个pkl文件，包含策略运行过程中context对象的所有信息
 2. 一个html文件，即策略运行报告。
 
-![strategy chart](../_static/profit.webp)
+![strategy chart](../_static/profit.png)
 
 ## 实盘模拟编写的策略
 
@@ -145,7 +145,7 @@ $ qff sim test.py  --cash 100000
 实盘模拟运行后，将在真实交易时间执行您的策略代码，命令行终端内将连续打印策略的日志信息。
 您可以通过输入`log`命令开关日志信息，并输入命令与QFF进行交互，首先输入`help`可以查看所有交互命令。
 
-![trace](../_static/trace.webp)
+![trace](../_static/trace.png)
 
 通过`info`命令可以随时查看策略当前实盘模拟的运行效果。
 

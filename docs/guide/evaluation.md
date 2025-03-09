@@ -15,33 +15,33 @@
 策略运行效果在此页面非常友好展现，策略收益率、基准收益、超额收益以及每日仓位占比等信息以曲线图形展示，一目了然。
 同时计算了策略运行的各种风险指标。
 
-![profit](../_static/profit.webp)
+![profit](../_static/profit.png)
 
 ### 交易分析页面
 交易分析将策略运行期间所有买入卖出的订单按先进先出的原则进行配对，由此计算各类绩效指标。关键指标包括盈亏比、胜率、
 持仓周期以及交易费用占比等。盈亏比大于1、胜率大于50%的策略都是可选策略。
 
-![trading_analysis](../_static/trading_analysis.webp)
+![trading_analysis](../_static/trading_analysis.png)
 
 ### 交易详情页面
 交易详情页面只是简单罗列策略运行期间的每笔交易，供您进行策略分析。
 
-![trading_detail](../_static/trading_detail.webp)
+![trading_detail](../_static/trading_detail.png)
 
 ### 持仓详情页面
 持仓详情页面只是简单罗列策略运行期间每日仓位情况，供您进行策略分析。
 
-![position_detail](../_static/position_detail.webp)
+![position_detail](../_static/position_detail.png)
 
 ### 账户详情页面
 账户详情页面简单罗列策略运行期间每日账户资产、当日和累计盈亏、当日仓位占比等信息，供您进行策略分析。
 
-![account_detail](../_static/account_detail.webp)
+![account_detail](../_static/account_detail.png)
 
 ### 日志输出页面
 日志输出页面调用日志文件，将完整的日志信息在此页面上展示，并对告警和错误信息进行颜色标注。
 
-![output](../_static/log-output.webp)
+![output](../_static/log-output.png)
 
 
 
@@ -66,22 +66,22 @@
 
 ### 策略收益
   $$
-    \begin{gather}   
+    \begin{array}{c}
     Total\ Returns = (P_{end} - P_{start}) / P_{start} * 100\%    \\
-    P_{end}  = 策略最终股票和现金的总价值 \\
-    P_{start}  = 策略开始股票和现金的总价值
-    \end{gather}
+    P_{end}  = \text{策略最终股票和现金的总价值} \\
+    P_{start}  = \text{策略开始股票和现金的总价值}
+    \end{array}
   $$
   
 ### 年化收益率
 年化收益率是用来衡量资产或投资组合的收益率的一种指标，表示资产或投资组合在一年内所获得的平均收益率。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Total\ Annualized\ Returns=R_{p}=((1+P)^{\cfrac{250}{n}} - 1)*100\% \\
-    P = 策略收益 \\
-    n = 策略执行天数
-    \end{gather}
+    P = \text{策略收益} \\
+    n = \text{策略执行天数}
+    \end{array}
   $$
 
 年化收益率通常用于与其他投资组合或指标进行比较，以评估投资组合的表现。年化收益率还可以用来估算投资组合的未来表现，
@@ -92,10 +92,10 @@
 描述策略可能出现的最糟糕的情况，最极端可能的亏损情况。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Max\ Drawdown=Max((P_{x}−P_{y})/P_{x}) \\
-    P_{x},P_{y}=策略某日股票和现金的总价值，y>x
-    \end{gather}
+    P_{x},P_{y}= \text{策略某日股票和现金的总价值}，y>x
+    \end{array}
   $$
 
 ### 阿尔法
@@ -103,13 +103,13 @@
 比如投资者获得了15%的回报，其基准获得了10%的回报，那么Alpha或者价值增值的部分就是5%。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Alpha=α=R_{p}−[R_{f}+β_{p}(R_{m}−R_{f})] \\
-    R_{p}=策略年化收益率 \\
-    R_{m}=基准年化收益率 \\
-    R_{f}=无风险利率（默认0.04） \\
-    β_{p}=策略beta值 \\
-    \end{gather}
+    R_{p}=\text{策略年化收益率} \\
+    R_{m}=\text{基准年化收益率} \\
+    R_{f}=\text{无风险利率（默认0.04）} \\
+    β_{p}=\text{策略beta值} \\
+    \end{array}
   $$
 
 | Alpha值|	解释 |
@@ -123,13 +123,13 @@
 策略可能涨1.5%，反之亦然；如果一个策略的Beta为-1.5，说明大盘涨1%的时候，策略可能跌1.5%，反之亦然。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Beta=β_{p}=\cfrac{Cov(D_{p},D_{m})}{Var(D_{m})} \\
-    D_{p}=策略每日收益 \\
-    D_{m}=基准每日收益 \\
-    Cov(D_{p},D_{m})=策略每日收益与基准每日收益的协方差 \\
-    Var(D_{m})=基准每日收益的方差 \\
-    \end{gather}
+    D_{p}=\text{策略每日收益} \\
+    D_{m}=\text{基准每日收益} \\
+    Cov(D_{p},D_{m})=\text{策略每日收益与基准每日收益的协方差} \\
+    Var(D_{m})=\text{基准每日收益的方差} \\
+    \end{array}
   $$
 
 
@@ -147,12 +147,12 @@
 表明每承担一单位风险所获得的超额收益越高，投资组合的风险调整收益能力越强。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Sharpe\ Ratio=\cfrac{R_{p}−R_{f}}{σ_{p}} \\
-    R_{p}=策略年化收益率 \\
-    R_{f}=无风险利率（默认0.04） \\
-    σ_{p}=策略收益波动率 \\
-    \end{gather}
+    R_{p}=\text{策略年化收益率} \\
+    R_{f}=\text{无风险利率（默认0.04）} \\
+    σ_{p}=\text{策略收益波动率} \\
+    \end{array}
   $$
 
 夏普比率衡量投资组合的风险调整收益能力，可以帮助投资者评估投资组合的表现，但需要注意的是，夏普比率存在一定的局限性，主要表现在以下几个方面：
@@ -167,12 +167,12 @@
 表示每承担一单位的下行风险，将会获得多少超额回报。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Sortino\ Ratio=\cfrac{R_{p}−R_{f}}{σ_{pd}} \\
-    R_{p}=策略年化收益率 \\
-    R_{f}=无风险利率（默认0.04） \\
-    σ_{pd}=策略下行波动率 \\
-    \end{gather}
+    R_{p}=\text{策略年化收益率} \\
+    R_{f}=\text{无风险利率（默认0.04）} \\
+    σ_{pd}=\text{策略下行波动率} \\
+    \end{array}
   $$
 
 索提诺比率的值越大，代表单位风险所获得的收益越高，也就是说，该投资组合相对于风险而言获得的收益越多，因此索提诺比率越高，代表该投资组合的风险调整收益能力越强。
@@ -193,9 +193,7 @@
 
 
   $$
-    \begin{gather}  
     Calmar\ Ratio=\frac{\text{年化收益率}}{\text{最大回撤}} \\
-    \end{gather}
   $$
 
 
@@ -209,9 +207,7 @@
 Omega比率的计算公式如下：
 
   $$
-    \begin{gather}  
     Omega\ Ratio=\frac{\text{P}(R > \text{k})}{\text{P}(R < \text{k})}
-    \end{gather}
   $$
 
 其中，$\text{P}(R > \text{k})$ 表示收益率大于某个阈值 $\text{k}$ 的概率，$\text{P}(R < \text{k})$ 表示收益率小于等于阈值 $\text{k}$ 的概率。
@@ -236,12 +232,12 @@ Omega比率的值越大，代表单位风险所获得的收益越高，也就是
 尽可能追求高信息比率。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Information\ Ratio=\cfrac{R_{p}−R_{m}}{σ_{t}} \\
-    R_{p}=策略年化收益率 \\
-    R_{m}=基准年化收益率 \\
-    σ_{t}=策略与基准每日收益差值的年化标准差 \\
-    \end{gather}
+    R_{p}=\text{策略年化收益率} \\
+    R_{m}=\text{基准年化收益率} \\
+    σ_{t}=\text{策略与基准每日收益差值的年化标准差} \\
+    \end{array}
   $$
 
 
@@ -249,22 +245,22 @@ Omega比率的值越大，代表单位风险所获得的收益越高，也就是
 用来测量策略的风险性，波动越大代表策略风险越高。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Algorithm\ Volatility=σ_{p}=\sqrt{\cfrac{250}{n-1} \sum^n_{i=0}(r_{p} - \overset{-}{r_{p}})^2} \\
-    r_{p}=策略每日收益率 \\
-    \overset{-}{r_{p}}=策略每日收益率的平均值=\cfrac{1}{n} \sum^n_{i=0}r_{pi} \\
-    n=策略执行天数
-    \end{gather}
+    r_{p}=\text{策略每日收益率} \\
+    \overset{-}{r_{p}}=\text{策略每日收益率的平均值}=\cfrac{1}{n} \sum^n_{i=0}r_{pi} \\
+    n=\text{策略执行天数}
+    \end{array}
   $$
   
 ### 基准波动率
 用来测量基准的风险性，波动越大代表基准风险越高。
 
   $$
-    \begin{gather}  
+    \begin{array}{c}
     Benchmark\ Volatility=σ_{m}=\sqrt{\cfrac{250}{n-1} \sum^n_{i=0}(r_{m} - \overset{-}{r_{m}})^2} \\
-    r_{m}=基准每日收益率 \\
-    \overset{-}{r_{m}}=基准每日收益率的平均值=\cfrac{1}{n} \sum^n_{i=0}r_{mi} \\
-    n=基准执行天数
-    \end{gather}
+    r_{m}=\text{基准每日收益率} \\
+    \overset{-}{r_{m}}=\text{基准每日收益率的平均值}=\cfrac{1}{n} \sum^n_{i=0}r_{mi} \\
+    n=\text{基准执行天数}
+    \end{array}
   $$

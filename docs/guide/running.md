@@ -305,7 +305,7 @@ ks命令语法：
 * ks:不带参数运行将输出当前已经配对的成交记录列表。
 * ks n: 生成以上成交记录列表中第n条记录对应的股票k线图，并标注买入卖出点。
 
-![kline_demo](../_static/kline-demo.webp)
+![kline_demo](../_static/kline-demo.png)
 
 3. kg命令
 
