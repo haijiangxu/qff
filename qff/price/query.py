@@ -30,11 +30,13 @@ import pandas as pd
 from typing import Dict, Optional
 from datetime import datetime
 from bson.regex import Regex
+from qff.frame.const import RUN_TYPE, RUN_STATUS
+from qff.price.fetch import fetch_price
 from qff.tools.mongo import DATABASE
 from qff.tools.date import get_pre_trade_day, is_trade_day, get_real_trade_date, util_date_valid, util_time_valid
 from qff.tools.utils import util_code_tolist
 from qff.tools.logs import log
-from qff.frame.context import context, RUN_STATUS
+from qff.frame.context import context
 
 __all__ = ['get_price', 'get_bars', 'get_stock_list', 'get_stock_name', 'get_index_stocks', 'get_block_stock',
            'get_mtss', 'get_all_securities', 'get_security_info', 'get_st_stock', 'get_paused_stock',
@@ -71,7 +73,7 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
 
     :param fq: 复权选项: 'pre', 前复权； None,不复权, 返回实际价格；'post',后复权
 
-    :param market: 市场类型，目前支持[“stock", ”index","ETF"], 默认“stock".
+    :param market: 市场类型，目前支持["stock", "index","ETF"], 默认"stock".
 
     :type security: str or list
     :type count: int
@@ -86,8 +88,8 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
     :return: 请注意, 为了方便比较一只股票的多个属性, 同时也满足对比多只股票的一个属性的需求, 我们在security参数是一只股票和多只股票
         时返回的结构完全不一样.
 
-        * 如果是一支股票, 则返回[pandas.DataFrame]对象, 行索引是date(分钟级别数据为datetime), 列索引是行情字段名字.
-        * 如果是多支股票, 则返回[pandas.DataFrame]对象,行索引是['date', 'code'],或['datetime', 'code']
+        * 如果是一只股票, 则返回[pandas.DataFrame]对象, 行索引是date(分钟级别数据为datetime), 列索引是行情字段名字.
+        * 如果是多只股票, 则返回[pandas.DataFrame]对象,行索引是['date', 'code'],或['datetime', 'code']
 
     :rtype: DataFrame or None
 
@@ -113,163 +115,133 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
 
 
     """
+    log.info('hello........................')
     log.debug('调用get_price' + str(locals()).replace('{', '(').replace('}', ')'))
-    # 1、参数合法性判断
-    if market not in ['stock', 'index', 'etf'] or \
-            freq not in ['daily', '1d', 'day', '1min', '5min', '15min', '30min', '60min', '1m', '5m', '15m', '30m',
-                         '60m'] or fq not in ['pre', 'post', None]:
+    
+    # 1. 参数验证优化 - 使用集合判断
+    valid_markets = {'stock', 'index', 'etf'}
+    valid_freqs = {'daily', '1d', 'day', '1min', '5min', '15min', '30min', '60min', '1m', '5m', '15m', '30m', '60m'}
+    valid_fq = {'pre', 'post', None}
+    
+    if market not in valid_markets or freq not in valid_freqs or fq not in valid_fq:
         log.error('get_price：参数错误！对照API文档检查market、freq、fq等参数的合法性！')
         return None
+        
     if market != 'stock' and skip_paused:
         log.error('get_price：参数错误！对照API文档检查market、skip_paused、fq等参数的合法性！')
         return None
 
-    # 2、开始和结束时间计算
-    if end is None:
-        end = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        if not is_trade_day(end[:10]):
-            end = get_real_trade_date(end)
-    else:
-        if not util_date_valid(end) and not util_time_valid(end):
-            log.error('get_price：参数错误！对照API文档检查end参数的合法性！')
-            return None
+    # 2. 时间处理优化
+    end = end or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    if not is_trade_day(end[:10]):
+        end = get_real_trade_date(end)
+    
+    if not (util_date_valid(end) or util_time_valid(end)):
+        log.error('get_price：参数错误！对照API文档检查end参数的合法性！')
+        return None
 
     if start is None:
-        if count is None:
-            start = end
-        else:
-            start = get_pre_trade_day(end, count - 1, freq)
-    else:
-        if not util_date_valid(start) and not util_time_valid(start):
-            log.error('get_price：参数错误！对照API文档检查start参数的合法性！')
-            return None
+        start = end if count is None else get_pre_trade_day(end, count - 1, freq)
+    elif not (util_date_valid(start) or util_time_valid(start)):
+        log.error('get_price：参数错误！对照API文档检查start参数的合法性！')
+        return None
 
-    if freq in ['daily', '1d', 'day']:
-        start = str(start)[:10]
-        end = str(end)[:10]
-        freq = 'day'
-        date_index = 'date'
-    else:
-        start = str(start)
-        end = str(end)
-        if len(start) == 10:
-            start = '{} 09:30:00'.format(start)
+    # 3. 频率和时间索引处理优化
+    is_day_freq = freq in {'daily', '1d', 'day'}
+    date_index = 'date' if is_day_freq else 'datetime'
+    
+    start = str(start)[:10] if is_day_freq else str(start)
+    end = str(end)[:10] if is_day_freq else str(end)
+    
+    if not is_day_freq:
+        start = f'{start} 09:30:00' if len(start) == 10 else start
+        end = f'{end} 15:00:00' if len(end) == 10 else end
+        freq = freq[:-1] + 'in' if len(freq) < 4 else freq
 
-        if len(end) == 10:
-            end = '{} 15:00:00'.format(end)
-
-        if len(freq) < 4:
-            freq = freq + 'in'
-        date_index = 'datetime'
-    # 3、其他参数初始化
+    # 4. 字段处理优化
     code = util_code_tolist(security)
-    coll = DATABASE.get_collection(market + '_' + freq[-3:])
     field_list = ['open', 'close', 'low', 'high', 'vol', 'amount']
     if market == 'index':
-        field_list += ['up_count', 'down_count']
+        field_list.extend(['up_count', 'down_count'])
 
-    # 4、field参数计算
-    if fields is None:
-        projection = {"_id": 0, "code": 1, date_index: 1, 'open': 1, 'close': 1, 'low': 1, 'high': 1, 'vol': 1,
-                      'amount': 1}
-    else:
-        if isinstance(fields, str):
-            fields = [fields]
-        if isinstance(fields, list):
-            base_fields = [elem for elem in fields if elem in field_list]
-            if len(base_fields) == 0:
-                log.error(f"get_price：参数fields不合法！,应该{field_list}为列表！")
-
-            if market == 'stock' and skip_paused and 'vol' not in base_fields:
-                base_fields.append('vol')
-
-            projection = dict.fromkeys(base_fields, 1)
-            prefix = {
-                "_id": 0,
-                "code": 1,
-                date_index: 1,
-            }
-            projection = dict(**prefix, **projection)
-
-        else:
-            log.error("get_price：参数fields不合法！,应该为字符串或字符串列表！")
+    projection = {"_id": 0, "code": 1, date_index: 1}
+    if fields:
+        fields = [fields] if isinstance(fields, str) else fields
+        valid_fields = [f for f in fields if f in field_list]
+        if not valid_fields:
+            log.error(f"get_price：参数fields不合法！,应该{field_list}为列表！")
             return None
+            
+        if market == 'stock' and skip_paused and 'vol' not in valid_fields:
+            valid_fields.append('vol')
+            
+        projection.update({f: 1 for f in valid_fields})
+    else:
+        projection.update({f: 1 for f in field_list[:6]})
 
-    # 5、数据库查询
+    # 5. 数据库查询优化
+    coll = DATABASE.get_collection(f'{market}_{freq[-3:]}')
     filter = {
         'code': {'$in': code},
-        date_index: {
-            "$gte": start,
-            "$lte": end
-        },
+        date_index: {'$gte': start, '$lte': end}
     }
+    
     if freq != 'day':
         filter['type'] = freq
 
-    cursor = coll.find(filter, projection=projection, batch_size=10000)
-
-    data = pd.DataFrame([item for item in cursor])
+    # 使用批量查询提升性能
+    data = pd.DataFrame(list(coll.find(filter, projection, batch_size=10000)))
+    
     if len(data) == 0:
         log.debug("get_price未查询到数据")
         return None
 
-    # 5、数据清洗
-    data.drop_duplicates([date_index, 'code'], inplace=True)
-    if 'vol' in data.columns.values:
-        data.vol = data.vol.apply(lambda x: int(x * 100))  # 股票成交数量不能有小数
-    if 'amount' in data.columns.values:
-        data.amount = data.amount.apply(lambda x: round(x, 2))  # 股票成交额保留两位小数
-    # 6、处理skip_paused
-    if market == 'stock' and skip_paused:
-        data = data.query('vol>1').copy()
-        if fields and 'vol' not in fields:
-            data = data.drop('vol', axis=1)
+    # 6. 数据处理优化
+    data = data.drop_duplicates([date_index, 'code'])
+    
+    if 'vol' in data.columns:
+        data['vol'] = (data['vol'] * 100).astype(int)
+    if 'amount' in data.columns:
+        data['amount'] = data['amount'].round(2)
 
-    # 7、对股票进行复权计算
+    # 7. 复权处理优化
     if market == 'stock' and fq in ['pre', 'post']:
-        cursor = DATABASE.stock_adj.find(
-            {
-                'code': {
-                    '$in': code
-                },
-                "date": {
-                    "$lte": end[:10],
-                    "$gte": start[:10]
-                }
-            },
-            {"_id": 0},
-            batch_size=10000
-        )
-        adj = pd.DataFrame([item for item in cursor])
-        if len(adj) > 0:
+        adj_data = pd.DataFrame(list(DATABASE.stock_adj.find(
+            {'code': {'$in': code}, 'date': {'$lte': end[:10], '$gte': start[:10]}},
+            {'_id': 0}
+        )))
+        
+        if not adj_data.empty:
             if date_index == 'datetime':
-                data['date'] = data.datetime.apply(lambda x: str(x)[:10])  # 生成日期
+                data['date'] = data['datetime'].str[:10]
             data.set_index(['date', 'code'], inplace=True)
-            adj.set_index(['date', 'code'], inplace=True)
-            data = data.join(adj, how='left')
-            if fq == 'pre':
-                data['qfq'] = data['qfq'].fillna(1)  # 前复权空值填1，倒序
-                cof = data['qfq']
-            else:
-                data['hfq'] = data['hfq'].fillna(method='ffill')  # # 后复权空值填最后一个系数
-                cof = data['hfq']
-            for col in ['open', 'high', 'low', 'close']:
-                if col in data.columns.values:
-                    data[col] = round(data[col] * cof, 2)
+            adj_data.set_index(['date', 'code'], inplace=True)
+            
+            # 复权因子处理
+            data = data.join(adj_data, how='left')
+            factor = data['qfq'] if fq == 'pre' else data['hfq']
+            factor = factor.fillna(1) if fq == 'pre' else factor.fillna(method='ffill')
+            
+            # 价格复权
+            price_cols = ['open', 'high', 'low', 'close']
+            data[price_cols] = data[price_cols].multiply(factor, axis=0).round(2)
+            
+            data = data.drop(['qfq', 'hfq'], axis=1)
             data.reset_index(inplace=True)
-            data.drop(['qfq', 'hfq'], axis=1, inplace=True)
             if date_index == 'datetime':
                 data.drop('date', axis=1, inplace=True)
         else:
             log.debug("get_price获取复权因子失败！返回未复权值")
 
+    # 8. 结果处理优化
     if count is not None:
-        data = data.groupby(['code'], as_index=False).tail(count)
+        data = data.groupby('code', as_index=False).tail(count)
 
     if len(code) == 1:
         data = data.drop('code', axis=1).set_index(date_index)
     else:
         data.set_index([date_index, 'code'], inplace=True)
+
     return data
 
 
@@ -391,86 +363,178 @@ def attribute_history(security, count, unit='1d', fields=None, fq='pre'):
 def get_bars(security, count, unit='1d', fields=None, include_now=False, end_dt=None, fq_ref_date=None, market='stock'):
     # type: (list, int, str, Optional[list], bool, Optional[str], Optional[str], str) -> Optional[pd.DataFrame]
     """
-    **函数暂未实现**
-
+   
     获取各种时间周期的 bar 数据， bar 的分割方式与主流股票软件相同， 而且支持返回当前时刻所在 bar 的数据；
-    get_bars 开盘时取的bar高开低收都是当天的开盘价，成交量成交额为0；
-    get_bars 没有跳过停牌选项，所获取的数据都是不包含停牌的数据，如果bar个数少于count个，则返回实际个数，并不会填充。
 
-    :param security: 标的代码或列表,支持一个或多个标的
-    :param count: 大于0的整数，表示获取bar的个数。如果行情数据的bar不足count个，返回的长度则小于count个数。
-    :param unit: bar的时间单位, 支持标准bar,包括['1m', '5m', '15m', '30m', '60m', '1d']
-    :param fields: 获取数据的字段， 支持如下值：['date', 'open', 'close', 'high', 'low', 'vol', 'amount']，默认为None,表示全部字段。
-    :param include_now: 取值True 或者False。 表示是否包含当前bar, 比如策略时间是9:33，unit参数为5m，如果 include_now=True,则返回9:30-9:33这个分钟 bar。
-    :param end_dt: 查询的截止时间，支持的类型为None或str。默认值为None
+    get_bars 开盘时取的bar高开低收都是当天的开盘价,成交量成交额为0;
+    get_bars 没有跳过停牌选项,所获取的数据都是不包含停牌的数据,如果bar个数少于count个,则返回实际个数，并不会填充。
+
+    :param security: 一支股票代码或者一个指数代码
+    :param count: 大于0的整数,表示获取bar的个数。如果行情数据的bar不足count个,返回的长度则小于count个数。
+    :param unit: bar的时间单位, 支持标准bar,包括['1m', '5m', '15m', '30m', '60m', 'day', 'week', 'month', 'year']
+
+    :param fields: 获取数据的字段， 支持如下值：['date', 'open', 'close', 'high', 'low', 'vol', 'amount'],默认为None,表示全部字段。
+    :param include_now: 取值True 或者False。 表示是否包含当前bar, 比如策略时间是9:33,unit参数为5m,如果 include_now=True,则返回9:30-9:33这个分钟 bar。
+    :param end_dt: 查询的截止时间,支持的类型为None或str。默认值为None
 
         * 在回测/模拟环境下默认为context.current_dt
         * 在其他环境下默认为datetime.now()
-        * 由于bar的最小单位是一分钟，所以end_dt的秒没有什么意义，会被替换为0，例如："2019-11-22 9:35:23" 和 "2019-11-22 9:35:00" 是一样的。
-    :param fq_ref_date: 复权基准日期，支持的类型为str或None,为None时为不复权数据。
+        * 由于bar的最小单位是一分钟,所以end_dt的秒没有什么意义,会被替换为0,例如："2019-11-22 9:35:23" 和 "2019-11-22 9:35:00" 是一样的。
+    :param fq_ref_date: 复权基准日期,支持的类型为str或None,为None时为不复权数据。
 
         * 回测/模拟环境中默认为 context.current_dt
         * 在投研环境下默认为datetime.now()
         * 如果输入 fq_ref_date = None, 则获取到的是不复权的数据
-        * 如果想获取后复权的数据，可以将fq_ref_date 指定为一个股票IPO之前很早的日期，比如 datetime.date(1990, 1, 1)
+        * 如果想获取后复权的数据,可以将fq_ref_date 指定为一个股票IPO之前很早的日期,比如 datetime.date(1990, 1, 1)
         * 定点复权，以某一天价格点位为参照物，进行的前复权或后复权。
         * 设置为datetime.datetime.now()即返回前复权数据。
-        * 设置为context.current_dt返回动态复权数据，
-    :param market: 市场类型，目前支持[“stock", ”index","ETF"], 默认“stock".
+        * 设置为context.current_dt返回动态复权数据。
+    :param market: 市场类型，目前支持[“stock", "index","ETF"], 默认"stock".
 
     :return:
 
-       * 若security为字符串格式的标的代码时，返回pandas.DataFrame，dataframe 的index是一个日期字符串
-       * 若security为list格式的标的代码时，返回pandas.DataFrame，dataframe 的index是一个MultiIndex
+       * 若security为字符串格式的标的代码时,返回pandas.DataFrame,dataframe 的index是一个日期字符串
+       * 若security为list格式的标的代码时,返回pandas.DataFrame,dataframe 的index是一个MultiIndex
 
+    :note:
 
-    :example:
+       **unit为1m**
 
-    ::
+       * 分钟bar的时间戳为这一分钟的结束时间，一天有240个分钟bar，第一个分钟bar的时间是09:31
+       * 若输end_dt为09:31且include_now=True,则会返回09:31这个bar，end_dt的秒和毫秒会被忽略。
+       * 如果end_dt为09:30且include_now=True，会构造一个09:30的bar，open/high/low/close使用当天的开盘价，成交量和成交额都是0。
+       
+       ::
+       
+            In [36]: get_bars('000001', 2, unit='1m', include_now=True, end_dt='2019-11-22 09:30:23)
+            Out[36]:
+                            date   open   high    low  close   volume     money
+            0 2019-11-21 15:00:00  15.86  15.86  15.86  15.86  1423800  22581468
+            1 2019-11-22 09:30:00  15.89  15.89  15.89  15.89        0         0
 
-        # 获取平安银行最近5天数据,包括context.current_date
-        df =  get_bars('000001', 5, unit='1d',fields=['open','close'],include_now=True)
+       **unit 为 5m/15m/30m/60m 时** 
 
-        # 设置复权基准日为 2018-01-05 , 取得的最近5条包括 end_dt 的天数据
-        get_bars('600507',5,unit='1d', fields=['date','open', 'high', 'low', 'close'],include_now=True, end_dt='2018-01-05 11:00:00', fq_ref_date='2018-01-05')
+       * include_now = False,返回截止到end_dt上一个unit的count个unit频率行情。
+       * include_now = true，且end_dt正好在unit结束位置，则返回截止到end_dt的count个unit频率行情。
+       * include_now = true，而且 end_dt > 上一个unit结束位置，则获取最后一个bar数据时间到end_dt之间的分钟数据，合并成一个bar。
 
+       **unit 为 1d 时**
+
+       * include_now = False, 获取截止到上一天的count个天行情，返回。
+       * include_now = True, 如果end_dt < 当天的收盘时间，获取当天截止到end_dt的分钟行情，合并成一个bar，然后获取截止到上一天的count-1个天行情，两部分合并返回。
+       * include_now = Ture时，而且 end_dt >= 当天的收盘时间，获取包含当天的一共count个天行情，返回。
+
+        ::
+
+            # 获取平安银行最近5天数据,包括context.current_date
+            df =  get_bars('000001', 5, unit='1d',fields=['open','close'],include_now=True)
+
+            # 设置复权基准日为 2018-01-05 , 取得的最近5条包括 end_dt 的天数据
+            get_bars('600507',5,unit='1d', fields=['date','open', 'high', 'low', 'close'],include_now=True, end_dt='2018-01-05 11:00:00', fq_ref_date='2018-01-05')
+        
+        **unit 为 1w时**
+
+        * include_now = False，获取截止到上周5的天bar，然后合并按周线合并。
+        * include_now = True时，最后一个bar的合并逻辑是：获取当天截止到 end_dt的分钟bar,合并成天bar，获取本周截止到上一天的天bar，然后把这些day bar合并成一个周线bar；其余的count-1个bar则是由截止到上周五的天bar合并而成。
+        
+        **unit 为 1M时**
+
+        * include_now = False时，获取截止到上一月月末的天bar，然后按月线合并。
+        * include_now = True时，最后一个bar的合并逻辑是：获取当天截止到 end_dt的分钟bar,合并成天bar，获取本月截止到上一天的天bar，然后把这些day bar合并成一个月线bar；其余的count-1个bar则是由截止到上个月最后一天的天bar合并而成。
 
     """
 
-    """
+    def merge_records(data):
+        """
+        将多条记录合并成一条记录
+        :param data: 待合并的DataFrame
+        :return: 合并后的记录
+        """
+        merged_record = {
+            'open': data.iloc[0]['open'],
+            'close': data.iloc[-1]['close'],
+            'high': data['high'].max(),
+            'low': data['low'].min(),
+            'vol': data['vol'].sum(),
+            'amount': data['amount'].sum()
+        }
+        return pd.DataFrame([merged_record], index=[data.index[-1]])
+
+
     log.debug('调用get_bar' + str(locals()).replace('{', '(').replace('}', ')'))
-    # 1、参数合法性判断
+    #1、参数合法性判断
     if market not in ['stock', 'index', 'etf'] or \
-            unit not in ['daily', '1d', 'day', '1min', '5min', '15min', '30min', '60min', '1m', '5m', '15m', '30m',
-                         '60m']:
+            unit not in ['1m', '5m', '15m', '30m', '60m', '1d', '1w', '1M']:
         log.error('get_bar：参数错误！对照API文档检查market、unit参数的合法性！')
         return None
 
-    # 2. end_dt
     if end_dt is None:
         if context.status == RUN_STATUS.RUNNING:
             end_dt = context.current_dt
         else:
             end_dt = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     else:
-        if not isinstance(end_dt, str) or (not util_date_valid(end_dt) and not util_time_valid(end_dt)):
+        if not isinstance(end_dt, str) or not (util_date_valid(end_dt) or util_time_valid(end_dt)):
             log.error('get_bar：参数错误！对照API文档检查end_dt参数的合法性！')
             return None
-
-
-    if context.run_type == RUN_TYPE.BACK_TEST and context.status == RUN_STATUS.RUNNING:
-        pass
-    elif context.run_type == RUN_TYPE.SIM_TRADE and context.status == RUN_STATUS.RUNNING:
-        pass
-    else:
-        pass
+    # 对end_dt时间里的秒，做归零处理
+    if len(end_dt) == 19:
+        end_dt = end_dt[:17] + '00'
 
     # 2. 获取当天日期，决定使用历史数据还是实时数据
-    today = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    if is_trade_day(today[:10]) and end_dt[:10]:
+    current_dt = datetime.now().replace(second=0, microsecond=0).strftime('%Y-%m-%d %H:%M:%S')
+    if end_dt[:10] == current_dt[:10]:
+        # if not is_trade_day(end_dt[:10]):
+        #     end_dt = get_real_trade_date(end_dt[:10], towards=-1) + ' 15:00:00'
+        #     current_dt = end_dt
+
+        if unit in ['day', 'month', 'week', 'year']:
+            data = fetch_price(security, count=count+1, freq=unit, market=market, start=None)
+            if data is not None:
+                if end_dt[:10] > data.index[-1].name or include_now:
+                    data = data.iloc[1:]  # 月周可能有点问题，休息日最后记录是周五，如果include_now=false, 会包括当前bar
+                else:
+                    data = data.iloc[:-1] 
+
+        else:
+            if current_dt != end_dt:
+                # 如果end_dt不是当前时间，则需要获取当前时间到end_dt之间有多少个unit
+                # current_dt_timestamp = pd.Timestamp(current_dt)
+                # end_dt_timestamp = pd.Timestamp(end_dt)
+                # unit_seconds = {
+                #     '1m': 60,
+                #     '5m': 300,
+                #     '15m': 900,
+                #     '30m': 1800,
+                #     '60m': 3600
+                # }
+                # delta_seconds = (current_dt_timestamp - end_dt_timestamp).total_seconds()
+                # additional_units = int(delta_seconds // unit_seconds[unit])
+                # count = count + additional_units
+
+                # 修改成按count截取最后输出,最多加240，按1分钟，1天240个bar
+
+                data = fetch_price(security, count=count+240, freq=unit, market=market, start=None)
+                if data is not None:
+                    last_bar = data.iloc[-1]
+                    if end_dt > last_bar.name:
+                        if include_now:
+                            delta_minutes = int((pd.Timestamp(end_dt) - pd.Timestamp(last_bar.name)).total_seconds() // 60)
+                            additional_data = fetch_price(security, count=delta_minutes, freq='1m', market=market, start=last_bar.name)
+                            if additional_data is not None:
+                                additional_data = merge_records(additional_data)
+                                data = pd.concat([data, additional_data])
+                                data = data.iloc[2:] 
+                        else:
+                            data = data.iloc[1:]
+                    else:
+                        data = data.iloc[1:] if include_now else data.iloc[:-1]
+  
+    else:
+
         pass
-    """
-    return None
+
+    return data
 
 
 def get_all_securities(date=None, market='stock', df=False):
@@ -479,8 +543,8 @@ def get_all_securities(date=None, market='stock', df=False):
 
     :param date: 查询日期, 用于获取某日期还在上市的股票信息. 默认值为 None, 表示获取当日的股票信息.
 
-        1. 特定参数“all”， 表示获取所有日期的上市股票信息。
-        2. 特定参数“delist", 表示获取所有退市股票信息
+        1. 特定参数"all"， 表示获取所有日期的上市股票信息。
+        2. 特定参数"delist", 表示获取所有退市股票信息
         3. **建议使用时添加上指定date**
     :param market: 用来过滤securities的类型,目前支持的type仅有['stock', 'index', 'etf]
     :param df: 返回格式，若是True, 返回[pandas.DataFrame], 否则返回一个仅包含标的代码的list, 默认是False.
@@ -605,7 +669,7 @@ def get_index_stocks(index, date=None):
     * '000010' ：上证180
     * '000688' ： 科创50abc
 
-    :param index: 字符串，一个指数代码，如‘000300’
+    :param index: 字符串，一个指数代码，如'000300'
     :param date: 字符串，查询日期, 如'2015-10-15'.
                 默认为None,指当前日期
     :return: 返回股票代码的list
@@ -664,7 +728,7 @@ def get_industry_stocks(industry, date=None):
     * '801970' ：环保
     * '801980' ：美容护理
 
-    :param industry: 字符串，一个指数代码，如‘801010’
+    :param industry: 字符串，一个指数代码，如'801010'
     :param date: 字符串，查询日期, 如'2015-10-15'.
                 默认为None,指当前日期
     :return: 返回股票代码的list
