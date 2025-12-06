@@ -115,7 +115,6 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
 
 
     """
-    log.info('hello........................')
     log.debug('调用get_price' + str(locals()).replace('{', '(').replace('}', ')'))
     
     # 1. 参数验证优化 - 使用集合判断
@@ -147,16 +146,23 @@ def get_price(security, start=None, end=None, freq='daily', fields=None, skip_pa
         return None
 
     # 3. 频率和时间索引处理优化
-    is_day_freq = freq in {'daily', '1d', 'day'}
-    date_index = 'date' if is_day_freq else 'datetime'
-    
-    start = str(start)[:10] if is_day_freq else str(start)
-    end = str(end)[:10] if is_day_freq else str(end)
-    
-    if not is_day_freq:
-        start = f'{start} 09:30:00' if len(start) == 10 else start
-        end = f'{end} 15:00:00' if len(end) == 10 else end
-        freq = freq[:-1] + 'in' if len(freq) < 4 else freq
+    if freq in ['daily', '1d', 'day']:
+        start = str(start)[:10]
+        end = str(end)[:10]
+        freq = 'day'
+        date_index = 'date'
+    else:
+        start = str(start)
+        end = str(end)
+        if len(start) == 10:
+            start = '{} 09:30:00'.format(start)
+
+        if len(end) == 10:
+            end = '{} 15:00:00'.format(end)
+
+        if len(freq) < 4:
+            freq = freq + 'in'
+        date_index = 'datetime'
 
     # 4. 字段处理优化
     code = util_code_tolist(security)

@@ -59,10 +59,12 @@
     api/frame_api
     api/data_api
 
-.. toctree::
-    :maxdepth: 2
-    :glob:
-    :caption: 开发
+.. only:: html
 
-    tasklist
-    CHANGELOG
+    .. toctree::
+        :maxdepth: 2
+        :glob:
+        :caption: 开发
+
+        tasklist
+        CHANGELOG
