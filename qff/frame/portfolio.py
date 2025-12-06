@@ -87,8 +87,20 @@ class Portfolio:
     def benchmark_assets(self):
         """ 基准市值 """
         if context.run_type == RUN_TYPE.BACK_TEST:
-            b_assets = round(context.bm_data.loc[context.current_dt[0:10]].close
-                             / context.bm_start * self.starting_cash, 2)
+            current_date = context.current_dt[0:10]
+            # 增加日期容错：如果当前日期不在基准数据中，使用最近一个可用日期
+            if current_date in context.bm_data.index:
+                bm_close = context.bm_data.loc[current_date].close
+            else:
+                # 查找小于等于当前日期的最近一个有效日期
+                valid_dates = context.bm_data.index[context.bm_data.index <= current_date]
+                if len(valid_dates) > 0:
+                    nearest_date = valid_dates[-1]
+                    bm_close = context.bm_data.loc[nearest_date].close
+                else:
+                    # 如果没有更早的日期，使用第一个日期
+                    bm_close = context.bm_data.iloc[0].close
+            b_assets = round(bm_close / context.bm_start * self.starting_cash, 2)
         else:
             b_assets = round(get_current_data(context.benchmark, market='index').last_price
                              / context.bm_start * self.starting_cash, 2)
