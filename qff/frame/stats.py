@@ -42,6 +42,48 @@ from jinja2 import Environment, FileSystemLoader
 import empyrical as em
 
 
+def _calc_max_drawdown(price_series):
+    """
+    O(n) 算法计算最大回撤及其起止位置
+    
+    :param price_series: pandas.Series，价格序列
+    :return: (max_drawdown, peak_index, trough_index)
+             max_drawdown: 最大回撤值
+             peak_index: 最大回撤起点索引（峰值位置）
+             trough_index: 最大回撤终点索引（谷底位置）
+    """
+    prices = price_series.values
+    n = len(prices)
+    
+    if n == 0:
+        return 0, 0, 0
+    
+    # 滚动峰值和当前峰值位置
+    running_max = prices[0]
+    running_max_idx = 0
+    
+    # 最大回撤及其位置
+    max_drawdown = 0
+    peak_idx = 0
+    trough_idx = 0
+    
+    for i in range(1, n):
+        if prices[i] > running_max:
+            # 更新滚动峰值
+            running_max = prices[i]
+            running_max_idx = i
+        else:
+            # 计算当前回撤
+            if running_max > 0:
+                current_drawdown = (running_max - prices[i]) / running_max
+                if current_drawdown > max_drawdown:
+                    max_drawdown = current_drawdown
+                    peak_idx = running_max_idx
+                    trough_idx = i
+    
+    return max_drawdown, peak_idx, trough_idx
+
+
 def stats_risk(ctx):
     """
     对策略运行结果进行风险指标分析
@@ -101,18 +143,10 @@ def stats_risk(ctx):
     ir = round((annualized_returns - bm_annualized_returns) / sigma, 2)
     # 日胜率：策略盈利超过基准盈利的天数在总交易数中的占比。
     daily_win_ratio = len(pct[pct > bm_pct]) / len(pct)
-    # 最大回撤
-    dropback = [
-        (price.iloc[idx] - price.iloc[idx::].min())
-        / price.iloc[idx]
-        if price.iloc[idx] != 0 else 0
-        for idx in range(len(price))
-    ]
-    max_dropback = max(dropback)
-    max_index = dropback.index(max_dropback)
-    min_index = price.iloc[max_index::].idxmin()
-    mdb_start = _date.loc[max_index]
-    mdb_end = _date.loc[min_index]
+    # 最大回撤 - O(n) 优化算法
+    max_dropback, max_index, min_index = _calc_max_drawdown(price)
+    mdb_start = _date.iloc[max_index]
+    mdb_end = _date.iloc[min_index]
 
     return {
         '策略收益': '{:.2%}'.format(returns.iloc[-1]),
@@ -162,16 +196,10 @@ def stats_charts(ctx):
     ky_ie = (ei_returns * 100).tolist()
     ky_vol = (vol_rate * 100).tolist()
 
-    dropback = [
-        (price.iloc[idx] - price.iloc[idx::].min())
-        / price.iloc[idx]
-        if price.iloc[idx] != 0 else 0
-        for idx in range(len(price))
-    ]
-    max_index = dropback.index(max(dropback))
-    min_index = price.iloc[max_index::].idxmin()
-    mdb_start = _date.loc[max_index]
-    mdb_end = _date.loc[min_index]
+    # 最大回撤 - O(n) 优化算法
+    _, max_index, min_index = _calc_max_drawdown(price)
+    mdb_start = _date.iloc[max_index]
+    mdb_end = _date.iloc[min_index]
 
     kline_line = (
         Line()
